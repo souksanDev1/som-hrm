@@ -1,0 +1,5 @@
+packages:
+  - hrm-api
+  - hrm-web
+  - hrm-mobile
+  - packages/*

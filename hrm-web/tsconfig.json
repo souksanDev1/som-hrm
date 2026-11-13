@@ -1,0 +1,39 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
+    "jsx": "preserve",
+    "allowJs": false,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ]
+  },
+  "include": [
+    "*.ts",
+    ".next/types/**/*.ts",
+    "e2e",
+    "next-env.d.ts",
+    "src",
+    "test",
+    ".next-e2e/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

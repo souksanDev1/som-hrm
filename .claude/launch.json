@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hrm-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@hrm/web", "dev"],
+      "port": 3000
+    }
+  ]
+}

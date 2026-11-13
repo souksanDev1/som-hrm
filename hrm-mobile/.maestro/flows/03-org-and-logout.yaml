@@ -1,0 +1,41 @@
+appId: la.som.hrm
+name: HR signs in with password, browses the org chart and signs out
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- tapOn:
+    id: "tab-password"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "admin@som.la"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "Admin1234"
+- hideKeyboard
+- tapOn:
+    id: "input-password-toggle"
+- assertVisible: "Admin1234"
+- tapOn:
+    id: "input-password-toggle"
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-org"
+- assertVisible: "ສົມສັກ ພົມມະວົງ"
+- assertVisible: "ຄຳແພງ ແກ້ວມະນີ"
+- tapOn:
+    id: "tab-profile"
+- scrollUntilVisible:
+    element:
+      id: "logout"
+- tapOn:
+    id: "logout"
+- assertVisible:
+    id: "login-screen"

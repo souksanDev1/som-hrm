@@ -1,0 +1,798 @@
+// SOM HRM — Phase 1 data model.
+// Every tenant table carries `workspaceId` and is protected by PostgreSQL
+// row-level security (see migrations/*_rls). Enum values mirror packages/shared/src/enums.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EmploymentStatus {
+  PROBATION
+  ACTIVE
+  ON_LEAVE
+  RESIGNED
+  TERMINATED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  DAILY
+  HOURLY
+  CONTRACT
+}
+
+enum NationalityType {
+  LAO
+  FOREIGN
+}
+
+enum DocumentType {
+  WORK_PERMIT
+  VISA
+  PASSPORT
+  ID_CARD
+  FAMILY_BOOK
+  CONTRACT
+  MEDICAL_CERT
+  OTHER
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  EARLY_LEAVE
+  ABSENT
+  ON_LEAVE
+  HOLIDAY
+  DAY_OFF
+}
+
+enum AttendanceSource {
+  MOBILE
+  KIOSK
+  SCANNER
+  MANUAL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveCategory {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  PERSONAL
+  MARRIAGE
+  BEREAVEMENT
+  UNPAID
+}
+
+enum HalfDay {
+  NONE
+  AM
+  PM
+}
+
+enum ScanImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TaskKind {
+  ONBOARDING
+  OFFBOARDING
+}
+
+enum NotificationType {
+  DOCUMENT_EXPIRY
+  LEAVE_REQUEST
+  LEAVE_DECISION
+  CORRECTION_REQUEST
+  CORRECTION_DECISION
+  SUSPICIOUS_ATTENDANCE
+  SYSTEM
+}
+
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+}
+
+// ─────────────────────── Tenant & billing ───────────────────────
+
+model Workspace {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  timezone  String   @default("Asia/Vientiane")
+  locale    String   @default("lo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription Subscription?
+  users        User[]
+  roles        Role[]
+  employees    Employee[]
+  branches     Branch[]
+  departments  Department[]
+  positions    Position[]
+}
+
+model Subscription {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  plan        String    @default("trial")
+  seatLimit   Int       @default(50)
+  seatCredit  Int       @default(0)
+  validUntil  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────── Identity & RBAC ────────────────────────
+
+model User {
+  id                   String    @id @default(cuid())
+  workspaceId          String
+  employeeId           String?   @unique
+  email                String?
+  phone                String?
+  displayName          String
+  passwordHash         String?
+  pinHash              String?
+  mustChangeCredential Boolean   @default(false)
+  isActive             Boolean   @default(true)
+  failedAttempts       Int       @default(0)
+  lockedUntil          DateTime?
+  lastLoginAt          DateTime?
+  locale               String    @default("lo")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  employee      Employee?       @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  roles         UserRole[]
+  refreshTokens RefreshToken[]
+  devices       DeviceBinding[]
+  notifications Notification[]
+  pushTokens    PushToken[]
+
+  @@unique([workspaceId, email])
+  @@unique([workspaceId, phone])
+  @@index([workspaceId])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  workspaceId String
+  code        String
+  name        String
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@unique([workspaceId, code])
+}
+
+/// Global catalogue of permission keys (not tenant scoped).
+model Permission {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  workspaceId  String
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([workspaceId])
+}
+
+model UserRole {
+  workspaceId String
+  userId      String
+  roleId      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([workspaceId])
+}
+
+model RefreshToken {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  actorUserId String?
+  action      String
+  entity      String
+  entityId    String?
+  meta        Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, entity, entityId])
+}
+
+model DeviceBinding {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  deviceId    String
+  platform    Platform
+  model       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId, deviceId])
+  @@index([workspaceId])
+}
+
+// ───────────────────────── Organisation ─────────────────────────
+
+model Branch {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  name           String
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  geofenceRadius Int      @default(150)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  employees  Employee[]
+  attendance AttendanceRecord[]
+
+  @@unique([workspaceId, name])
+}
+
+model Department {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  name           String
+  parentId       String?
+  headEmployeeId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    Department?  @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Department[] @relation("DepartmentTree")
+  employees Employee[]
+
+  @@unique([workspaceId, name])
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  level       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  employees Employee[]
+
+  @@unique([workspaceId, name])
+}
+
+// ─────────────────────────── Employees ───────────────────────────
+
+model Employee {
+  id                  String           @id @default(cuid())
+  workspaceId         String
+  employeeCode        String
+  firstName           String
+  lastName            String
+  nickname            String?
+  gender              Gender
+  dateOfBirth         DateTime?        @db.Date
+  phone               String?
+  email               String?
+  address             String?
+  nationalityType     NationalityType  @default(LAO)
+  nationality         String?
+  idCardNo            String?
+  /// AES-256-GCM encrypted (see src/lib/crypto.ts)
+  socialSecurityNoEnc String?
+  /// AES-256-GCM encrypted
+  familyBookNoEnc     String?
+  hireDate            DateTime         @db.Date
+  employmentType      EmploymentType
+  status              EmploymentStatus @default(PROBATION)
+  hazardousWork       Boolean          @default(false)
+  branchId            String?
+  departmentId        String?
+  positionId          String?
+  managerId           String?
+  workScheduleId      String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  workspace         Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  branch            Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  department        Department?            @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position          Position?              @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  manager           Employee?              @relation("ManagerReports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports           Employee[]             @relation("ManagerReports")
+  workSchedule      WorkSchedule?          @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  user              User?
+  documents         EmployeeDocument[]
+  emergencyContacts EmergencyContact[]
+  history           EmploymentHistory[]
+  attendance        AttendanceRecord[]
+  corrections       AttendanceCorrection[]
+  leaveBalances     LeaveBalance[]
+  leaveRequests     LeaveRequest[]
+  overtime          OvertimeRecord[]
+  onboardingTasks   OnboardingTask[]
+  offboarding       Offboarding?
+
+  @@unique([workspaceId, employeeCode])
+  @@index([workspaceId, status])
+  @@index([workspaceId, managerId])
+}
+
+model EmployeeDocument {
+  id            String       @id @default(cuid())
+  workspaceId   String
+  employeeId    String
+  type          DocumentType
+  number        String?
+  issuedAt      DateTime?    @db.Date
+  expiresAt     DateTime?    @db.Date
+  fileUrl       String?
+  note          String?
+  /// Smallest alert threshold (90/60/30) already notified, to avoid duplicates.
+  lastAlertDays Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, expiresAt])
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  employeeId   String
+  name         String
+  relationship String
+  phone        String
+  createdAt    DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model EmploymentHistory {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  employeeId    String
+  changeType    String
+  fromValue     Json?
+  toValue       Json?
+  effectiveDate DateTime @db.Date
+  note          String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, employeeId])
+}
+
+// ─────────────────────── Time & attendance ───────────────────────
+
+model Shift {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  name               String
+  /// Local time "HH:mm"
+  startTime          String
+  endTime            String
+  breakMinutes       Int      @default(60)
+  lateGraceMinutes   Int      @default(5)
+  earlyGraceMinutes  Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  schedules WorkSchedule[]
+
+  @@unique([workspaceId, name])
+}
+
+model WorkSchedule {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  /// 0=Sun..6=Sat. Default 6-day week (Mon–Sat).
+  workingDays Int[]    @default([1, 2, 3, 4, 5, 6])
+  shiftId     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  shift     Shift      @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  employees Employee[]
+
+  @@unique([workspaceId, name])
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  workspaceId String
+  date        DateTime @db.Date
+  nameLo      String
+  nameEn      String
+  womenOnly   Boolean  @default(false)
+
+  @@unique([workspaceId, date])
+}
+
+model AttendanceRecord {
+  id                String           @id @default(cuid())
+  workspaceId       String
+  employeeId        String
+  branchId          String?
+  workDate          DateTime         @db.Date
+  checkInAt         DateTime?
+  checkOutAt        DateTime?
+  checkInLat        Float?
+  checkInLng        Float?
+  checkInAccuracy   Float?
+  checkOutLat       Float?
+  checkOutLng       Float?
+  status            AttendanceStatus?
+  lateMinutes       Int              @default(0)
+  earlyLeaveMinutes Int              @default(0)
+  workedMinutes     Int              @default(0)
+  source            AttendanceSource @default(MOBILE)
+  /// Device clock at capture (offline sync); server time is createdAt/updatedAt.
+  deviceCapturedAt  DateTime?
+  /// Idempotency key generated on the device for offline queue replay.
+  clientRef         String?
+  deviceId          String?
+  selfieUrl         String?
+  suspicious        Boolean          @default(false)
+  suspiciousReasons String[]         @default([])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  employee    Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branch      Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  corrections AttendanceCorrection[]
+
+  @@unique([employeeId, workDate])
+  @@unique([workspaceId, clientRef])
+  @@index([workspaceId, workDate])
+}
+
+model AttendanceCorrection {
+  id                String        @id @default(cuid())
+  workspaceId       String
+  employeeId        String
+  attendanceId      String?
+  workDate          DateTime      @db.Date
+  requestedCheckIn  DateTime?
+  requestedCheckOut DateTime?
+  reason            String
+  status            RequestStatus @default(PENDING)
+  reviewerUserId    String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+  createdAt         DateTime      @default(now())
+
+  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendance AttendanceRecord? @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status])
+}
+
+model OvertimeRecord {
+  id          String        @id @default(cuid())
+  workspaceId String
+  employeeId  String
+  workDate    DateTime      @db.Date
+  minutes     Int
+  status      RequestStatus @default(PENDING)
+  note        String?
+  createdAt   DateTime      @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, employeeId, workDate])
+}
+
+model ScanImport {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  fileName     String
+  format       String
+  status       ScanImportStatus @default(PENDING)
+  uploadedById String?
+  totalRows    Int              @default(0)
+  importedRows Int              @default(0)
+  errorRows    Int              @default(0)
+  createdAt    DateTime         @default(now())
+
+  rows ScanImportRow[]
+
+  @@index([workspaceId, createdAt])
+}
+
+model ScanImportRow {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  importId     String
+  rowNumber    Int
+  employeeCode String?
+  timestamp    DateTime?
+  status       String
+  error        String?
+
+  import ScanImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, importId])
+}
+
+// ───────────────────────────── Leave ─────────────────────────────
+
+model LeaveType {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  code               String
+  category           LeaveCategory
+  nameLo             String
+  nameEn             String
+  paid               Boolean       @default(true)
+  requiresAttachment Boolean       @default(false)
+  allowHalfDay       Boolean       @default(true)
+  gender             Gender?
+  isActive           Boolean       @default(true)
+
+  policy   LeavePolicy?
+  balances LeaveBalance[]
+  requests LeaveRequest[]
+
+  @@unique([workspaceId, code])
+}
+
+model LeavePolicy {
+  id              String  @id @default(cuid())
+  workspaceId     String
+  leaveTypeId     String  @unique
+  daysPerYear     Decimal @db.Decimal(6, 2)
+  hazardousDays   Decimal? @db.Decimal(6, 2)
+  minServiceDays  Int     @default(0)
+  carryOverMax    Decimal @default(0) @db.Decimal(6, 2)
+
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model LeaveBalance {
+  id          String  @id @default(cuid())
+  workspaceId String
+  employeeId  String
+  leaveTypeId String
+  year        Int
+  entitled    Decimal @default(0) @db.Decimal(6, 2)
+  carried     Decimal @default(0) @db.Decimal(6, 2)
+  used        Decimal @default(0) @db.Decimal(6, 2)
+
+  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@index([workspaceId])
+}
+
+model LeaveRequest {
+  id              String        @id @default(cuid())
+  workspaceId     String
+  employeeId      String
+  leaveTypeId     String
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
+  halfDay         HalfDay       @default(NONE)
+  days            Decimal       @db.Decimal(6, 2)
+  reason          String?
+  attachmentUrl   String?
+  status          RequestStatus @default(PENDING)
+  currentStep     Int           @default(1)
+  /// Set when HR files the request on behalf of an employee without a smartphone.
+  submittedByUserId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  employee  Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType LeaveType       @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  approvals LeaveApproval[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, employeeId])
+}
+
+model LeaveApproval {
+  id               String        @id @default(cuid())
+  workspaceId      String
+  leaveRequestId   String
+  step             Int
+  approverUserId   String
+  /// When a delegate acts, the original approver they act for.
+  actingForUserId  String?
+  decision         RequestStatus @default(PENDING)
+  comment          String?
+  decidedAt        DateTime?
+  createdAt        DateTime      @default(now())
+
+  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([leaveRequestId, step])
+  @@index([workspaceId, approverUserId, decision])
+}
+
+/// A manager on leave can delegate approvals for a date range.
+model ApprovalDelegation {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  delegatorUserId String
+  delegateUserId  String
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  reason          String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([workspaceId, delegatorUserId])
+}
+
+// ───────────────────── Onboarding / offboarding ─────────────────────
+
+model OnboardingTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  kind        TaskKind
+  createdAt   DateTime @default(now())
+
+  tasks OnboardingTemplateTask[]
+
+  @@unique([workspaceId, name])
+}
+
+model OnboardingTemplateTask {
+  id            String  @id @default(cuid())
+  workspaceId   String
+  templateId    String
+  title         String
+  dueOffsetDays Int     @default(0)
+  sortOrder     Int     @default(0)
+
+  template OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model OnboardingTask {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  employeeId      String
+  kind            TaskKind
+  title           String
+  dueDate         DateTime? @db.Date
+  completedAt     DateTime?
+  completedById   String?
+  createdAt       DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, employeeId])
+}
+
+/// Exit record. Leave & OT balances are frozen here for the payroll module.
+model Offboarding {
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  employeeId         String    @unique
+  lastWorkingDate    DateTime  @db.Date
+  reason             String?
+  leaveBalanceAtExit Json?
+  otMinutesAtExit    Int       @default(0)
+  accessRevokedAt    DateTime?
+  createdById        String?
+  createdAt          DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+// ───────────────────────── Notifications ─────────────────────────
+
+model Notification {
+  id          String           @id @default(cuid())
+  workspaceId String
+  userId      String
+  type        NotificationType
+  title       String
+  body        String
+  data        Json?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, userId, readAt])
+}
+
+model PushToken {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  token       String   @unique
+  platform    Platform
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}

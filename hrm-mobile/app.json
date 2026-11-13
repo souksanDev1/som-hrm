@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "SOM HRM",
+    "slug": "som-hrm",
+    "scheme": "somhrm",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "la.som.hrm",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SOM HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch.",
+        "NSCameraUsageDescription": "SOM HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "la.som.hrm",
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization",
+      "expo-build-properties"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

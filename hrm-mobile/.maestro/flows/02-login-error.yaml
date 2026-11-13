@@ -1,0 +1,29 @@
+appId: la.som.hrm
+name: Wrong PIN shows a translated error and validation runs offline-first
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "E003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "12"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible: "PIN ຕ້ອງເປັນຕົວເລກ 6 ຕົວ"
+- tapOn:
+    id: "input-pin"
+- eraseText: 2
+- inputText: "000001"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "login-error"

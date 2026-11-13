@@ -1,0 +1,25 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.turbo/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+# Expo / native
+.expo/
+hrm-mobile/ios/
+hrm-mobile/android/
+*.tsbuildinfo
+next-env.d.ts
+# Playwright
+test-results/
+playwright-report/
+# uploads
+hrm-api/uploads/
+hrm-api/.pgdata/
+.next-e2e/

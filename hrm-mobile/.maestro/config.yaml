@@ -1,0 +1,5 @@
+# Maestro E2E flows for SOM HRM mobile (iOS + Android).
+# Prerequisites: API running with the demo seed (pnpm db:seed) and the app
+# built with EXPO_PUBLIC_API_URL pointing at it.
+flows:
+  - "flows/*"

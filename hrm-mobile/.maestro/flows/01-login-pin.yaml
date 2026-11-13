@@ -1,0 +1,33 @@
+appId: la.som.hrm
+name: Field worker signs in with phone + PIN and sees own profile
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "profile-code"
+    text: "E003"
+- assertVisible:
+    id: "profile-ssn"
+    text: "SS1000003"
