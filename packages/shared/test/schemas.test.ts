@@ -5,6 +5,7 @@ import {
   createEmployeeSchema,
   dictionaries,
   findLaoProvinceCode,
+  isoDateSchema,
   LAO_PROVINCES,
   laoPhoneSchema,
   laoProvinceName,
@@ -59,6 +60,17 @@ describe('createEmployeeSchema', () => {
     const r = createEmployeeSchema.safeParse({ ...base, contractType: 'FIXED_TERM', contractEndDate: '2024-12-31', probationEndDate: '2025-03-31' });
     expect(r.success).toBe(false);
     if (!r.success) expect(r.error.issues.map((i) => [i.path.join('.'), i.message])).toEqual([['contractEndDate', 'before_hire_date']]);
+  });
+});
+
+describe('isoDateSchema', () => {
+  it.each(['2024-02-29', '2030-12-31', '2026-01-01'])('accepts %s', (v) => {
+    expect(isoDateSchema.safeParse(v).success).toBe(true);
+  });
+  it.each(['2030-13-02', '2025-02-29', '2026-04-31', '2026-00-10', '2026-1-1', '20260101', ''])('rejects %s with invalid_date', (v) => {
+    const r = isoDateSchema.safeParse(v);
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe('invalid_date');
   });
 });
 

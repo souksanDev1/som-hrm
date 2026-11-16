@@ -145,6 +145,19 @@ export const employeesRepository = {
     return names.filter((_, i) => checks[i] === 0);
   },
 
+  /**
+   * Which of the referenced org units are closed (`isActive = false`).
+   * MERGE NOTE: only Branch has `isActive` on this branch; when Department/Position gain it, add
+   * `departmentId` / `positionId` here the same way — the service check needs no change.
+   */
+  closedOrgUnits: async (tx: Tx, workspaceId: string, refs: Pick<RefIds, 'branchId' | 'departmentId' | 'positionId'>) => {
+    const checks: [keyof typeof refs, Promise<number> | number][] = [
+      ['branchId', refs.branchId ? tx.branch.count({ where: { id: refs.branchId, workspaceId, isActive: false } }) : 0],
+    ];
+    const counts = await Promise.all(checks.map(([, c]) => c));
+    return checks.filter((_, i) => counts[i]! > 0).map(([field]) => field);
+  },
+
   /** Which of the given unique keys are already used by another employee of the workspace. */
   findUniqueConflicts: async (
     tx: Tx,

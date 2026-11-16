@@ -81,6 +81,7 @@ export const employeesLo = {
   'empx.expiring.expiringSoon': 'ໃກ້ໝົດອາຍຸ',
   'error.invalid_province': 'ແຂວງບໍ່ຖືກຕ້ອງ',
   'error.before_hire_date': 'ວັນທີນີ້ຕ້ອງບໍ່ກ່ອນວັນເຂົ້າວຽກ',
+  'error.org_unit_closed': 'ສາຂາ/ພະແນກ/ຕຳແໜ່ງນີ້ຖືກປິດແລ້ວ ກະລຸນາເລືອກອັນອື່ນ',
 } as const;
 
 export const employeesEn: Record<keyof typeof employeesLo, string> = {
@@ -164,4 +165,5 @@ export const employeesEn: Record<keyof typeof employeesLo, string> = {
   'empx.expiring.expiringSoon': 'Expiring soon',
   'error.invalid_province': 'Invalid province',
   'error.before_hire_date': 'This date cannot be before the hire date',
+  'error.org_unit_closed': 'This branch, department or position is closed; choose another one',
 };

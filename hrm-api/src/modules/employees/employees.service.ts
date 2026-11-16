@@ -132,6 +132,21 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
     if (missing.length) throw badRequest('invalid_reference', { fields: missing });
   };
 
+  /**
+   * Employees cannot be moved *to* a closed org unit (`org_unit_closed`). Keeping an existing
+   * assignment to a unit that was closed later is allowed, so only changed references are checked.
+   */
+  const assertOpenOrgUnits = async (
+    tx: Tx,
+    ws: string,
+    refs: { branchId?: string | null; departmentId?: string | null; positionId?: string | null },
+    before?: { branchId: string | null; departmentId: string | null; positionId: string | null },
+  ) => {
+    const changed = (k: keyof typeof refs) => (refs[k] && refs[k] !== before?.[k] ? refs[k] : undefined);
+    const closed = await repo.closedOrgUnits(tx, ws, { branchId: changed('branchId'), departmentId: changed('departmentId'), positionId: changed('positionId') });
+    if (closed.length) throw badRequest('org_unit_closed', { fields: closed });
+  };
+
   const assertNoManagerCycle = async (tx: Tx, ws: string, employeeId: string, managerId: string | undefined | null) => {
     if (!managerId) return;
     if (managerId === employeeId || (await repo.isInManagerChain(tx, ws, managerId, employeeId))) throw badRequest('manager_cycle');
@@ -252,6 +267,7 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
   const createEmployee = async (tx: Tx, ctx: AuthContext, input: CreateEmployeeData): Promise<CreateEmployeeResponse> => {
     const ws = ctx.workspaceId;
     await assertRefs(tx, ws, input);
+    await assertOpenOrgUnits(tx, ws, input);
     if (isActiveStatus(input.status)) await assertSeatAvailable(tx, ws);
     const { login, idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate, hireDate, ...rest } =
       input;
@@ -339,6 +355,7 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
         const ws = ctx.workspaceId;
         const before = await findInScope(tx, ctx, id);
         await assertRefs(tx, ws, input);
+        await assertOpenOrgUnits(tx, ws, input, before);
         await assertNoManagerCycle(tx, ws, id, input.managerId);
         const nationalityType = input.nationalityType ?? before.nationalityType;
         const nationality = input.nationality !== undefined ? input.nationality : before.nationality;

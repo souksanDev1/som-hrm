@@ -100,6 +100,40 @@ describe('FR-EMP-01/02/03: personal, Lao document and employment fields', () => 
   });
 });
 
+describe('closed org units and impossible dates', () => {
+  it('rejects assigning a closed branch but keeps an existing assignment to a branch closed later', async () => {
+    const ws = await createWorkspace(t.db);
+    const token = await ownerSession(ws);
+    const open = (await req('POST', token, '/branches', { name: 'Open' })).json<{ id: string }>();
+    const closing = (await req('POST', token, '/branches', { name: 'Closing' })).json<{ id: string }>();
+    const e = await createEmployee(token, { branchId: closing.id });
+    const other = await createEmployee(token, { branchId: open.id });
+    await t.db.tenant(ws.workspaceId, (tx) => tx.branch.update({ where: { id: closing.id }, data: { isActive: false } }));
+
+    const created = await req('POST', token, '/employees', employeePayload({ branchId: closing.id }));
+    expect(created.statusCode).toBe(400);
+    expect(created.json().error).toMatchObject({ code: 'org_unit_closed', details: { fields: ['branchId'] } });
+    const moved = await req('PATCH', token, `/employees/${other.id}`, { branchId: closing.id });
+    expect(moved.json().error.code).toBe('org_unit_closed');
+
+    // Re-saving the unchanged (now closed) assignment, or editing other fields, still works.
+    expect((await req('PATCH', token, `/employees/${e.id}`, { branchId: closing.id, nickname: 'Noy' })).statusCode).toBe(200);
+    expect((await req('PATCH', token, `/employees/${e.id}`, { branchId: open.id })).statusCode).toBe(200);
+  });
+
+  it('answers impossible calendar dates with 400 invalid_date instead of a database error', async () => {
+    const ws = await createWorkspace(t.db);
+    const token = await ownerSession(ws);
+    const bad = await req('POST', token, '/employees', employeePayload({ hireDate: '2030-13-02' }));
+    expect(bad.statusCode).toBe(400);
+    const e = await createEmployee(token);
+    const patch = await req('PATCH', token, `/employees/${e.id}`, { dateOfBirth: '2025-02-29' });
+    expect(patch.statusCode).toBe(400);
+    const doc = await req('POST', token, `/employees/${e.id}/documents`, { type: 'VISA', expiresAt: '2026-04-31' });
+    expect(doc.statusCode).toBe(400);
+  });
+});
+
 describe('FR-EMP-08: employment history with effective dates', () => {
   it('records position, branch/department, manager, contract and pay changes with names and the chosen effective date', async () => {
     const ws = await createWorkspace(t.db);
