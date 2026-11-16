@@ -27,12 +27,18 @@ enum EmploymentStatus {
   TERMINATED
 }
 
-enum EmploymentType {
-  FULL_TIME
-  PART_TIME
+/// FR-EMP-03.5 — kind of employment contract (replaces the contract half of the old EmploymentType).
+enum ContractType {
+  INDEFINITE
+  FIXED_TERM
+  PROBATION
+}
+
+/// FR-EMP-03.6 — how pay is calculated (replaces the pay half of the old EmploymentType).
+enum PayType {
+  MONTHLY
   DAILY
   HOURLY
-  CONTRACT
 }
 
 enum NationalityType {
@@ -44,6 +50,7 @@ enum DocumentType {
   WORK_PERMIT
   VISA
   PASSPORT
+  RESIDENCE_PERMIT
   ID_CARD
   FAMILY_BOOK
   CONTRACT
@@ -386,12 +393,22 @@ model Employee {
   employeeCode         String
   firstName            String
   lastName             String
+  /// English (Latin-script) name; firstName/lastName hold the Lao name (FR-EMP-01.1).
+  firstNameEn          String?
+  lastNameEn           String?
   nickname             String?
   gender               Gender
   dateOfBirth          DateTime?        @db.Date
   phone                String?
   email                String?
+  /// Free-text street / house details; the structured Lao address follows (FR-EMP-01.4).
   address              String?
+  /// ບ້ານ
+  village              String?
+  /// ເມືອງ
+  district             String?
+  /// ແຂວງ — a code from LAO_PROVINCES (packages/shared)
+  province             String?
   nationalityType      NationalityType  @default(LAO)
   nationality          String?
   /// DEPRECATED plaintext — migrated to idCardNoEnc by scripts/backfill-pii.ts; drop in a later milestone.
@@ -404,10 +421,18 @@ model Employee {
   socialSecurityNoHash String?
   /// AES-256-GCM encrypted (see src/lib/crypto.ts)
   socialSecurityNoEnc  String?
+  /// Date of social-security registration (FR-EMP-02.3)
+  ssnRegisteredAt      DateTime?        @db.Date
   /// AES-256-GCM encrypted
   familyBookNoEnc      String?
+  /// Household head named in the family book (FR-EMP-02.2)
+  familyBookHolder     String?
   hireDate             DateTime         @db.Date
-  employmentType       EmploymentType
+  /// FR-EMP-03.5/03.6 (split from the former EmploymentType)
+  contractType         ContractType
+  contractEndDate      DateTime?        @db.Date
+  probationEndDate     DateTime?        @db.Date
+  payType              PayType
   status               EmploymentStatus @default(PROBATION)
   hazardousWork        Boolean          @default(false)
   branchId             String?

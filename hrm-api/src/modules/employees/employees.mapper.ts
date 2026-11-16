@@ -1,13 +1,15 @@
-import { documentExpiry, maskSensitive, type EmployeeDetail, type EmployeeSummary } from '@hrm/shared';
+import { documentExpiry, maskSensitive, type EmployeeDetail, type EmployeeSummary, type ExpiringDocument } from '@hrm/shared';
 import type { FieldCipher } from '../../lib/crypto';
 import { toIsoDate } from '../../lib/dates';
-import type { EmployeeWithDetail, EmployeeWithSummary } from './employees.repository';
+import type { EmployeeWithDetail, EmployeeWithSummary, ExpiringDocumentRow } from './employees.repository';
 
 export const toEmployeeSummary = (e: EmployeeWithSummary): EmployeeSummary => ({
   id: e.id,
   employeeCode: e.employeeCode,
   firstName: e.firstName,
   lastName: e.lastName,
+  firstNameEn: e.firstNameEn,
+  lastNameEn: e.lastNameEn,
   nickname: e.nickname,
   phone: e.phone,
   email: e.email,
@@ -31,6 +33,21 @@ export interface ExpiryContext {
   alertDays: readonly number[];
 }
 
+/** Expiry fields of a document as computed by the server (FR-EMP-05.4). */
+const expiryFields = (expiresAtDate: Date | null, expiry: ExpiryContext) => {
+  const expiresAt = toIsoDate(expiresAtDate);
+  const x = documentExpiry(expiresAt, expiry.today, expiry.alertDays);
+  return { expiresAt, expiryStatus: x.status, daysUntilExpiry: x.daysUntilExpiry, expiryThresholdDays: x.thresholdDays };
+};
+
+export const toExpiringDocument = (d: ExpiringDocumentRow, expiry: ExpiryContext): ExpiringDocument => ({
+  id: d.id,
+  type: d.type,
+  number: d.number,
+  ...expiryFields(d.expiresAt, expiry),
+  employee: d.employee,
+});
+
 export const toEmployeeDetail = (
   e: EmployeeWithDetail,
   cipher: FieldCipher,
@@ -41,31 +58,32 @@ export const toEmployeeDetail = (
   gender: e.gender,
   dateOfBirth: toIsoDate(e.dateOfBirth),
   address: e.address,
+  village: e.village,
+  district: e.district,
+  province: e.province,
   nationality: e.nationality,
   // Legacy plaintext idCardNo is read only until scripts/backfill-pii.ts has encrypted it.
   idCardNo: e.idCardNoEnc ? reveal(cipher, e.idCardNoEnc, canSeeSensitive) : canSeeSensitive ? e.idCardNo : maskSensitive(e.idCardNo),
   socialSecurityNo: reveal(cipher, e.socialSecurityNoEnc, canSeeSensitive),
+  ssnRegisteredAt: toIsoDate(e.ssnRegisteredAt),
   familyBookNo: reveal(cipher, e.familyBookNoEnc, canSeeSensitive),
+  familyBookHolder: e.familyBookHolder,
   sensitiveMasked: !canSeeSensitive,
   hireDate: toIsoDate(e.hireDate)!,
-  employmentType: e.employmentType,
+  contractType: e.contractType,
+  contractEndDate: toIsoDate(e.contractEndDate),
+  probationEndDate: toIsoDate(e.probationEndDate),
+  payType: e.payType,
   hazardousWork: e.hazardousWork,
   manager: e.manager ? { id: e.manager.id, name: `${e.manager.firstName} ${e.manager.lastName}` } : null,
-  documents: e.documents.map((d) => {
-    const expiresAt = toIsoDate(d.expiresAt);
-    const x = documentExpiry(expiresAt, expiry.today, expiry.alertDays);
-    return {
-      id: d.id,
-      type: d.type,
-      number: d.number,
-      issuedAt: toIsoDate(d.issuedAt),
-      expiresAt,
-      note: d.note,
-      expiryStatus: x.status,
-      daysUntilExpiry: x.daysUntilExpiry,
-      expiryThresholdDays: x.thresholdDays,
-      file: d.file,
-    };
-  }),
+  documents: e.documents.map((d) => ({
+    id: d.id,
+    type: d.type,
+    number: d.number,
+    issuedAt: toIsoDate(d.issuedAt),
+    ...expiryFields(d.expiresAt, expiry),
+    note: d.note,
+    file: d.file,
+  })),
   emergencyContacts: e.emergencyContacts.map((c) => ({ id: c.id, name: c.name, relationship: c.relationship, phone: c.phone })),
 });

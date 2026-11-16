@@ -16,7 +16,7 @@ var created = http.post(api + '/employees', {
   headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
   body: JSON.stringify({
     employeeCode: code, firstName: 'ທົດສອບ', lastName: 'Maestro', gender: 'MALE',
-    hireDate: '2025-01-01', employmentType: 'DAILY', login: { method: 'PIN' },
+    hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'DAILY', login: { method: 'PIN' },
   }),
 });
 output.employeeCode = code;

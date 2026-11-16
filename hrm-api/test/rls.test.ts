@@ -10,7 +10,7 @@ afterAll(() => t.close());
 const addEmployee = (workspaceId: string, code: string) =>
   t.db.tenant(workspaceId, (tx) =>
     tx.employee.create({
-      data: { workspaceId, employeeCode: code, firstName: 'x', lastName: 'y', gender: 'MALE', hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME' },
+      data: { workspaceId, employeeCode: code, firstName: 'x', lastName: 'y', gender: 'MALE', hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY' },
     }),
   );
 
@@ -37,7 +37,7 @@ describe('PostgreSQL row-level security', () => {
     await expect(
       t.db.tenant(a.workspaceId, (tx) =>
         tx.employee.create({
-          data: { workspaceId: b.workspaceId, employeeCode: 'X', firstName: 'x', lastName: 'y', gender: 'MALE', hireDate: new Date(), employmentType: 'FULL_TIME' },
+          data: { workspaceId: b.workspaceId, employeeCode: 'X', firstName: 'x', lastName: 'y', gender: 'MALE', hireDate: new Date(), contractType: 'INDEFINITE', payType: 'MONTHLY' },
         }),
       ),
     ).rejects.toThrow(/row-level security/i);

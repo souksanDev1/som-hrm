@@ -33,8 +33,15 @@ export const errorResponseSchema = z.object({
 });
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
-/** ISO date string (YYYY-MM-DD). */
-export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'invalid_date');
+/** True for a real calendar date in YYYY-MM-DD form (rejects e.g. 2030-13-02 or 2025-02-29). */
+export const isValidIsoDate = (v: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+};
+
+/** ISO date string (YYYY-MM-DD) that exists on the calendar. */
+export const isoDateSchema = z.string().refine(isValidIsoDate, 'invalid_date');
 
 /** Treat empty form inputs ("" / null) as "not provided" for optional fields. */
 export const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>

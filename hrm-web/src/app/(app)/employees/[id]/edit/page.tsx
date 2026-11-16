@@ -14,24 +14,35 @@ const toFormValues = (e: EmployeeDetail): Partial<EmployeeFormValues> => ({
   employeeCode: e.employeeCode,
   firstName: e.firstName,
   lastName: e.lastName,
+  firstNameEn: e.firstNameEn ?? undefined,
+  lastNameEn: e.lastNameEn ?? undefined,
   nickname: e.nickname ?? undefined,
   gender: e.gender,
   dateOfBirth: e.dateOfBirth ?? undefined,
   phone: e.phone ?? undefined,
   email: e.email ?? undefined,
   address: e.address ?? undefined,
+  village: e.village ?? undefined,
+  district: e.district ?? undefined,
+  province: (e.province ?? undefined) as EmployeeFormValues['province'],
   nationalityType: e.nationalityType,
   nationality: e.nationality ?? undefined,
   idCardNo: e.sensitiveMasked ? undefined : (e.idCardNo ?? undefined),
   socialSecurityNo: e.sensitiveMasked ? undefined : (e.socialSecurityNo ?? undefined),
+  ssnRegisteredAt: e.ssnRegisteredAt ?? undefined,
   familyBookNo: e.sensitiveMasked ? undefined : (e.familyBookNo ?? undefined),
+  familyBookHolder: e.familyBookHolder ?? undefined,
   hireDate: e.hireDate,
-  employmentType: e.employmentType,
+  contractType: e.contractType,
+  contractEndDate: e.contractEndDate ?? undefined,
+  probationEndDate: e.probationEndDate ?? undefined,
+  payType: e.payType,
   status: e.status,
   hazardousWork: e.hazardousWork,
   branchId: e.branch?.id,
   departmentId: e.department?.id,
   positionId: e.position?.id,
+  managerId: e.manager?.id,
 });
 
 function EditForm({ employee }: { employee: EmployeeDetail }) {
@@ -42,6 +53,7 @@ function EditForm({ employee }: { employee: EmployeeDetail }) {
     <EmployeeForm
       mode="edit"
       defaultValues={defaults}
+      currentManager={employee.manager}
       submitting={update.isPending}
       error={update.error}
       onCancel={() => router.back()}

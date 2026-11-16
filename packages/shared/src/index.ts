@@ -2,6 +2,7 @@ export * from './enums';
 export * from './permissions';
 export * from './domain/lao-labor';
 export * from './domain/documents';
+export * from './domain/lao-address';
 export * from './domain/parameters';
 export * from './domain/geo';
 export * from './domain/holidays';

@@ -31,3 +31,15 @@ name: Field worker signs in with phone + PIN and sees own profile
 - assertVisible:
     id: "profile-ssn"
     text: "SS1000003"
+# M3 (FR-EMP-01.1/01.4/03.5/03.6): read-only name (EN), address, contract and pay type rows.
+- scrollUntilVisible:
+    element:
+      id: "profile-pay-type"
+- assertVisible:
+    id: "profile-name-en"
+- assertVisible:
+    id: "profile-address"
+- assertVisible:
+    id: "profile-contract-type"
+- assertVisible:
+    id: "profile-pay-type"

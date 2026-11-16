@@ -20,7 +20,7 @@ const issueTemporaryPassword = async (request: APIRequestContext) => {
     headers: { authorization: `Bearer ${accessToken}` },
     data: {
       employeeCode: `X${suffix.slice(-8)}`, firstName: 'ທົດສອບ', lastName: 'E2E', gender: 'FEMALE', email,
-      hireDate: '2025-01-01', employmentType: 'FULL_TIME', login: { method: 'PASSWORD' },
+      hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'MONTHLY', login: { method: 'PASSWORD' },
     },
   });
   expect(created.status()).toBe(201);

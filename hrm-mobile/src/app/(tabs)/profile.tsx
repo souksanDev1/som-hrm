@@ -1,3 +1,4 @@
+import { laoProvinceName } from '@hrm/shared';
 import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Button, Card, InfoRow, QueryView, Screen } from '@/components/ui';
@@ -24,11 +25,19 @@ export default function ProfileScreen() {
           <>
             <Card title={`${e.firstName} ${e.lastName}`}>
               <InfoRow label={t('employee.code')} value={e.employeeCode} testID="profile-code" />
+              <InfoRow label={t('empx.nameEn')} value={[e.firstNameEn, e.lastNameEn].filter(Boolean).join(' ') || null} testID="profile-name-en" />
               <InfoRow label={t('employee.position')} value={e.position?.name} />
               <InfoRow label={t('employee.department')} value={e.department?.name} />
               <InfoRow label={t('employee.branch')} value={e.branch?.name} />
               <InfoRow label={t('employee.hireDate')} value={e.hireDate} />
+              <InfoRow label={t('empx.contractType')} value={t(`empx.contractType.${e.contractType}`)} testID="profile-contract-type" />
+              <InfoRow label={t('empx.payType')} value={t(`empx.payType.${e.payType}`)} testID="profile-pay-type" />
               <InfoRow label={t('employee.phone')} value={e.phone} />
+              <InfoRow
+                label={t('empx.address.title')}
+                value={[e.village, e.district, laoProvinceName(e.province, locale)].filter(Boolean).join(', ') || null}
+                testID="profile-address"
+              />
               <InfoRow label={t('employee.socialSecurityNo')} value={e.socialSecurityNo} testID="profile-ssn" />
               <InfoRow label={t('employee.familyBookNo')} value={e.familyBookNo} />
             </Card>

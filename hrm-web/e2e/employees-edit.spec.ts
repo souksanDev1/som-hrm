@@ -49,7 +49,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await expect(rows.first()).toContainText('2026-02-01');
   });
 
-  test('adds and removes an emergency contact with confirmation', async ({ page }, info) => {
+  test('adds, edits and removes an emergency contact with confirmation', async ({ page }, info) => {
     await createEmployee(page, `K${info.project.name.slice(0, 1).toUpperCase()}${Date.now() % 100000}`);
     await page.getByTestId('add-contact').click();
     await page.locator('#contact-name').fill('ນາງ ດາ');
@@ -57,7 +57,14 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await page.locator('#contact-phone').fill('020 5555 9191');
     await page.getByTestId('save-contact').click();
     await expect(page.getByTestId('contact-row')).toHaveCount(1);
-    await page.getByTestId('contact-row').getByRole('button').click();
+    await page.getByTestId('edit-contact').click();
+    await expect(page.locator('#contact-relationship')).toHaveValue('ແມ່');
+    await page.locator('#contact-relationship').fill('ພໍ່');
+    const patch = page.waitForRequest((r) => r.method() === 'PATCH' && r.url().includes('/emergency-contacts/'));
+    await page.getByTestId('save-contact').click();
+    expect((await patch).postDataJSON()).toMatchObject({ relationship: 'ພໍ່' });
+    await expect(page.getByTestId('contact-row')).toContainText('ພໍ່');
+    await page.getByTestId('remove-contact').click();
     await page.getByTestId('confirm-accept').click();
     await expect(page.getByTestId('contact-row')).toHaveCount(0);
   });
@@ -76,5 +83,45 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await page.getByTestId('delete-document').click();
     await page.getByTestId('confirm-accept').click();
     await expect(page.getByTestId('document-row')).toHaveCount(0);
+  });
+
+  test('stores English name, Lao address, contract/pay type and manager; history shows the transfer with its effective date', async ({ page }, info) => {
+    const code = `M${info.project.name.slice(0, 1).toUpperCase()}${Date.now() % 100000}`;
+    await createEmployee(page, code, async (p) => {
+      await p.locator('#firstNameEn').fill('Test');
+      await p.locator('#lastNameEn').fill(code);
+      await p.locator('#village').fill('ໂພນທັນ');
+      await p.locator('#district').fill('ໄຊເສດຖາ');
+      await p.locator('#province').selectOption('LP');
+      await p.locator('#contractType').selectOption('FIXED_TERM');
+      await p.locator('#contractEndDate').fill('2027-01-04');
+      await p.locator('#payType').selectOption('DAILY');
+    });
+    await expect(page.getByTestId('name-en')).toHaveText(`Test ${code}`);
+    await expect(page.getByText('ຫຼວງພະບາງ')).toBeVisible();
+    await expect(page.getByTestId('contract-type')).toHaveText('ມີກຳນົດເວລາ');
+    await expect(page.getByTestId('pay-type')).toHaveText('ລາຍວັນ');
+
+    await page.getByRole('link', { name: /ແກ້ໄຂ|Edit/ }).click();
+    // Seeded E001 (ສົມສັກ ພົມມະວົງ) becomes the manager, effective on a date HR picks.
+    await page.locator('#managerId').selectOption({ label: 'E001 · ສົມສັກ ພົມມະວົງ' });
+    await page.locator('#effectiveDate').fill('2026-03-01');
+    await page.getByTestId('employee-submit').click();
+    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    const latest = page.getByTestId('history-card').getByTestId('history-row').first();
+    await expect(latest).toContainText('2026-03-01');
+    await expect(latest).toContainText('ສົມສັກ ພົມມະວົງ');
+  });
+
+  test('rejects a contract end date before the hire date', async ({ page }, info) => {
+    await page.goto('/employees/new');
+    await page.locator('#employeeCode').fill(`X${info.project.name.slice(0, 1).toUpperCase()}${Date.now() % 100000}`);
+    await page.locator('#firstName').fill('ທົດສອບ');
+    await page.locator('#lastName').fill('ວັນທີ');
+    await page.locator('#hireDate').fill('2026-01-05');
+    await page.locator('#contractType').selectOption('FIXED_TERM');
+    await page.locator('#contractEndDate').fill('2025-12-31');
+    await page.getByTestId('employee-submit').click();
+    await expect(page.getByText('ວັນທີນີ້ຕ້ອງບໍ່ກ່ອນວັນເຂົ້າວຽກ')).toBeVisible();
   });
 });
