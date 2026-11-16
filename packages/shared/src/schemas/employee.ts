@@ -7,8 +7,11 @@ import {
   NATIONALITY_TYPES,
   NationalityType,
 } from '../enums';
-import { emptyToUndefined, isoDateSchema, laoPhoneSchema, paginationQuerySchema } from './common';
+import { EXPIRY_STATES } from '../domain/documents';
+import { storedFileSchema } from './file';
+import { emptyToNull, emptyToUndefined, isoDateSchema, laoPhoneSchema, paginationQuerySchema } from './common';
 
+/** Optional text on create: blank → undefined. */
 const optionalText = (max: number) =>
   z
     .string()
@@ -16,59 +19,90 @@ const optionalText = (max: number) =>
     .max(max)
     .optional()
     .transform((v) => (v ? v : undefined));
+/** Optional text on update: omitted → unchanged, blank or null → null (clear). */
+const clearableText = (max: number) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() === '' ? null : v), z.string().trim().max(max).nullable().optional());
 const optionalDate = emptyToUndefined(isoDateSchema);
 
 /** Lao social-security (ປະກັນສັງຄົມ) number — digits/letters, 6–20 chars. */
 export const socialSecurityNoSchema = z.string().trim().regex(/^[A-Za-z0-9-]{6,20}$/, 'invalid_ssn');
 /** Family-book (ສຳມະໂນຄົວ) number. */
 export const familyBookNoSchema = z.string().trim().regex(/^[A-Za-z0-9/-]{3,30}$/, 'invalid_family_book');
+const emailSchema = z.string().trim().toLowerCase().email('invalid_email');
 
-const employeeBaseSchema = z.object({
+const requiredFields = {
   employeeCode: z.string().trim().regex(/^[A-Za-z0-9-]{1,20}$/, 'invalid_employee_code'),
   firstName: z.string().trim().min(1, 'required').max(80),
   lastName: z.string().trim().min(1, 'required').max(80),
-  nickname: optionalText(40),
   gender: z.enum(GENDERS),
-  dateOfBirth: optionalDate,
-  phone: emptyToUndefined(laoPhoneSchema),
-  email: emptyToUndefined(z.string().trim().toLowerCase().email('invalid_email')),
-  address: optionalText(300),
-  nationalityType: z.enum(NATIONALITY_TYPES).default(NationalityType.LAO),
-  nationality: optionalText(60),
-  idCardNo: optionalText(30),
-  socialSecurityNo: emptyToUndefined(socialSecurityNoSchema),
-  familyBookNo: emptyToUndefined(familyBookNoSchema),
   hireDate: isoDateSchema,
   employmentType: z.enum(EMPLOYMENT_TYPES),
-  status: z.enum(EMPLOYMENT_STATUSES).default('PROBATION'),
-  hazardousWork: z.boolean().default(false),
-  branchId: emptyToUndefined(z.string()),
-  departmentId: emptyToUndefined(z.string()),
-  positionId: emptyToUndefined(z.string()),
-  managerId: emptyToUndefined(z.string()),
-});
+};
 
-const foreignNeedsNationality = <T extends { nationalityType?: string; nationality?: string }>(v: T) =>
+/**
+ * Optional fields. On create a blank value means "not provided"; on update it means "clear"
+ * (null), while an omitted key leaves the stored value unchanged.
+ */
+const optionalFields = <M extends 'create' | 'update'>(mode: M) => {
+  type Wrapped<T extends z.ZodTypeAny> = M extends 'create' ? ReturnType<typeof emptyToUndefined<T>> : ReturnType<typeof emptyToNull<T>>;
+  type Text = M extends 'create' ? ReturnType<typeof optionalText> : ReturnType<typeof clearableText>;
+  const wrap = <T extends z.ZodTypeAny>(s: T) => (mode === 'create' ? emptyToUndefined(s) : emptyToNull(s)) as Wrapped<T>;
+  const text = (max: number) => (mode === 'create' ? optionalText(max) : clearableText(max)) as Text;
+  return {
+    nickname: text(40),
+    dateOfBirth: wrap(isoDateSchema),
+    phone: wrap(laoPhoneSchema),
+    email: wrap(emailSchema),
+    address: text(300),
+    nationality: text(60),
+    idCardNo: text(30),
+    socialSecurityNo: wrap(socialSecurityNoSchema),
+    familyBookNo: wrap(familyBookNoSchema),
+    branchId: wrap(z.string()),
+    departmentId: wrap(z.string()),
+    positionId: wrap(z.string()),
+    managerId: wrap(z.string()),
+  };
+};
+
+const foreignNeedsNationality = <T extends { nationalityType?: string; nationality?: string | null }>(v: T) =>
   v.nationalityType !== 'FOREIGN' || !!v.nationality;
+const nationalityRequired = { message: 'nationality_required', path: ['nationality'] };
 
-export const createEmployeeSchema = employeeBaseSchema
-  .extend({
+/** Login methods HR can issue. PASSWORD does not need an email: staff sign in with employee code or phone. */
+export const credentialMethodSchema = z.enum(['PASSWORD', 'PIN']);
+export const issueCredentialSchema = z.object({
+  method: credentialMethodSchema,
+  roleCode: z.enum(['HR_ADMIN', 'MANAGER', 'EMPLOYEE']).default('EMPLOYEE'),
+});
+export type IssueCredentialInput = z.input<typeof issueCredentialSchema>;
+
+export const createEmployeeSchema = z
+  .object({
+    ...requiredFields,
+    ...optionalFields('create'),
+    nationalityType: z.enum(NATIONALITY_TYPES).default(NationalityType.LAO),
+    status: z.enum(EMPLOYMENT_STATUSES).default('PROBATION'),
+    hazardousWork: z.boolean().default(false),
     /** Optionally create a login. PIN login works for staff without email/smartphone. */
-    login: z
-      .object({
-        method: z.enum(['PASSWORD', 'PIN']),
-        roleCode: z.enum(['HR_ADMIN', 'MANAGER', 'EMPLOYEE']).default('EMPLOYEE'),
-      })
-      .optional(),
+    login: issueCredentialSchema.optional(),
   })
-  .refine(foreignNeedsNationality, { message: 'nationality_required', path: ['nationality'] })
-  .refine((v) => v.login?.method !== 'PASSWORD' || !!v.email, { message: 'email_required_for_password', path: ['email'] });
+  .refine(foreignNeedsNationality, nationalityRequired);
 export type CreateEmployeeInput = z.input<typeof createEmployeeSchema>;
 export type CreateEmployeeData = z.output<typeof createEmployeeSchema>;
 
-export const updateEmployeeSchema = employeeBaseSchema
+export const updateEmployeeSchema = z
+  .object(requiredFields)
   .partial()
-  .refine(foreignNeedsNationality, { message: 'nationality_required', path: ['nationality'] });
+  .extend({
+    ...optionalFields('update'),
+    nationalityType: z.enum(NATIONALITY_TYPES).optional(),
+    status: z.enum(EMPLOYMENT_STATUSES).optional(),
+    hazardousWork: z.boolean().optional(),
+    /** Effective date for the employment-history entry (FR-EMP-08.4); defaults to today in the workspace timezone. */
+    effectiveDate: isoDateSchema.optional(),
+  })
+  .refine(foreignNeedsNationality, nationalityRequired);
 export type UpdateEmployeeInput = z.input<typeof updateEmployeeSchema>;
 export type UpdateEmployeeData = z.output<typeof updateEmployeeSchema>;
 
@@ -106,8 +140,14 @@ export const employeeDocumentSchema = z.object({
   issuedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),
   note: z.string().nullable(),
+  /** Computed by the API with the workspace alert thresholds and timezone; clients render it as-is. */
+  expiryStatus: z.enum(EXPIRY_STATES),
+  daysUntilExpiry: z.number().int().nullable(),
+  expiryThresholdDays: z.number().int().nullable(),
+  /** Uploaded scan (FR-EMP-07); download via GET /employees/:id/documents/:documentId/file. */
+  file: storedFileSchema.nullable(),
 });
-export type EmployeeDocument = z.infer<typeof employeeDocumentSchema>;
+export type EmployeeDocument =z.infer<typeof employeeDocumentSchema>;
 
 export const emergencyContactSchema = z.object({
   id: z.string(),
@@ -162,7 +202,7 @@ export type CreateEmergencyContactData = z.output<typeof createEmergencyContactS
 /** Returned once when HR creates a login or resets a PIN — never stored in clear. */
 export const credentialIssuedSchema = z.object({
   userId: z.string(),
-  method: z.enum(['PASSWORD', 'PIN']),
+  method: credentialMethodSchema,
   temporarySecret: z.string(),
 });
 export type CredentialIssued = z.infer<typeof credentialIssuedSchema>;
@@ -172,3 +212,19 @@ export const createEmployeeResponseSchema = z.object({
   credential: credentialIssuedSchema.nullable(),
 });
 export type CreateEmployeeResponse = z.infer<typeof createEmployeeResponseSchema>;
+
+export const employmentHistoryQuerySchema = paginationQuerySchema.omit({ search: true });
+export type EmploymentHistoryQuery = z.infer<typeof employmentHistoryQuerySchema>;
+
+/** One employment-history entry (FR-EMP-08). `fromValue`/`toValue` hold the changed fields only. */
+export const employmentHistoryEntrySchema = z.object({
+  id: z.string(),
+  changeType: z.string(),
+  fromValue: z.record(z.unknown()).nullable(),
+  toValue: z.record(z.unknown()).nullable(),
+  effectiveDate: z.string(),
+  note: z.string().nullable(),
+  createdAt: z.string(),
+  createdBy: z.object({ id: z.string(), name: z.string() }).nullable(),
+});
+export type EmploymentHistoryEntry = z.infer<typeof employmentHistoryEntrySchema>;

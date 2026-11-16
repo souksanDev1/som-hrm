@@ -112,6 +112,41 @@ enum NotificationType {
   CORRECTION_DECISION
   SUSPICIOUS_ATTENDANCE
   SYSTEM
+  APPROVAL_PENDING
+  APPROVAL_DECISION
+  APPROVAL_ESCALATED
+  MISSING_PUNCH
+  PROBATION_ENDING
+  OFFLINE_UNSYNCED
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum OtpPurpose {
+  FIRST_LOGIN
+  PASSWORD_RESET
+}
+
+enum FilePurpose {
+  EMPLOYEE_DOCUMENT
+  SELFIE
+  ATTACHMENT
+  IMPORT
 }
 
 enum Platform {
@@ -123,13 +158,14 @@ enum Platform {
 // ─────────────────────── Tenant & billing ───────────────────────
 
 model Workspace {
-  id        String   @id @default(cuid())
-  code      String   @unique
+  id        String          @id @default(cuid())
+  code      String          @unique
   name      String
-  timezone  String   @default("Asia/Vientiane")
-  locale    String   @default("lo")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  timezone  String          @default("Asia/Vientiane")
+  locale    String          @default("lo")
+  status    WorkspaceStatus @default(ACTIVE)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   subscription Subscription?
   users        User[]
@@ -165,6 +201,8 @@ model User {
   passwordHash         String?
   pinHash              String?
   mustChangeCredential Boolean   @default(false)
+  /// Set once the phone number has been confirmed with an SMS OTP (FR-AUTH-02.1).
+  phoneVerifiedAt      DateTime?
   isActive             Boolean   @default(true)
   failedAttempts       Int       @default(0)
   lockedUntil          DateTime?
@@ -239,6 +277,8 @@ model RefreshToken {
   workspaceId String
   userId      String
   tokenHash   String    @unique
+  /// All tokens rotated from one sign-in share a family; re-use revokes only that family.
+  familyId    String
   expiresAt   DateTime
   revokedAt   DateTime?
   userAgent   String?
@@ -248,8 +288,10 @@ model RefreshToken {
 
   @@index([workspaceId])
   @@index([userId])
+  @@index([familyId])
 }
 
+/// Append-only (UPDATE/DELETE blocked by trigger, see migration *_m2_foundation).
 model AuditLog {
   id          String   @id @default(cuid())
   workspaceId String
@@ -335,35 +377,42 @@ model Position {
 // ─────────────────────────── Employees ───────────────────────────
 
 model Employee {
-  id                  String           @id @default(cuid())
-  workspaceId         String
-  employeeCode        String
-  firstName           String
-  lastName            String
-  nickname            String?
-  gender              Gender
-  dateOfBirth         DateTime?        @db.Date
-  phone               String?
-  email               String?
-  address             String?
-  nationalityType     NationalityType  @default(LAO)
-  nationality         String?
-  idCardNo            String?
+  id                   String           @id @default(cuid())
+  workspaceId          String
+  employeeCode         String
+  firstName            String
+  lastName             String
+  nickname             String?
+  gender               Gender
+  dateOfBirth          DateTime?        @db.Date
+  phone                String?
+  email                String?
+  address              String?
+  nationalityType      NationalityType  @default(LAO)
+  nationality          String?
+  /// DEPRECATED plaintext — migrated to idCardNoEnc by scripts/backfill-pii.ts; drop in a later milestone.
+  idCardNo             String?
+  /// AES-256-GCM encrypted national ID card number
+  idCardNoEnc          String?
+  /// HMAC-SHA256 blind index for duplicate detection (FR-EMP-10.3)
+  idCardNoHash         String?
+  /// HMAC-SHA256 blind index for duplicate detection (FR-EMP-10.2)
+  socialSecurityNoHash String?
   /// AES-256-GCM encrypted (see src/lib/crypto.ts)
-  socialSecurityNoEnc String?
+  socialSecurityNoEnc  String?
   /// AES-256-GCM encrypted
-  familyBookNoEnc     String?
-  hireDate            DateTime         @db.Date
-  employmentType      EmploymentType
-  status              EmploymentStatus @default(PROBATION)
-  hazardousWork       Boolean          @default(false)
-  branchId            String?
-  departmentId        String?
-  positionId          String?
-  managerId           String?
-  workScheduleId      String?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  familyBookNoEnc      String?
+  hireDate             DateTime         @db.Date
+  employmentType       EmploymentType
+  status               EmploymentStatus @default(PROBATION)
+  hazardousWork        Boolean          @default(false)
+  branchId             String?
+  departmentId         String?
+  positionId           String?
+  managerId            String?
+  workScheduleId       String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   workspace         Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   branch            Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -385,6 +434,8 @@ model Employee {
   offboarding       Offboarding?
 
   @@unique([workspaceId, employeeCode])
+  @@unique([workspaceId, idCardNoHash])
+  @@unique([workspaceId, socialSecurityNoHash])
   @@index([workspaceId, status])
   @@index([workspaceId, managerId])
 }
@@ -398,13 +449,15 @@ model EmployeeDocument {
   issuedAt      DateTime?    @db.Date
   expiresAt     DateTime?    @db.Date
   fileUrl       String?
+  fileId        String?
   note          String?
   /// Smallest alert threshold (90/60/30) already notified, to avoid duplicates.
   lastAlertDays Int?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  file     StoredFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, expiresAt])
 }
@@ -443,16 +496,16 @@ model EmploymentHistory {
 // ─────────────────────── Time & attendance ───────────────────────
 
 model Shift {
-  id                 String   @id @default(cuid())
-  workspaceId        String
-  name               String
+  id                String   @id @default(cuid())
+  workspaceId       String
+  name              String
   /// Local time "HH:mm"
-  startTime          String
-  endTime            String
-  breakMinutes       Int      @default(60)
-  lateGraceMinutes   Int      @default(5)
-  earlyGraceMinutes  Int      @default(0)
-  createdAt          DateTime @default(now())
+  startTime         String
+  endTime           String
+  breakMinutes      Int      @default(60)
+  lateGraceMinutes  Int      @default(5)
+  earlyGraceMinutes Int      @default(0)
+  createdAt         DateTime @default(now())
 
   schedules WorkSchedule[]
 
@@ -487,11 +540,11 @@ model Holiday {
 }
 
 model AttendanceRecord {
-  id                String           @id @default(cuid())
+  id                String            @id @default(cuid())
   workspaceId       String
   employeeId        String
   branchId          String?
-  workDate          DateTime         @db.Date
+  workDate          DateTime          @db.Date
   checkInAt         DateTime?
   checkOutAt        DateTime?
   checkInLat        Float?
@@ -500,20 +553,20 @@ model AttendanceRecord {
   checkOutLat       Float?
   checkOutLng       Float?
   status            AttendanceStatus?
-  lateMinutes       Int              @default(0)
-  earlyLeaveMinutes Int              @default(0)
-  workedMinutes     Int              @default(0)
-  source            AttendanceSource @default(MOBILE)
+  lateMinutes       Int               @default(0)
+  earlyLeaveMinutes Int               @default(0)
+  workedMinutes     Int               @default(0)
+  source            AttendanceSource  @default(MOBILE)
   /// Device clock at capture (offline sync); server time is createdAt/updatedAt.
   deviceCapturedAt  DateTime?
   /// Idempotency key generated on the device for offline queue replay.
   clientRef         String?
   deviceId          String?
   selfieUrl         String?
-  suspicious        Boolean          @default(false)
-  suspiciousReasons String[]         @default([])
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  suspicious        Boolean           @default(false)
+  suspiciousReasons String[]          @default([])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   employee    Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   branch      Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
@@ -615,13 +668,13 @@ model LeaveType {
 }
 
 model LeavePolicy {
-  id              String  @id @default(cuid())
-  workspaceId     String
-  leaveTypeId     String  @unique
-  daysPerYear     Decimal @db.Decimal(6, 2)
-  hazardousDays   Decimal? @db.Decimal(6, 2)
-  minServiceDays  Int     @default(0)
-  carryOverMax    Decimal @default(0) @db.Decimal(6, 2)
+  id             String   @id @default(cuid())
+  workspaceId    String
+  leaveTypeId    String   @unique
+  daysPerYear    Decimal  @db.Decimal(6, 2)
+  hazardousDays  Decimal? @db.Decimal(6, 2)
+  minServiceDays Int      @default(0)
+  carryOverMax   Decimal  @default(0) @db.Decimal(6, 2)
 
   leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
 
@@ -646,22 +699,22 @@ model LeaveBalance {
 }
 
 model LeaveRequest {
-  id              String        @id @default(cuid())
-  workspaceId     String
-  employeeId      String
-  leaveTypeId     String
-  startDate       DateTime      @db.Date
-  endDate         DateTime      @db.Date
-  halfDay         HalfDay       @default(NONE)
-  days            Decimal       @db.Decimal(6, 2)
-  reason          String?
-  attachmentUrl   String?
-  status          RequestStatus @default(PENDING)
-  currentStep     Int           @default(1)
+  id                String        @id @default(cuid())
+  workspaceId       String
+  employeeId        String
+  leaveTypeId       String
+  startDate         DateTime      @db.Date
+  endDate           DateTime      @db.Date
+  halfDay           HalfDay       @default(NONE)
+  days              Decimal       @db.Decimal(6, 2)
+  reason            String?
+  attachmentUrl     String?
+  status            RequestStatus @default(PENDING)
+  currentStep       Int           @default(1)
   /// Set when HR files the request on behalf of an employee without a smartphone.
   submittedByUserId String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   employee  Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leaveType LeaveType       @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
@@ -672,17 +725,17 @@ model LeaveRequest {
 }
 
 model LeaveApproval {
-  id               String        @id @default(cuid())
-  workspaceId      String
-  leaveRequestId   String
-  step             Int
-  approverUserId   String
+  id              String        @id @default(cuid())
+  workspaceId     String
+  leaveRequestId  String
+  step            Int
+  approverUserId  String
   /// When a delegate acts, the original approver they act for.
-  actingForUserId  String?
-  decision         RequestStatus @default(PENDING)
-  comment          String?
-  decidedAt        DateTime?
-  createdAt        DateTime      @default(now())
+  actingForUserId String?
+  decision        RequestStatus @default(PENDING)
+  comment         String?
+  decidedAt       DateTime?
+  createdAt       DateTime      @default(now())
 
   leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
 
@@ -720,12 +773,12 @@ model OnboardingTemplate {
 }
 
 model OnboardingTemplateTask {
-  id            String  @id @default(cuid())
+  id            String @id @default(cuid())
   workspaceId   String
   templateId    String
   title         String
-  dueOffsetDays Int     @default(0)
-  sortOrder     Int     @default(0)
+  dueOffsetDays Int    @default(0)
+  sortOrder     Int    @default(0)
 
   template OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -733,15 +786,15 @@ model OnboardingTemplateTask {
 }
 
 model OnboardingTask {
-  id              String    @id @default(cuid())
-  workspaceId     String
-  employeeId      String
-  kind            TaskKind
-  title           String
-  dueDate         DateTime? @db.Date
-  completedAt     DateTime?
-  completedById   String?
-  createdAt       DateTime  @default(now())
+  id            String    @id @default(cuid())
+  workspaceId   String
+  employeeId    String
+  kind          TaskKind
+  title         String
+  dueDate       DateTime? @db.Date
+  completedAt   DateTime?
+  completedById String?
+  createdAt     DateTime  @default(now())
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -776,12 +829,149 @@ model Notification {
   title       String
   body        String
   data        Json?
+  /// In-app route to open (e.g. /employees/abc), FR-NOTI-04.2
+  link        String?
+  /// Prevents duplicate notifications for the same event (FR-NOTI-04.4)
+  dedupeKey   String?
   readAt      DateTime?
   createdAt   DateTime         @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
 
+  @@unique([workspaceId, userId, dedupeKey])
   @@index([workspaceId, userId, readAt])
+}
+
+/// Outbound delivery attempts per channel (push/SMS); retried by the job worker (FR-NOTI-04.5).
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  workspaceId    String
+  notificationId String
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(PENDING)
+  attempts       Int                 @default(0)
+  lastError      String?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([workspaceId, status])
+}
+
+// ─────────────────────── Files & OTP ───────────────────────
+
+/// Uploaded file metadata; bytes live in the storage adapter under `{workspaceId}/{purpose}/{id}`.
+model StoredFile {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  storageKey   String      @unique
+  purpose      FilePurpose
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  uploadedById String?
+  createdAt    DateTime    @default(now())
+
+  employeeDocuments EmployeeDocument[]
+
+  @@index([workspaceId, purpose])
+}
+
+/// SMS one-time passwords (FR-AUTH-02). Only the hash of the code is stored.
+model OtpChallenge {
+  id          String     @id @default(cuid())
+  workspaceId String
+  userId      String
+  purpose     OtpPurpose
+  phone       String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int        @default(0)
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([workspaceId, userId, purpose, createdAt])
+}
+
+// ─────────────────────── Configurable parameters ───────────────────────
+
+/// Workspace business parameters with effective dates (FR-WS-08). Keys/limits: packages/shared/src/domain/parameters.ts
+model WorkspaceParameter {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  key           String
+  value         Json
+  effectiveFrom DateTime @db.Date
+  createdById   String?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@unique([workspaceId, key, effectiveFrom])
+  @@index([workspaceId, key])
+}
+
+// ─────────────────────── SOM platform (not tenant scoped) ───────────────────────
+
+/// System-level parameters editable only by SOM super admins (FR-WS-08.7).
+model SystemParameter {
+  id            String   @id @default(cuid())
+  key           String
+  value         Json
+  effectiveFrom DateTime
+  createdById   String?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@unique([key, effectiveFrom])
+}
+
+/// SOM Development staff who operate the platform (FR-WS-01.1).
+model PlatformUser {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  displayName    String
+  passwordHash   String
+  isActive       Boolean   @default(true)
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  refreshTokens PlatformRefreshToken[]
+}
+
+model PlatformRefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+}
+
+/// Append-only audit trail for platform-level actions.
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model PushToken {

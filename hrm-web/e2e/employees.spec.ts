@@ -26,11 +26,15 @@ test.describe('employees', () => {
     await expectNoHorizontalScroll(page);
   });
 
-  test('foreign worker documents show expiry alerts', async ({ page }) => {
+  test('foreign worker documents show expiry alerts computed by the API', async ({ page }) => {
     await openEmployee(page, 'Nguyen');
-    await expect(page.locator('[data-expiry="D30"]')).toBeVisible();
-    await expect(page.locator('[data-expiry="D60"]')).toBeVisible();
+    // Seed: work permit +25 days, visa +55 days, passport +800 days, medical certificate expired 10 days ago.
+    await expect(page.locator('[data-expiry="EXPIRING"][data-threshold="30"]')).toBeVisible();
+    await expect(page.locator('[data-expiry="EXPIRING"][data-threshold="60"]')).toBeVisible();
     await expect(page.locator('[data-expiry="VALID"]')).toBeVisible();
+    const expired = page.locator('[data-expiry="EXPIRED"]');
+    await expect(expired).toHaveText('ໝົດອາຍຸແລ້ວ');
+    await expect(expired.locator('..')).toHaveClass(/text-danger/);
   });
 
   test('HR sees decrypted social-security number', async ({ page }) => {
@@ -46,7 +50,8 @@ test.describe('employees', () => {
     await page.locator('#lastName').fill('ຈັນທະລາ');
     await page.locator('#phone').fill(`020 77${String(Date.now()).slice(-6)}`);
     await page.locator('#hireDate').fill('2026-01-05');
-    await page.locator('#socialSecurityNo').fill('SS7777777');
+    // SSNs must be unique per workspace (FR-EMP-10.2) and every viewport project creates its own employee.
+    await page.locator('#socialSecurityNo').fill(`SS${String(Date.now()).slice(-7)}`);
     await page.locator('#createLogin').check();
     await page.getByTestId('employee-submit').click();
     await expect(page.getByTestId('temporary-secret')).toHaveText(/^\d{6}$/);

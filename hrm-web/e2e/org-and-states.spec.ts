@@ -9,8 +9,10 @@ test.describe('organisation & system states', () => {
   test('org chart nests reports under their manager', async ({ page }) => {
     await page.goto('/org');
     const tree = page.getByRole('tree');
-    await expect(tree.getByTestId('org-node').first()).toHaveText('ສົມສັກ ພົມມະວົງ');
-    await expect(tree.getByText('ຄຳແພງ ແກ້ວມະນີ')).toBeVisible();
+    // Other specs add top-level employees, so locate the seeded manager instead of relying on order.
+    const manager = tree.getByRole('treeitem').filter({ has: page.getByTestId('org-node').getByText('ສົມສັກ ພົມມະວົງ', { exact: true }) }).first();
+    await expect(manager).toBeVisible();
+    await expect(manager.getByRole('treeitem').getByText('ຄຳແພງ ແກ້ວມະນີ')).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 

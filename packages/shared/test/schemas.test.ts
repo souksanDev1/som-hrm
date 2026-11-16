@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildOrgTree, changePinSchema, createEmployeeSchema, laoPhoneSchema, translate, dictionaries } from '../src';
+import { buildOrgTree, changePinSchema, createEmployeeSchema, laoPhoneSchema, translate, dictionaries, updateEmployeeSchema } from '../src';
 
 describe('laoPhoneSchema', () => {
   it.each(['020 5555 1234', '+856 20 5555 1234', '8562055551234', '2055551234'])('normalises %s', (raw) => {
@@ -26,10 +26,22 @@ describe('createEmployeeSchema', () => {
     const r = createEmployeeSchema.safeParse({ ...base, nationalityType: 'FOREIGN' });
     expect(r.success).toBe(false);
   });
-  it('requires email when creating a password login', () => {
-    const r = createEmployeeSchema.safeParse({ ...base, login: { method: 'PASSWORD' } });
-    expect(r.success).toBe(false);
+  it('allows a password login without email (sign-in by employee code or phone)', () => {
+    expect(createEmployeeSchema.safeParse({ ...base, login: { method: 'PASSWORD' } }).success).toBe(true);
     expect(createEmployeeSchema.safeParse({ ...base, login: { method: 'PIN' } }).success).toBe(true);
+  });
+});
+
+describe('updateEmployeeSchema', () => {
+  it('distinguishes omitted (unchanged) from null/"" (clear)', () => {
+    const r = updateEmployeeSchema.parse({ managerId: null, email: '', nickname: '  ', socialSecurityNo: null });
+    expect(r).toMatchObject({ managerId: null, email: null, nickname: null, socialSecurityNo: null });
+    expect('phone' in r && r.phone !== undefined).toBe(false);
+  });
+  it('does not apply create defaults', () => {
+    const r = updateEmployeeSchema.parse({ firstName: 'A' });
+    expect(r.status).toBeUndefined();
+    expect(r.hazardousWork).toBeUndefined();
   });
 });
 

@@ -5,18 +5,23 @@
  *   Company code : som-demo
  *   HR owner     : admin@som.la / Admin1234
  *   Field worker : employee code E003 (or phone 02055550003) / PIN 482913
+ *   SOM platform : superadmin@som.la / SomAdmin1234  (console at /platform/login)
  */
 import { loadEnv } from '../src/config/env';
 import { bootstrapWorkspace } from '../src/db/bootstrap';
 import { createDb } from '../src/db/client';
 import { createFieldCipher } from '../src/lib/crypto';
 import { hashSecret } from '../src/lib/password';
+import { notify } from '../src/modules/notifications/notifications.service';
 
 export const DEMO = {
   workspaceCode: 'som-demo',
   owner: { email: 'admin@som.la', password: 'Admin1234' },
   fieldWorker: { code: 'E003', phone: '02055550003', pin: '482913' },
 } as const;
+
+/** SOM super admin for the platform console (development / E2E only; production uses `platform:create-admin`). */
+export const PLATFORM_DEMO = { email: 'superadmin@som.la', password: 'SomAdmin1234', displayName: 'SOM Super Admin' } as const;
 
 const env = loadEnv();
 const db = createDb(env.DATABASE_URL);
@@ -55,7 +60,9 @@ const main = async () => {
         workspaceId: ws, employeeCode: 'E001', firstName: 'ສົມສັກ', lastName: 'ພົມມະວົງ', gender: 'MALE',
         email: 'admin@som.la', phone: '02055550001', hireDate: new Date('2019-03-01'), employmentType: 'FULL_TIME',
         status: 'ACTIVE', branchId: hq.id, departmentId: hr.id, positionId: director.id,
-        socialSecurityNoEnc: cipher.encrypt('SS1000001'), familyBookNoEnc: cipher.encrypt('VT-12345'),
+        socialSecurityNoEnc: cipher.encrypt('SS1000001'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000001'),
+        idCardNoEnc: cipher.encrypt('01-0012345'), idCardNoHash: cipher.blindIndex('national_id', '01-0012345'),
+        familyBookNoEnc: cipher.encrypt('VT-12345'),
       },
     });
     await tx.user.update({ where: { id: owner.id }, data: { employeeId: boss.id } });
@@ -72,12 +79,14 @@ const main = async () => {
         workspaceId: ws, employeeCode: DEMO.fieldWorker.code, firstName: 'ຄຳແພງ', lastName: 'ແກ້ວມະນີ', gender: 'MALE',
         phone: DEMO.fieldWorker.phone, hireDate: new Date('2025-01-10'), employmentType: 'DAILY', status: 'ACTIVE',
         hazardousWork: true, branchId: site.id, departmentId: ops.id, positionId: worker.id, managerId: lead.id,
-        socialSecurityNoEnc: cipher.encrypt('SS1000003'),
+        socialSecurityNoEnc: cipher.encrypt('SS1000003'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000003'),
       },
     });
     await tx.user.create({
       data: {
         workspaceId: ws, employeeId: field.id, displayName: 'ຄຳແພງ ແກ້ວມະນີ', phone: DEMO.fieldWorker.phone,
+        // Demo phone is pre-verified so sign-in skips the SMS OTP step (FR-AUTH-02.1).
+        phoneVerifiedAt: new Date(),
         pinHash: await hashSecret(DEMO.fieldWorker.pin), roles: { create: { workspaceId: ws, roleId: roles.EMPLOYEE! } },
       },
     });
@@ -94,12 +103,30 @@ const main = async () => {
         { workspaceId: ws, employeeId: foreign.id, type: 'WORK_PERMIT', number: 'WP-2024-0091', issuedAt: daysFromNow(-300), expiresAt: daysFromNow(25) },
         { workspaceId: ws, employeeId: foreign.id, type: 'VISA', number: 'LA-V-77812', issuedAt: daysFromNow(-300), expiresAt: daysFromNow(55) },
         { workspaceId: ws, employeeId: foreign.id, type: 'PASSPORT', number: 'C1234567', issuedAt: daysFromNow(-1000), expiresAt: daysFromNow(800) },
+        { workspaceId: ws, employeeId: foreign.id, type: 'MEDICAL_CERT', number: 'MC-2025-031', issuedAt: daysFromNow(-375), expiresAt: daysFromNow(-10) },
       ],
     });
     await tx.emergencyContact.create({ data: { workspaceId: ws, employeeId: field.id, name: 'ນາງ ແສງ', relationship: 'ພັນລະຍາ', phone: '02099990003' } });
+    // Sample in-app notification for the HR demo user (notification center / E2E).
+    await notify(tx, {
+      workspaceId: ws,
+      userIds: [owner.id],
+      type: 'DOCUMENT_EXPIRY',
+      titleKey: 'notif.docExpiring.title',
+      bodyKey: 'notif.docExpiring.body',
+      params: { document: { t: 'document.WORK_PERMIT' }, employee: 'Nguyen Van An', days: 25, date: daysFromNow(25).toISOString().slice(0, 10) },
+      link: `/employees/${foreign.id}`,
+      dedupeKey: 'seed:doc-expiry:work-permit',
+    });
     return true;
   });
-  console.warn(seeded ? `Seeded workspace "${DEMO.workspaceCode}"` : `Workspace "${DEMO.workspaceCode}" already exists — run \`pnpm prisma migrate reset\` to reseed`);
+  await db.system(async (tx) => {
+    if (await tx.platformUser.findUnique({ where: { email: PLATFORM_DEMO.email } })) return;
+    await tx.platformUser.create({
+      data: { email: PLATFORM_DEMO.email, displayName: PLATFORM_DEMO.displayName, passwordHash: await hashSecret(PLATFORM_DEMO.password) },
+    });
+  });
+  console.warn(seeded ? `Seeded workspace "${DEMO.workspaceCode}"` : `Workspace "${DEMO.workspaceCode}" already exists — nothing to do. To reseed, point DATABASE_URL at a new empty database, run \`pnpm --filter @hrm/api db:deploy\`, then \`pnpm --filter @hrm/api db:seed\` (never reset a shared database)`);
 };
 
 main()

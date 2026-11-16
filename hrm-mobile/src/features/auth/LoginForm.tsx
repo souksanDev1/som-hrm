@@ -2,7 +2,7 @@ import { passwordLoginSchema, pinLoginSchema, type LoginMethod, type PasswordLog
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm, type Resolver } from 'react-hook-form';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Button, Segmented, TextField } from '@/components/ui';
 import { errorCode } from '@/lib/api';
 import { useT } from '@/lib/i18n';
@@ -16,10 +16,12 @@ export interface LoginFormProps {
   defaultWorkspaceCode?: string;
   defaultMethod?: LoginMethod;
   onSuccess(): void;
+  /** Opens the self-service reset screen; without it the "contact HR" hint is shown. */
+  onForgot?(): void;
 }
 
 /** PIN first: most field staff have no email. */
-export function LoginForm({ defaultWorkspaceCode = '', defaultMethod = 'PIN', onSuccess }: LoginFormProps) {
+export function LoginForm({ defaultWorkspaceCode = '', defaultMethod = 'PIN', onSuccess, onForgot }: LoginFormProps) {
   const t = useT();
   const [method, setMethod] = useState<LoginMethod>(defaultMethod);
   const login = useLogin();
@@ -63,11 +65,11 @@ export function LoginForm({ defaultWorkspaceCode = '', defaultMethod = 'PIN', on
         name="identifier"
         render={({ field }) => (
           <TextField
-            label={t(method === 'PIN' ? 'auth.identifierPin' : 'auth.identifier')}
+            label={t(method === 'PIN' ? 'auth.identifierPin' : 'authx.login.identifier')}
             required
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType={method === 'PASSWORD' ? 'email-address' : 'default'}
+            keyboardType="default"
             value={field.value}
             onChangeText={field.onChange}
             onBlur={field.onBlur}
@@ -99,7 +101,13 @@ export function LoginForm({ defaultWorkspaceCode = '', defaultMethod = 'PIN', on
         </Text>
       ) : null}
       <Button title={t('auth.submit')} loading={formState.isSubmitting} onPress={() => void submit().catch(() => undefined)} testID="login-submit" fullWidth />
-      <Text className="text-center text-xs text-ink-muted">{t('auth.forgot')}</Text>
+      {onForgot ? (
+        <Pressable accessibilityRole="link" onPress={onForgot} testID="forgot-link" className="min-h-12 items-center justify-center">
+          <Text className="text-sm font-medium text-primary">{t('authx.login.forgotLink')}</Text>
+        </Pressable>
+      ) : (
+        <Text className="text-center text-xs text-ink-muted">{t('auth.forgot')}</Text>
+      )}
     </View>
   );
 }

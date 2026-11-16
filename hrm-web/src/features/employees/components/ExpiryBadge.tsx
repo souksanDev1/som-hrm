@@ -1,23 +1,25 @@
-import { documentExpiryStatus, type ExpiryStatus } from '@hrm/shared';
+import type { EmployeeDocument, ExpiryState } from '@hrm/shared';
 import { Badge, type BadgeTone } from '@/components/ui';
 import { useT } from '@/lib/i18n';
 
-const tone: Record<ExpiryStatus, BadgeTone> = {
+const tone: Record<ExpiryState, BadgeTone> = {
   EXPIRED: 'danger',
-  D30: 'danger',
-  D60: 'warning',
-  D90: 'warning',
+  EXPIRING: 'warning',
   VALID: 'success',
   NO_EXPIRY: 'neutral',
 };
 
-/** Foreign-worker document expiry state (90/60/30-day alert windows). */
-export function ExpiryBadge({ expiresAt, now }: { expiresAt: string | null; now?: Date }) {
+export type ExpiryBadgeProps = Pick<EmployeeDocument, 'expiryStatus' | 'expiryThresholdDays'>;
+
+/** Document expiry state exactly as computed by the API (workspace thresholds + timezone). */
+export function ExpiryBadge({ expiryStatus, expiryThresholdDays }: ExpiryBadgeProps) {
   const t = useT();
-  const status = documentExpiryStatus(expiresAt ? new Date(`${expiresAt}T00:00:00Z`) : null, now);
+  const label = t(`empx.expiry.${expiryStatus}`).replace('{days}', String(expiryThresholdDays ?? ''));
   return (
-    <Badge tone={tone[status]} className="tabular-nums">
-      <span data-expiry={status}>{t(`expiry.${status}`)}</span>
+    <Badge tone={tone[expiryStatus]} className="tabular-nums">
+      <span data-expiry={expiryStatus} data-threshold={expiryThresholdDays ?? undefined}>
+        {label}
+      </span>
     </Badge>
   );
 }

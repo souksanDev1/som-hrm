@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env src/server.ts",
     "start": "node --env-file-if-exists=.env dist/server.js",
+    "worker": "tsx --env-file-if-exists=.env src/worker.ts",
+    "start:worker": "node --env-file-if-exists=.env dist/worker.js",
     "build": "prisma generate && tsup",
     "lint": "eslint src test prisma scripts",
     "typecheck": "prisma generate && tsc -p tsconfig.json",
@@ -13,28 +15,34 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:backfill-pii": "tsx --env-file=.env scripts/backfill-pii.ts",
     "e2e:server": "tsx scripts/e2e-server.ts",
-    "db:start": "tsx scripts/local-db.ts"
+    "db:start": "tsx scripts/local-db.ts",
+    "platform:create-admin": "tsx --env-file-if-exists=.env scripts/create-platform-admin.ts"
   },
   "dependencies": {
     "@fastify/cors": "~11.4.0",
     "@fastify/helmet": "~13.2.0",
     "@fastify/jwt": "~9.1.0",
+    "@fastify/multipart": "~9.3.0",
     "@fastify/rate-limit": "~10.3.0",
+    "@fastify/swagger": "~9.5.2",
+    "@fastify/swagger-ui": "~5.2.3",
     "@hrm/shared": "workspace:*",
     "@prisma/client": "~6.19.0",
     "bcryptjs": "~3.0.0",
     "fastify": "~5.6.0",
     "fastify-plugin": "~5.1.0",
     "fastify-type-provider-zod": "~4.0.2",
+    "pg-boss": "~10.4.2",
     "zod": "~3.25.0"
   },
   "devDependencies": {
     "@types/node": "~22.20.0",
+    "embedded-postgres": "16.15.0-beta.19",
     "prisma": "~6.19.0",
     "tsup": "~8.5.0",
     "tsx": "~4.20.0",
-    "vitest": "~3.2.0",
-    "embedded-postgres": "16.15.0-beta.19"
+    "vitest": "~3.2.0"
   }
 }

@@ -1,8 +1,13 @@
+import { authEn, authLo } from './areas/auth';
+import { employeesEn, employeesLo } from './areas/employees';
+import { infraEn, infraLo } from './areas/infra';
+import { platformEn, platformLo } from './areas/platform';
+
 /**
  * Minimal typed i18n dictionary shared by web + mobile.
  * Lao (lo) is the default; English (en) must have the same keys (enforced by type).
  */
-const lo = {
+const coreLo = {
   'app.name': 'SOM HRM',
   'common.save': 'ບັນທຶກ',
   'common.cancel': 'ຍົກເລີກ',
@@ -144,10 +149,16 @@ const lo = {
   'error.unknown': 'ເກີດຂໍ້ຜິດພາດທີ່ບໍ່ຮູ້ຈັກ',
 } as const;
 
+/**
+ * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
+ * so that features can add strings without editing this file.
+ */
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo } as const;
+
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
 
-const en: Dictionary = {
+const coreEn: Record<keyof typeof coreLo, string> = {
   'app.name': 'SOM HRM',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
@@ -288,6 +299,8 @@ const en: Dictionary = {
   'error.network': 'Cannot reach the server',
   'error.unknown': 'Unknown error',
 };
+
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];

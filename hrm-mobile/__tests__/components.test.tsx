@@ -40,9 +40,14 @@ describe('Button', () => {
 });
 
 describe('ExpiryBadge', () => {
-  it('flags a work permit expiring within 30 days', () => {
-    render(<ExpiryBadge expiresAt="2026-01-20" now={new Date('2026-01-01T00:00:00Z')} />);
-    expect(screen.getByTestId('expiry-D30')).toBeTruthy();
+  it('renders the API status and threshold without computing dates', () => {
+    render(<ExpiryBadge expiryStatus="EXPIRING" expiryThresholdDays={7} />);
+    expect(screen.getByTestId('expiry-EXPIRING')).toBeTruthy();
+    expect(screen.getByText('ໝົດອາຍຸພາຍໃນ 7 ມື້')).toBeTruthy();
+  });
+  it('renders expired documents', () => {
+    render(<ExpiryBadge expiryStatus="EXPIRED" expiryThresholdDays={null} />);
+    expect(screen.getByText('ໝົດອາຍຸແລ້ວ')).toBeTruthy();
   });
 });
 

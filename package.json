@@ -2,7 +2,7 @@
   "name": "som-hrm",
   "private": true,
   "packageManager": "pnpm@9.15.4",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "scripts": {
     "dev:api": "pnpm --filter @hrm/api dev",
     "dev:web": "pnpm --filter @hrm/web dev",

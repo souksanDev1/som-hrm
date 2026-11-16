@@ -27,8 +27,11 @@ export const ensurePermissions = async (tx: Tx) => {
 export interface BootstrapWorkspaceInput {
   code: string;
   name: string;
-  owner: { email: string; password: string; displayName: string };
+  /** The first owner signs in with email or (Lao) phone + password; at least one is required. */
+  owner: { email?: string | null; phone?: string | null; password: string; displayName: string };
   seatLimit?: number;
+  /** IANA time zone; defaults to the schema default (Asia/Vientiane). */
+  timezone?: string;
   holidayYear?: number;
 }
 
@@ -37,11 +40,17 @@ export interface BootstrapWorkspaceInput {
  * 6-day work schedule and fixed public holidays. Must run inside `db.system`.
  */
 export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput) => {
+  if (!input.owner.email && !input.owner.phone) throw new Error('Workspace owner needs an email or a phone number');
   const permissions = await ensurePermissions(tx);
   const permId = new Map(permissions.map((p) => [p.key, p.id]));
 
   const ws = await tx.workspace.create({
-    data: { code: input.code, name: input.name, subscription: { create: { seatLimit: input.seatLimit ?? 50 } } },
+    data: {
+      code: input.code,
+      name: input.name,
+      ...(input.timezone ? { timezone: input.timezone } : {}),
+      subscription: { create: { seatLimit: input.seatLimit ?? 50 } },
+    },
   });
 
   const roles: Record<string, string> = {};
@@ -63,7 +72,8 @@ export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput)
   const owner = await tx.user.create({
     data: {
       workspaceId: ws.id,
-      email: input.owner.email.toLowerCase(),
+      email: input.owner.email?.toLowerCase() ?? null,
+      phone: input.owner.phone ?? null,
       displayName: input.owner.displayName,
       passwordHash: await hashSecret(input.owner.password),
       roles: { create: { workspaceId: ws.id, roleId: roles.OWNER! } },

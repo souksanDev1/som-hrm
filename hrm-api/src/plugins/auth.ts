@@ -6,10 +6,16 @@ import type { Env } from '../config/env';
 import { forbidden, unauthorized } from '../lib/errors';
 import type { AuthContext, AuthService } from '../modules/auth/auth.service';
 
+/**
+ * Access-token claims. Tenant tokens carry `ws`; SOM platform tokens carry `scope: 'platform'`
+ * and no `ws` (see modules/platform). The tenant `authenticate` hook rejects platform tokens.
+ */
+export type AccessTokenClaims = { sub: string; ws: string; scope?: undefined } | { sub: string; scope: 'platform'; ws?: undefined };
+
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { sub: string; ws: string };
-    user: { sub: string; ws: string };
+    payload: AccessTokenClaims;
+    user: AccessTokenClaims;
   }
 }
 
@@ -20,6 +26,13 @@ declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
     requirePermission: (...perms: Permission[]) => (req: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  }
+  interface FastifyContextConfig {
+    /**
+     * Route stays reachable while the user must verify their phone or replace a temporary
+     * credential (FR-AUTH-02.1 / FR-AUTH-03.2). Every other authenticated route answers 403.
+     */
+    allowDuringAccountSetup?: boolean;
   }
 }
 
@@ -43,8 +56,13 @@ export const authPlugin = fp<{ env: Env; authService: () => AuthService }>(async
     } catch {
       throw unauthorized('invalid_token');
     }
+    if (req.user.scope === 'platform' || !req.user.ws) throw unauthorized('invalid_token');
     const resolved = await opts.authService().resolve(req.user.ws, req.user.sub);
     if (!resolved) throw unauthorized('account_disabled');
+    if (!req.routeOptions.config.allowDuringAccountSetup) {
+      if (resolved.me.phoneVerificationRequired) throw forbidden('phone_verification_required');
+      if (resolved.me.mustChangeCredential) throw forbidden('credential_change_required');
+    }
     req.auth = resolved.ctx;
   });
 

@@ -10,7 +10,6 @@ export const testEnv = (overrides: Record<string, string> = {}) =>
     DATABASE_URL: TEST_DATABASE_URL,
     JWT_SECRET: 'test-secret-test-secret-test-secret-123',
     ENCRYPTION_KEY: randomBytes(32).toString('base64'),
-    LOGIN_MAX_ATTEMPTS: '3',
     LOGIN_RATE_LIMIT: '1000',
     ...overrides,
   });

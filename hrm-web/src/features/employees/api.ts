@@ -7,6 +7,8 @@ import type {
   EmployeeDetail,
   EmployeeListQuery,
   EmployeeSummary,
+  EmploymentHistoryEntry,
+  EmploymentHistoryQuery,
   Paginated,
   UpdateEmployeeInput,
 } from '@hrm/shared';
@@ -17,6 +19,8 @@ export type EmployeeFilters = Partial<EmployeeListQuery>;
 export const employeesApi = {
   list: (q: EmployeeFilters) => apiFetch<Paginated<EmployeeSummary>>('/employees', { query: q }),
   get: (id: string) => apiFetch<EmployeeDetail>(`/employees/${id}`),
+  history: (id: string, q: EmploymentHistoryQuery) =>
+    apiFetch<Paginated<EmploymentHistoryEntry>>(`/employees/${id}/history`, { query: q }),
   create: (body: CreateEmployeeInput) => apiFetch<CreateEmployeeResponse>('/employees', { method: 'POST', body }),
   update: (id: string, body: UpdateEmployeeInput) => apiFetch<EmployeeDetail>(`/employees/${id}`, { method: 'PATCH', body }),
   addDocument: (id: string, body: CreateDocumentInput) => apiFetch<EmployeeDetail>(`/employees/${id}/documents`, { method: 'POST', body }),

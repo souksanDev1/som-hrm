@@ -7,12 +7,21 @@ export const employeeKeys = {
   all: ['employees'] as const,
   list: (f: EmployeeFilters) => [...employeeKeys.all, 'list', f] as const,
   detail: (id: string) => [...employeeKeys.all, 'detail', id] as const,
+  history: (id: string, page: number) => [...employeeKeys.all, 'history', id, page] as const,
 };
 
 export const useEmployees = (filters: EmployeeFilters) =>
   useQuery({ queryKey: employeeKeys.list(filters), queryFn: () => employeesApi.list(filters), placeholderData: keepPreviousData });
 
 export const useEmployee = (id: string) => useQuery({ queryKey: employeeKeys.detail(id), queryFn: () => employeesApi.get(id) });
+
+/** Employment history, newest first (paginated by the API). */
+export const useEmployeeHistory = (id: string, page: number, pageSize = 10) =>
+  useQuery({
+    queryKey: employeeKeys.history(id, page),
+    queryFn: () => employeesApi.history(id, { page, pageSize }),
+    placeholderData: keepPreviousData,
+  });
 
 /** Shared invalidation: any employee mutation refreshes lists and the org chart. */
 const useInvalidate = () => {

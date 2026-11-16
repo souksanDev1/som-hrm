@@ -1,6 +1,6 @@
 import type { CreateEmployeeResponse, OrgChartNode } from '@hrm/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { api, bearer, createTestContext, createWorkspace, employeePayload, loginAs, OWNER_PASSWORD, type TestContext } from './helpers';
+import { api, bearer, createTestContext, createUser, createWorkspace, employeePayload, loginAs, OWNER_PASSWORD, type TestContext } from './helpers';
 
 let t: TestContext;
 beforeAll(async () => {
@@ -45,5 +45,23 @@ describe('organisation', () => {
     const res = await req('PATCH', `/departments/${parent.id}`, { parentId: child.id });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('department_cycle');
+  });
+
+  it('renames and deletes a branch; managers cannot change org settings', async () => {
+    const ws = await createWorkspace(t.db);
+    const token = (await loginAs(t.app, ws.code, ws.ownerEmail, OWNER_PASSWORD)).accessToken;
+    const req = (tk: string, method: 'POST' | 'PATCH' | 'DELETE' | 'GET', url: string, payload?: object) =>
+      t.app.inject({ method, url: api(url), headers: bearer(tk), payload });
+    const branch = (await req(token, 'POST', '/branches', { name: 'Old' })).json<{ id: string }>();
+    const renamed = await req(token, 'PATCH', `/branches/${branch.id}`, { name: 'New' });
+    expect(renamed.json()).toMatchObject({ name: 'New' });
+
+    await createUser(t.db, ws, { email: 'm@x.test', password: 'Manager123', role: 'MANAGER' });
+    const mgr = (await loginAs(t.app, ws.code, 'm@x.test', 'Manager123')).accessToken;
+    expect((await req(mgr, 'PATCH', `/branches/${branch.id}`, { name: 'Hack' })).statusCode).toBe(403);
+    expect((await req(mgr, 'DELETE', `/branches/${branch.id}`)).statusCode).toBe(403);
+
+    expect((await req(token, 'DELETE', `/branches/${branch.id}`)).statusCode).toBe(204);
+    expect((await req(token, 'GET', '/branches')).json()).toEqual([]);
   });
 });

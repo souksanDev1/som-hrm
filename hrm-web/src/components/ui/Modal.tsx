@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 export interface ModalProps {
@@ -13,6 +13,8 @@ export interface ModalProps {
 /** Accessible dialog built on the native <dialog> element (focus trap + Esc for free). */
 export function Modal({ open, title, onClose, children, footer }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Unique per instance: several dialogs can be mounted on one page.
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -24,13 +26,13 @@ export function Modal({ open, title, onClose, children, footer }: ModalProps) {
     <dialog
       ref={ref}
       onClose={onClose}
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
       className="w-[calc(100%-2rem)] max-w-lg rounded-lg border border-line p-0 backdrop:bg-ink/40 dark:border-night-line dark:bg-night-surface"
     >
       {open && (
         <div className="flex flex-col">
           <header className="flex items-center justify-between border-b border-line px-5 py-4 dark:border-night-line">
-            <h2 id="modal-title" className="text-base font-semibold text-ink dark:text-night-ink">
+            <h2 id={titleId} className="text-base font-semibold text-ink dark:text-night-ink">
               {title}
             </h2>
             <button type="button" onClick={onClose} aria-label="Close" className="rounded p-1 text-ink-muted hover:bg-canvas">

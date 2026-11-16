@@ -4,11 +4,13 @@ import { usePathname } from 'next/navigation';
 import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
-import type { NavItem } from './nav';
+import { UnreadBadge } from '@/features/notifications/UnreadBadge';
+import { activeNavHref, type NavItem } from './nav';
 
 export function Sidebar({ items }: { items: readonly NavItem[] }) {
   const pathname = usePathname();
   const t = useT();
+  const activeHref = activeNavHref(pathname, items);
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-white px-3 py-4 dark:border-night-line dark:bg-night-surface lg:flex">
       <div className="mb-6 flex items-center gap-2 px-2">
@@ -17,7 +19,7 @@ export function Sidebar({ items }: { items: readonly NavItem[] }) {
       </div>
       <nav aria-label="main" className="flex flex-col gap-1">
         {items.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = item.href === activeHref;
           return (
             <Link
               key={item.href}
@@ -29,7 +31,8 @@ export function Sidebar({ items }: { items: readonly NavItem[] }) {
               )}
             >
               <Icon name={item.icon} className="text-[20px]" />
-              {t(item.labelKey)}
+              <span className="flex-1">{t(item.labelKey)}</span>
+              {item.badge === 'unreadNotifications' && <UnreadBadge />}
             </Link>
           );
         })}

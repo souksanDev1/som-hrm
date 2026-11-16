@@ -37,18 +37,26 @@ describe('employees', () => {
   it('encrypts social-security and family-book numbers at rest and masks them without permission', async () => {
     const ws = await createWorkspace(t.db);
     const token = await ownerSession(ws);
-    const created = (await post(token, '/employees', employeePayload({ socialSecurityNo: 'SS9988776', familyBookNo: 'VT-55555' }))).json<CreateEmployeeResponse>();
+    const boss = (await post(token, '/employees', employeePayload())).json<CreateEmployeeResponse>().employee;
+    const created = (
+      await post(token, '/employees', employeePayload({ socialSecurityNo: 'SS9988776', familyBookNo: 'VT-55555', idCardNo: '0123456789', managerId: boss.id }))
+    ).json<CreateEmployeeResponse>();
     expect(created.employee.socialSecurityNo).toBe('SS9988776');
+    expect(created.employee.idCardNo).toBe('0123456789');
 
     const raw = await t.db.tenant(ws.workspaceId, (tx) => tx.employee.findUniqueOrThrow({ where: { id: created.employee.id } }));
     expect(raw.socialSecurityNoEnc).not.toContain('SS9988776');
     expect(raw.familyBookNoEnc).toMatch(/^v1:/);
+    expect(raw.idCardNo).toBeNull();
+    expect(raw.idCardNoEnc).toMatch(/^v1:/);
 
-    await createUser(t.db, ws, { email: 'mgr@x.test', password: 'Manager123', role: 'MANAGER' });
+    // A manager sees their report, with identifiers masked.
+    await createUser(t.db, ws, { email: 'mgr@x.test', password: 'Manager123', role: 'MANAGER', employeeId: boss.id });
     const mgr = (await loginAs(t.app, ws.code, 'mgr@x.test', 'Manager123')).accessToken;
     const masked = (await get(mgr, `/employees/${created.employee.id}`)).json<EmployeeDetail>();
     expect(masked.sensitiveMasked).toBe(true);
     expect(masked.socialSecurityNo).toBe('•••••8776');
+    expect(masked.idCardNo).toBe('••••••6789');
   });
 
   it('enforces permissions: employees cannot list staff', async () => {
@@ -140,10 +148,12 @@ describe('employees', () => {
       payload: { workspaceCode: ws.code, identifier: 'ME1', pin: created.credential!.temporarySecret },
     });
     const empToken = pinRes.json<LoginResponse>().accessToken;
+    // Simulate the forced first-sign-in credential change (enforced by the auth module).
+    await t.db.tenant(ws.workspaceId, (tx) => tx.user.updateMany({ where: { employeeId: created.employee.id }, data: { mustChangeCredential: false } }));
     const me = await get(empToken, '/me/profile');
     expect(me.statusCode).toBe(200);
     expect(me.json<EmployeeDetail>().socialSecurityNo).toBe('SS4444444');
-    expect((await get(empToken, `/employees/${created.employee.id}`)).statusCode).toBe(403);
+    expect((await get(empToken, `/employees/${created.employee.id}`)).statusCode).toBe(403); // no employee.read
     // The owner account in this fixture has no employee record.
     expect((await get(token, '/me/profile')).json().error.code).toBe('no_employee_profile');
   });

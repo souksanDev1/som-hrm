@@ -38,6 +38,8 @@ const envVars = {
   HOST: '127.0.0.1',
   CORS_ORIGINS: process.env.E2E_WEB_ORIGIN ?? 'http://localhost:3100',
   LOGIN_RATE_LIMIT: '1000',
+  // Whole suite runs from one IP; the 300/min production default throttles it.
+  RATE_LIMIT_MAX: '100000',
 };
 runPrisma(['migrate', 'deploy'], envVars);
 runTsx('prisma/seed.ts', envVars);

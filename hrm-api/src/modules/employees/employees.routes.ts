@@ -7,7 +7,10 @@ import {
   employeeDetailSchema,
   employeeListQuerySchema,
   employeeSummarySchema,
+  employmentHistoryEntrySchema,
+  employmentHistoryQuerySchema,
   idParamsSchema,
+  issueCredentialSchema,
   paginatedSchema,
   PERMISSIONS,
   updateEmployeeSchema,
@@ -17,10 +20,6 @@ import type { AppInstance } from '../../app';
 
 const documentParams = z.object({ id: z.string(), documentId: z.string() });
 const contactParams = z.object({ id: z.string(), contactId: z.string() });
-const credentialBody = z.object({
-  method: z.enum(['PASSWORD', 'PIN']),
-  roleCode: z.enum(['HR_ADMIN', 'MANAGER', 'EMPLOYEE']).default('EMPLOYEE'),
-});
 
 export const employeesRoutes = async (app: AppInstance) => {
   const read = app.requirePermission(PERMISSIONS.EMPLOYEE_READ);
@@ -39,6 +38,15 @@ export const employeesRoutes = async (app: AppInstance) => {
     '/employees/:id',
     { preHandler: read, schema: { params: idParamsSchema, response: { 200: employeeDetailSchema } } },
     async (req) => svc.get(req.auth, req.params.id),
+  );
+
+  app.get(
+    '/employees/:id/history',
+    {
+      preHandler: read,
+      schema: { params: idParamsSchema, querystring: employmentHistoryQuerySchema, response: { 200: paginatedSchema(employmentHistoryEntrySchema) } },
+    },
+    async (req) => svc.history(req.auth, req.params.id, req.query),
   );
 
   app.post(
@@ -81,7 +89,7 @@ export const employeesRoutes = async (app: AppInstance) => {
     '/employees/:id/credentials',
     {
       preHandler: app.requirePermission(PERMISSIONS.USER_MANAGE),
-      schema: { params: idParamsSchema, body: credentialBody, response: { 200: credentialIssuedSchema } },
+      schema: { params: idParamsSchema, body: issueCredentialSchema, response: { 200: credentialIssuedSchema } },
     },
     async (req) => svc.issueCredential(req.auth, req.params.id, req.body.method, req.body.roleCode),
   );

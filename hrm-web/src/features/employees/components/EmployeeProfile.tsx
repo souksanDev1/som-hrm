@@ -6,6 +6,8 @@ import { useHasPermission } from '@/features/auth/store';
 import { useT } from '@/lib/i18n';
 import { CredentialCard } from './CredentialCard';
 import { DocumentsCard } from './DocumentsCard';
+import { EmergencyContactsCard } from './EmergencyContactsCard';
+import { HistoryCard } from './HistoryCard';
 import { StatusBadge } from './StatusBadge';
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -60,22 +62,9 @@ export function EmployeeProfile({ employee: e }: { employee: EmployeeDetail }) {
             {e.hazardousWork && <Row label={t('employee.hazardousWork')} value={t('common.yes')} />}
           </dl>
         </Card>
-        <Card title={t('employee.emergencyContacts')}>
-          {e.emergencyContacts.length === 0 ? (
-            <p className="text-sm text-ink-muted">{t('common.empty')}</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {e.emergencyContacts.map((c) => (
-                <li key={c.id} className="text-sm">
-                  <span className="font-medium text-ink dark:text-night-ink">{c.name}</span>{' '}
-                  <span className="text-ink-muted">({c.relationship})</span>
-                  <span className="block tabular-nums text-ink-muted">{c.phone}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        {canManageUsers && <CredentialCard employeeId={e.id} hasLogin={e.hasLogin} hasEmail={!!e.email} />}
+        <EmergencyContactsCard employeeId={e.id} contacts={e.emergencyContacts} canEdit={canEdit} />
+        <HistoryCard employeeId={e.id} />
+        {canManageUsers && <CredentialCard employeeId={e.id} hasLogin={e.hasLogin} />}
       </div>
     </div>
   );

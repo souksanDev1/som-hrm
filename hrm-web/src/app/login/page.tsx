@@ -1,7 +1,10 @@
 'use client';
+import { pendingAccountSetup } from '@hrm/shared';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Spinner } from '@/components/ui';
+import { ACCOUNT_SETUP_PATH } from '@/features/auth/AuthGuard';
+import { useChangeLocale } from '@/features/auth/hooks';
 import { LoginForm } from '@/features/auth/LoginForm';
 import { useAuthStore } from '@/features/auth/store';
 import { usePrefsStore, useT } from '@/lib/i18n';
@@ -13,7 +16,8 @@ export default function LoginPage() {
   const hydrated = useHydrated();
   const token = useAuthStore((s) => s.accessToken);
   const lastWorkspaceCode = useAuthStore((s) => s.lastWorkspaceCode);
-  const { locale, setLocale } = usePrefsStore();
+  const locale = usePrefsStore((s) => s.locale);
+  const changeLocale = useChangeLocale();
 
   useEffect(() => {
     if (hydrated && token) router.replace('/dashboard');
@@ -30,13 +34,19 @@ export default function LoginPage() {
               <p className="text-xs text-ink-muted">{t('auth.subtitle')}</p>
             </div>
           </div>
-          <button type="button" className="rounded-sm px-2 py-1 text-sm text-primary hover:bg-primary-soft" onClick={() => setLocale(locale === 'lo' ? 'en' : 'lo')}>
+          <button type="button" className="rounded-sm px-2 py-1 text-sm text-primary hover:bg-primary-soft" onClick={() => changeLocale(locale === 'lo' ? 'en' : 'lo')}>
             {locale === 'lo' ? 'EN' : 'ລາວ'}
           </button>
         </div>
         <div className="rounded-lg border border-line bg-white p-5 shadow-sm dark:border-night-line dark:bg-night-surface sm:p-6">
           {hydrated ? (
-            <LoginForm defaultWorkspaceCode={lastWorkspaceCode} onSuccess={() => router.replace('/dashboard')} />
+            <LoginForm
+              defaultWorkspaceCode={lastWorkspaceCode}
+              onSuccess={() => {
+                const user = useAuthStore.getState().user;
+                router.replace(user && pendingAccountSetup(user) ? ACCOUNT_SETUP_PATH : '/dashboard');
+              }}
+            />
           ) : (
             <div className="flex justify-center py-10 text-primary"><Spinner /></div>
           )}

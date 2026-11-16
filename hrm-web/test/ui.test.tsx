@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { Button, Field, Input, PasswordInput, StateView } from '@/components/ui';
 import { ExpiryBadge } from '@/features/employees/components/ExpiryBadge';
-import { visibleNav } from '@/components/layout/nav';
+import { activeNavHref, NAV_ITEMS, visibleNav } from '@/components/layout/nav';
 
 describe('Button', () => {
   it('fires onClick and is disabled while loading', async () => {
@@ -39,23 +39,33 @@ describe('StateView', () => {
 });
 
 describe('ExpiryBadge', () => {
-  const now = new Date('2026-01-01T00:00:00Z');
-  it.each([
-    ['2025-12-31', 'EXPIRED'],
-    ['2026-01-20', 'D30'],
-    ['2026-02-25', 'D60'],
-    ['2026-03-20', 'D90'],
-    ['2027-01-01', 'VALID'],
-  ])('%s → %s', (date, status) => {
-    const { container } = render(<ExpiryBadge expiresAt={date} now={now} />);
-    expect(container.querySelector(`[data-expiry="${status}"]`)).not.toBeNull();
+  it('renders the API status as-is, with the threshold in the label', () => {
+    const { container } = render(<ExpiryBadge expiryStatus="EXPIRING" expiryThresholdDays={7} />);
+    const el = container.querySelector('[data-expiry="EXPIRING"]');
+    expect(el).toHaveAttribute('data-threshold', '7');
+    expect(el).toHaveTextContent('7');
+  });
+  it('shows expired documents in the danger tone', () => {
+    const { container } = render(<ExpiryBadge expiryStatus="EXPIRED" expiryThresholdDays={null} />);
+    expect(container.querySelector('[data-expiry="EXPIRED"]')?.parentElement?.className).toMatch(/danger/);
+  });
+});
+
+describe('activeNavHref', () => {
+  it('highlights only the most specific matching item', () => {
+    expect(activeNavHref('/settings/parameters', NAV_ITEMS)).toBe('/settings/parameters');
+    expect(activeNavHref('/settings', NAV_ITEMS)).toBe('/settings');
+    expect(activeNavHref('/employees/abc/edit', NAV_ITEMS)).toBe('/employees');
+    expect(activeNavHref('/unknown', NAV_ITEMS)).toBeUndefined();
   });
 });
 
 describe('visibleNav', () => {
   it('hides items the user has no permission for', () => {
-    expect(visibleNav([]).map((i) => i.href)).toEqual(['/dashboard', '/notifications']);
+    expect(visibleNav([]).map((i) => i.href)).toEqual(['/dashboard', '/notifications', '/account']);
     expect(visibleNav(['employee.read', 'org.read', 'org.write']).map((i) => i.href)).toContain('/settings');
+    expect(visibleNav(['org.read']).map((i) => i.href)).not.toContain('/settings');
+    expect(visibleNav(['org.write']).find((i) => i.href === '/settings')?.mobile).toBe(true);
   });
 });
 

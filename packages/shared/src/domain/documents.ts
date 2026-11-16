@@ -1,23 +1,41 @@
-import { daysBetween } from './lao-labor';
+/**
+ * Document expiry classification (FR-EMP-05.4).
+ *
+ * The API computes this with the workspace's `document.expiryAlertDays` parameter and
+ * "today" in the workspace timezone; clients only render the result.
+ */
+export const EXPIRY_STATES = ['EXPIRED', 'EXPIRING', 'VALID', 'NO_EXPIRY'] as const;
+export type ExpiryState = (typeof EXPIRY_STATES)[number];
 
-/** Alert thresholds (days before expiry) for foreign-worker documents. */
-export const DOCUMENT_ALERT_DAYS = [90, 60, 30] as const;
+export interface DocumentExpiry {
+  status: ExpiryState;
+  /** Calendar days from today until the expiry date (negative once expired); null without an expiry date. */
+  daysUntilExpiry: number | null;
+  /** For EXPIRING: the smallest configured alert threshold the document falls within (e.g. 7, 30, 60, 90). */
+  thresholdDays: number | null;
+}
 
-export type ExpiryStatus = 'EXPIRED' | 'D30' | 'D60' | 'D90' | 'VALID' | 'NO_EXPIRY';
+const MS_PER_DAY = 86_400_000;
+const isoDayNumber = (iso: string): number => Date.parse(`${iso.slice(0, 10)}T00:00:00Z`) / MS_PER_DAY;
 
-/** Classify a document expiry date relative to `now`. */
-export const documentExpiryStatus = (expiresAt: Date | null | undefined, now: Date = new Date()): ExpiryStatus => {
-  if (!expiresAt) return 'NO_EXPIRY';
-  const remaining = daysBetween(now, expiresAt);
-  if (remaining < 0) return 'EXPIRED';
-  if (remaining <= 30) return 'D30';
-  if (remaining <= 60) return 'D60';
-  if (remaining <= 90) return 'D90';
-  return 'VALID';
+/** Whole calendar days between two ISO dates (YYYY-MM-DD), `to - from`. */
+export const daysBetweenIsoDates = (from: string, to: string): number => Math.round(isoDayNumber(to) - isoDayNumber(from));
+
+/**
+ * Classify a document expiry date.
+ * @param expiresAt ISO date (YYYY-MM-DD) or null
+ * @param today ISO date of "today" in the workspace timezone
+ * @param alertDays configured alert thresholds in days (any order)
+ */
+export const documentExpiry = (expiresAt: string | null | undefined, today: string, alertDays: readonly number[]): DocumentExpiry => {
+  if (!expiresAt) return { status: 'NO_EXPIRY', daysUntilExpiry: null, thresholdDays: null };
+  const remaining = daysBetweenIsoDates(today, expiresAt);
+  if (remaining < 0) return { status: 'EXPIRED', daysUntilExpiry: remaining, thresholdDays: null };
+  const threshold = [...alertDays].sort((a, b) => a - b).find((d) => remaining <= d);
+  return threshold === undefined
+    ? { status: 'VALID', daysUntilExpiry: remaining, thresholdDays: null }
+    : { status: 'EXPIRING', daysUntilExpiry: remaining, thresholdDays: threshold };
 };
-
-/** Days remaining until expiry (negative when already expired). */
-export const daysUntilExpiry = (expiresAt: Date, now: Date = new Date()): number => daysBetween(now, expiresAt);
 
 /** Mask a sensitive identifier, keeping only the last `visible` characters. */
 export const maskSensitive = (value: string | null | undefined, visible = 4): string | null => {

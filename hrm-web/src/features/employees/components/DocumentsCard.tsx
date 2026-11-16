@@ -3,10 +3,12 @@ import { createDocumentSchema, DOCUMENT_TYPES, type CreateDocumentInput, type Em
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Button, Card, Field, Input, Modal, Select, StateView } from '@/components/ui';
+import { Button, Card, ConfirmDialog, Field, Input, Modal, Select, StateView } from '@/components/ui';
+import { ApiError } from '@/lib/api-client';
 import { useT } from '@/lib/i18n';
 import { useEmployeeDocuments } from '../hooks';
 import { ExpiryBadge } from './ExpiryBadge';
+import { DocumentFileControls } from '@/features/files/DocumentFileControls';
 
 export interface DocumentsCardProps {
   employeeId: string;
@@ -17,6 +19,7 @@ export interface DocumentsCardProps {
 export function DocumentsCard({ employeeId, documents, canEdit }: DocumentsCardProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { add, remove } = useEmployeeDocuments(employeeId);
   const form = useForm<CreateDocumentInput>({ resolver: zodResolver(createDocumentSchema), defaultValues: { type: 'WORK_PERMIT' } });
   const err = (m?: string) => (m ? t(m) : undefined);
@@ -44,14 +47,30 @@ export function DocumentsCard({ employeeId, documents, canEdit }: DocumentsCardP
                   {d.number ?? '—'} · {d.issuedAt ?? '—'} → {d.expiresAt ?? '—'}
                 </p>
               </div>
-              <ExpiryBadge expiresAt={d.expiresAt} />
+              <ExpiryBadge expiryStatus={d.expiryStatus} expiryThresholdDays={d.expiryThresholdDays} />
+              <DocumentFileControls employeeId={employeeId} document={d} canEdit={canEdit} />
               {canEdit && (
-                <Button size="sm" variant="ghost" icon="delete" aria-label={t('common.delete')} loading={remove.isPending && remove.variables === d.id} onClick={() => remove.mutate(d.id)} />
+                <Button size="sm" variant="ghost" icon="delete" aria-label={t('common.delete')} data-testid="delete-document" onClick={() => setPendingDelete(d.id)} />
               )}
             </li>
           ))}
         </ul>
       )}
+
+      {remove.error ? (
+        <p role="alert" className="mt-2 text-sm text-danger">{t(remove.error instanceof ApiError ? remove.error.code : 'unknown')}</p>
+      ) : null}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={t('empx.document.confirmTitle')}
+        message={t('empx.document.confirmRemove')}
+        confirmLabel={t('common.delete')}
+        tone="danger"
+        loading={remove.isPending}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => pendingDelete && remove.mutate(pendingDelete, { onSettled: () => setPendingDelete(null) })}
+      />
 
       <Modal
         open={open}

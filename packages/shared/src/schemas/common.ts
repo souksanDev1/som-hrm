@@ -41,6 +41,13 @@ export const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((v) => (v === '' || v === null ? undefined : v), schema.optional());
 
 /**
+ * For PATCH bodies: omitted (`undefined`) means "leave unchanged", while `null` or "" means "clear the value".
+ * The output is `T | null | undefined`.
+ */
+export const emptyToNull = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((v) => (v === '' ? null : v), schema.nullable().optional());
+
+/**
  * Lao phone numbers: mobile 020 XXXX XXXX, landline 030 XXX XXXX, with optional +856.
  * Normalised to the local form without spaces (e.g. 02055551234).
  */

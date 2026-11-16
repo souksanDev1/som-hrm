@@ -1,0 +1,69 @@
+import type { Db } from '../db/client';
+import type { SmsSender } from '../lib/sms';
+import type { PushSender } from '../modules/notifications/push';
+import { runAccountDeactivation } from './handlers/account-deactivation';
+import { runDocumentExpiryAlerts } from './handlers/document-expiry';
+import { deliverPendingNotifications } from './handlers/notification-delivery';
+import type { JobRunner } from './runner';
+
+export { runAccountDeactivation, runDocumentExpiryAlerts, deliverPendingNotifications };
+
+/** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
+export interface WorkspaceJob {
+  workspaceId: string;
+}
+
+export const JOBS = {
+  notificationDelivery: 'notification-delivery',
+  documentExpiry: 'document-expiry-alerts',
+  accountDeactivation: 'account-deactivation',
+} as const;
+
+/** Workspaces that should receive scheduled work (suspended companies are skipped). */
+export const listActiveWorkspaceIds = async (db: Db): Promise<string[]> =>
+  (await db.system((tx) => tx.workspace.findMany({ where: { status: 'ACTIVE' }, select: { id: true }, orderBy: { createdAt: 'asc' } }))).map(
+    (w) => w.id,
+  );
+
+/**
+ * Fan one scheduled tick out to a per-workspace job for each ACTIVE workspace. The singleton key
+ * (queue policy `stately`) keeps at most one queued job per workspace, so overlapping ticks are no-ops.
+ */
+export const fanOutToWorkspaces = async (db: Db, runner: Pick<JobRunner, 'send'>, job: string): Promise<number> => {
+  const ids = await listActiveWorkspaceIds(db);
+  for (const workspaceId of ids) {
+    await runner.send(job, { workspaceId } satisfies WorkspaceJob, { singletonKey: workspaceId });
+  }
+  return ids.length;
+};
+
+export interface WorkerDeps {
+  db: Db;
+  runner: JobRunner;
+  push: PushSender;
+  sms: SmsSender;
+  deliveryMaxAttempts: number;
+  log: (msg: string, meta?: object) => void;
+}
+
+const tick = (name: string) => `${name}.tick`;
+
+/** Register every handler and cron schedule (times are Asia/Vientiane). */
+export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts, log }: WorkerDeps): Promise<void> => {
+  const perWorkspace = async (name: string, cron: string, handler: (workspaceId: string) => Promise<object>) => {
+    await runner.register<WorkspaceJob>(name, async ({ workspaceId }) => {
+      const result = await handler(workspaceId);
+      log(`job ${name} done`, { workspaceId, ...result });
+    });
+    await runner.register(tick(name), async () => {
+      await fanOutToWorkspaces(db, runner, name);
+    });
+    await runner.schedule(tick(name), cron);
+  };
+
+  await perWorkspace(JOBS.notificationDelivery, '* * * * *', (ws) =>
+    deliverPendingNotifications({ db, push, sms, maxAttempts: deliveryMaxAttempts }, ws),
+  );
+  await perWorkspace(JOBS.documentExpiry, '0 7 * * *', (ws) => runDocumentExpiryAlerts(db, ws));
+  await perWorkspace(JOBS.accountDeactivation, '30 0 * * *', (ws) => runAccountDeactivation(db, ws));
+};

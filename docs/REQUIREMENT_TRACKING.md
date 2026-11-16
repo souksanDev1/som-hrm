@@ -13,27 +13,27 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 
 | Module | MUST | SHOULD | Implemented | In Progress | Not Started |
 |---|---|---|---|---|---|
-| FR-WS | 27 | 4 | 1 | 9 | 21 |
-| FR-AUTH | 9 | 2 | 3 | 4 | 4 |
-| FR-EMP | 34 | 2 | 11 | 12 | 13 |
+| FR-WS | 27 | 4 | 9 | 9 | 13 |
+| FR-AUTH | 9 | 2 | 10 | 0 | 1 |
+| FR-EMP | 34 | 2 | 14 | 11 | 11 |
 | FR-ORG | 8 | 2 | 1 | 2 | 7 |
 | FR-ATT | 49 | 11 | 0 | 0 | 60 |
 | FR-LV | 33 | 4 | 0 | 0 | 37 |
 | FR-OB | 18 | 2 | 0 | 0 | 20 |
-| FR-NOTI | 10 | 5 | 0 | 0 | 15 |
+| FR-NOTI | 10 | 5 | 3 | 3 | 9 |
 | FR-PAYDATA | 10 | 1 | 0 | 0 | 11 |
 | FR-RPT | 8 | 1 | 0 | 0 | 9 |
-| **Total** | **206** | **34** | **16** | **27** | **197** |
+| **Total** | **206** | **34** | **37** | **25** | **178** |
 
-"Implemented" here means the M1 code covers it; none of these are UAT-accepted yet.
+"Implemented" here means the M1/M2 code covers it; none of these are UAT-accepted yet.
 
 ## FR-WS
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-WS-01** | | **Create Workspace** (TOR p.2) | | | | | | | |
-| FR-WS-01.1 | MUST | SOM Development creates a new Workspace for a customer company (**SOM super-admin function**) | Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-01.2 | MUST | Every table is segregated by `workspace_id` | Super Admin | Yes | Yes | M2 | Implemented | Partial | RLS on 36 models (FORCE RLS); cross-tenant tests in hrm-api/test. 29 models lack FK to Workspace. |
+| FR-WS-01.1 | MUST | SOM Development creates a new Workspace for a customer company (**SOM super-admin function**) | Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: /platform (PlatformUser, separate JWT scope) creates/suspends workspaces; API tests + e2e/platform.spec. |
+| FR-WS-01.2 | MUST | Every table is segregated by `workspace_id` | Super Admin | Yes | Yes | M2 | Implemented | Partial | RLS on all tenant models incl. M2 tables (FORCE RLS); cross-tenant tests. 29 models still lack FK to Workspace. |
 | **FR-WS-02** | | **Org structure and locations** (TOR p.2) | | | | | | | |
 | FR-WS-02.1 | MUST | Add/edit/close branches | Web | Yes | Yes | M3 | In Progress | Partial | CRUD API exists; web has create/delete only (no rename/close). |
 | FR-WS-02.2 | MUST | Add/edit/close departments | Web | Yes | Yes | M3 | In Progress | Partial | CRUD API + cycle check; web has create/delete only. |
@@ -60,34 +60,34 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS-06.4 | MUST | Multiple modes enabled at once in one branch | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-WS-07** | | **Language** (TOR p.3) | | | | | | | |
 | FR-WS-07.1 | MUST | System displays in Lao and English | Web/Mobile/Kiosk | Yes | — | M2 | In Progress | Partial | Shared lo/en dictionary; some hardcoded strings remain. |
-| FR-WS-07.2 | MUST | Each user chooses their own language | Web/Mobile/Kiosk | Yes | Yes | M2 | In Progress | Pending | User.locale exists; no endpoint to change it. |
+| FR-WS-07.2 | MUST | Each user chooses their own language | Web/Mobile/Kiosk | Yes | Yes | M2 | Implemented | Partial | M2: PATCH /auth/me/locale; web account page + mobile profile switch. |
 | **FR-WS-08** | | **Configurable parameters** (TOR p.3) | | | | | | | |
-| FR-WS-08.1 | MUST | No hard-coded business numbers in the backend. All changeable numbers are read from a per-Workspace settings table | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.2 | MUST | Admin/HR edit values in a settings screen. The frontend sends them to the backend as parameters via the API | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.3 | MUST | Backend validates type, min/max and the legal minimum before saving, and rejects with a reason message | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.4 | MUST | A new Workspace starts with the defaults from the parameter table | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.5 | MUST | Changes have an effective date. They do not alter historical data or closed periods | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.6 | MUST | Every change is audit-logged (old value, new value, who, when) | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-WS-08.7 | MUST | System-level values (for example OTP, account lockout) are editable **only by SOM Development** (**SOM super-admin function**) | Web/Super Admin | Yes | Yes | M2 | Not Started | Pending |  |
+| FR-WS-08.1 | MUST | No hard-coded business numbers in the backend. All changeable numbers are read from a per-Workspace settings table | Web/Super Admin | Yes | Yes | M2 | In Progress | Partial | M2: effective-dated WorkspaceParameter/SystemParameter + shared registry; lockout/OTP/expiry days read from params. Further keys added per module. |
+| FR-WS-08.2 | MUST | Admin/HR edit values in a settings screen. The frontend sends them to the backend as parameters via the API | Web/Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: /settings/parameters API + web settings page. |
+| FR-WS-08.3 | MUST | Backend validates type, min/max and the legal minimum before saving, and rejects with a reason message | Web/Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: validateParameterValue (type/min/max) server-side, reason returned. |
+| FR-WS-08.4 | MUST | A new Workspace starts with the defaults from the parameter table | Web/Super Admin | Yes | Yes | M2 | Implemented | Partial | M2: registry defaults apply when no row exists. |
+| FR-WS-08.5 | MUST | Changes have an effective date. They do not alter historical data or closed periods | Web/Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: effectiveFrom; reads are "as of" a date. |
+| FR-WS-08.6 | MUST | Every change is audit-logged (old value, new value, who, when) | Web/Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: audit old/new/who/when; AuditLog append-only trigger. |
+| FR-WS-08.7 | MUST | System-level values (for example OTP, account lockout) are editable **only by SOM Development** (**SOM super-admin function**) | Web/Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: /platform/parameters (platform scope only); SystemParameter writes bypass-only. |
 ## FR-AUTH
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-AUTH-01** | | **Login** (TOR p.4) | | | | | | | |
-| FR-AUTH-01.1 | MUST | Login with employee code + password | Web/Mobile | Yes | Yes | M2 | In Progress | Partial | Login detects employee code, but issuing a PASSWORD credential requires email. |
-| FR-AUTH-01.2 | MUST | Login with phone number + password | Web/Mobile | Yes | Yes | M2 | In Progress | Partial | Phone lookup works; same email constraint. |
-| FR-AUTH-01.3 | MUST | Email is not mandatory to create an account | Web/Mobile | Yes | Yes | M2 | In Progress | Partial | Email optional for PIN only. |
+| FR-AUTH-01.1 | MUST | Login with employee code + password | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: password credential without email (B3). |
+| FR-AUTH-01.2 | MUST | Login with phone number + password | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: phone + password. |
+| FR-AUTH-01.3 | MUST | Email is not mandatory to create an account | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: email optional for all credential types. |
 | **FR-AUTH-02** | | **OTP via SMS** (TOR p.4) | | | | | | | |
-| FR-AUTH-02.1 | MUST | Verify identity at first login | Web/Mobile | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-AUTH-02.2 | MUST | Forgotten-password reset | Web/Mobile | Yes | Yes | M2 | Not Started | Pending |  |
+| FR-AUTH-02.1 | MUST | Verify identity at first login | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: OTP phone verification gate (auto-off in production while only console SMS sender exists); Maestro flow 04. |
+| FR-AUTH-02.2 | MUST | Forgotten-password reset | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: /auth/password/forgot|reset + /auth/pin/reset; web + mobile; Maestro flow 05. Real SMS gateway pending. |
 | **FR-AUTH-03** | | **Password reset by HR** (TOR p.4) | | | | | | | |
 | FR-AUTH-03.1 | MUST | HR resets the password for employees with no email and no phone | Web/Mobile | Yes | Yes | M2 | Implemented | Partial | POST /employees/:id/credentials issues temp PIN/password, revokes sessions. |
-| FR-AUTH-03.2 | MUST | Force a password change at first login | Web/Mobile | Yes | Yes | M2 | In Progress | Pending | mustChangeCredential flag not enforced by API; web ignores it. |
+| FR-AUTH-03.2 | MUST | Force a password change at first login | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: API blocks other routes until credential changed (credential_change_required). |
 | **FR-AUTH-04** | | **Quick app login** (TOR p.4) | | | | | | | |
 | FR-AUTH-04.1 | SHOULD | Set a PIN | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | PIN login + change-pin; Maestro flow on Android. |
 | FR-AUTH-04.2 | SHOULD | Use the phone's fingerprint/face biometrics | Web/Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-AUTH-05 | MUST | Temporary account lock after **5 consecutive wrong passwords** | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | 5 tries / 15 min (env default — must move to system params). |
-| FR-AUTH-06 | MUST | Auto-disable login when the employee leaves (separation) | Web/Mobile | Yes | Yes | M2 | Not Started | Pending |  |
+| FR-AUTH-05 | MUST | Temporary account lock after **5 consecutive wrong passwords** | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: 5 tries / 15 min from system params (auth.lockout.*). |
+| FR-AUTH-06 | MUST | Auto-disable login when the employee leaves (separation) | Web/Mobile | Yes | Yes | M2 | Implemented | Completed | M2: resignation/termination deactivates login + revokes sessions; scheduled job for future dates. |
 ## FR-EMP
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
@@ -117,14 +117,14 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-EMP-04.4 | MUST | Residence (stay) permit | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | FR-EMP-04.5 | MUST | Each document stores number, issue date, expiry date and an attached file | Web | Yes | Yes | M2 | In Progress | Pending | Number/dates stored; file upload missing. |
 | **FR-EMP-05** | | **Document-expiry alerts** (TOR p.6) | | | | | | | |
-| FR-EMP-05.1 | MUST | Alert at **90, 60, 30 and 7 days** before expiry | Web/Mobile | Yes | Yes | M3 | In Progress | Partial | Logic has 90/60/30 only (no 7); no job. |
+| FR-EMP-05.1 | MUST | Alert at **90, 60, 30 and 7 days** before expiry | Web/Mobile | Yes | Yes | M3 | In Progress | Partial | M2: 90/60/30/7 from workspace param + daily job; expiry status from API. Overview/UI polish in M3. |
 | FR-EMP-05.2 | MUST | Send to both HR and the employee | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
 | FR-EMP-05.3 | SHOULD | HR configures the alert days | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-05.4 | MUST | Red status once expired | Web/Mobile | Yes | — | M3 | In Progress | Partial | Status computed on client clock; should come from API. |
+| FR-EMP-05.4 | MUST | Red status once expired | Web/Mobile | Yes | — | M3 | Implemented | Partial | M2: status computed by API (documentExpiry). |
 | FR-EMP-06 | SHOULD | Expiring-documents overview, filterable by branch and document type | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | **FR-EMP-07** | | **Document upload** (TOR p.6) | | | | | | | |
-| FR-EMP-07.1 | MUST | Upload contract, ID cards, education certificates | Web | Yes | Yes | M2 | Not Started | Pending |  |
-| FR-EMP-07.2 | MUST | Support PDF, JPG, PNG | Web | Yes | Yes | M2 | Not Started | Pending |  |
+| FR-EMP-07.1 | MUST | Upload contract, ID cards, education certificates | Web | Yes | Yes | M2 | Implemented | Completed | M2: PUT/GET /employees/:id/documents/:docId/file; web FileUpload. |
+| FR-EMP-07.2 | MUST | Support PDF, JPG, PNG | Web | Yes | Yes | M2 | Implemented | Completed | M2: magic-byte validation PDF/JPG/PNG; size limit. |
 | **FR-EMP-08** | | **Employment history** (TOR p.6) | | | | | | | |
 | FR-EMP-08.1 | MUST | Record position changes | Web | Yes | Yes | M3 | In Progress | Pending | History written; effective date = today; no read endpoint. |
 | FR-EMP-08.2 | MUST | Record department/branch transfers | Web | Yes | Yes | M3 | In Progress | Pending | Same as 08.1. |
@@ -324,9 +324,9 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-NOTI-01** | | **Channels** (TOR p.15) | | | | | | | |
-| FR-NOTI-01.1 | MUST | Mobile push notifications | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-01.2 | MUST | In-app notification centre | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-01.3 | MUST | Web notification centre | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-01.1 | MUST | Mobile push notifications | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M2: push-token API + delivery outbox; needs FCM/APNs credentials. |
+| FR-NOTI-01.2 | MUST | In-app notification centre | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M2: mobile notifications tab. |
+| FR-NOTI-01.3 | MUST | Web notification centre | Web/Mobile | Yes | Yes | M4 | Implemented | Completed | M2: web NotificationCenter + /notifications. |
 | **FR-NOTI-02** | | **SMS** (TOR p.15) | | | | | | | |
 | FR-NOTI-02.1 | SHOULD | Send OTP via SMS | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-02.2 | SHOULD | SMS key events to employees without the app | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
@@ -335,13 +335,13 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-NOTI-03.1 | MUST | Request pending approval | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-03.2 | MUST | Approval result | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: document-expiry job notifies HR + employee (dedupe). |
 | FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-03.7 | MUST | Offline data not yet synced | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | **FR-NOTI-04** | | **Notification management** (TOR p.15) | | | | | | | |
-| FR-NOTI-04.1 | SHOULD | Mark as read | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-04.2 | SHOULD | Deep-link to the related screen | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-04.1 | SHOULD | Mark as read | Web/Mobile | Yes | Yes | M4 | Implemented | Completed | M2: read / read-all. |
+| FR-NOTI-04.2 | SHOULD | Deep-link to the related screen | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: Notification.link stored; web follows it. |
 ## FR-PAYDATA
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |

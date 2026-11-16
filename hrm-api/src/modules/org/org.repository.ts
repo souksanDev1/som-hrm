@@ -21,15 +21,16 @@ export const orgRepository = {
     (await tx.employee.count({ where: { workspaceId, departmentId: id } })) +
     (await tx.department.count({ where: { workspaceId, parentId: id } })),
   departmentExists: (tx: Tx, workspaceId: string, id: string) => tx.department.count({ where: { workspaceId, id } }),
-  departmentParentChain: async (tx: Tx, workspaceId: string, startId: string) => {
-    const chain: string[] = [];
-    let cur: string | null = startId;
-    while (cur && !chain.includes(cur) && chain.length < 50) {
-      chain.push(cur);
-      const row: { parentId: string | null } | null = await tx.department.findFirst({ where: { id: cur, workspaceId }, select: { parentId: true } });
-      cur = row?.parentId ?? null;
-    }
-    return chain;
+  /** Ids of `startId` and all its ancestors (one recursive query; UNION stops on corrupt cycles). */
+  departmentParentChain: async (tx: Tx, workspaceId: string, startId: string): Promise<string[]> => {
+    const rows = await tx.$queryRaw<{ id: string }[]>`
+      WITH RECURSIVE chain AS (
+        SELECT "id", "parentId" FROM "Department" WHERE "id" = ${startId} AND "workspaceId" = ${workspaceId}
+        UNION
+        SELECT d."id", d."parentId" FROM "Department" d JOIN chain c ON d."id" = c."parentId" WHERE d."workspaceId" = ${workspaceId}
+      )
+      SELECT "id" FROM chain`;
+    return rows.map((r) => r.id);
   },
   employeeExists: (tx: Tx, workspaceId: string, id: string) => tx.employee.count({ where: { workspaceId, id } }),
 

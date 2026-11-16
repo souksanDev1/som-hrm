@@ -5,6 +5,8 @@ export const PERMISSIONS = {
   EMPLOYEE_READ: 'employee.read',
   EMPLOYEE_WRITE: 'employee.write',
   EMPLOYEE_SENSITIVE_READ: 'employee.sensitive.read',
+  /** See every employee in the workspace; without it `employee.read` is limited to self + reporting line. */
+  EMPLOYEE_READ_ALL: 'employee.read_all',
   ORG_READ: 'org.read',
   ORG_WRITE: 'org.write',
   USER_MANAGE: 'user.manage',

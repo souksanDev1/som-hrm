@@ -1,14 +1,15 @@
 import { Text } from 'react-native';
-import { Screen, StateScreen } from '@/components/ui';
+import { Screen } from '@/components/ui';
+import { NotificationList } from '@/features/notifications/NotificationList';
 import { useT } from '@/lib/i18n';
 
-/** Inbox for leave/correction decisions and document expiry (delivered from M3). */
+/** Notification inbox (FR-NOTI-04). Push registration waits for FCM/APNs credentials. */
 export default function NotificationsScreen() {
   const t = useT();
   return (
-    <Screen testID="notifications-screen">
-      <Text className="mb-4 text-2xl font-semibold text-ink dark:text-night-ink">{t('nav.notifications')}</Text>
-      <StateScreen kind="empty" />
+    <Screen testID="notifications-screen" scroll={false}>
+      <Text className="mb-4 text-2xl font-semibold text-ink dark:text-night-ink">{t('notif.title')}</Text>
+      <NotificationList />
     </Screen>
   );
 }

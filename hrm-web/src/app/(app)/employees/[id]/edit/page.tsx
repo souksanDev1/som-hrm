@@ -1,6 +1,7 @@
 'use client';
 import { PERMISSIONS, type EmployeeDetail } from '@hrm/shared';
 import { useParams, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { QueryState } from '@/components/ui';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { RequirePermission } from '@/features/auth/RequirePermission';
@@ -8,7 +9,7 @@ import { EmployeeForm, type EmployeeFormValues } from '@/features/employees/comp
 import { useEmployee, useUpdateEmployee } from '@/features/employees/hooks';
 import { useT } from '@/lib/i18n';
 
-/** Map the API detail onto form defaults (nulls → undefined; masked secrets are not prefilled). */
+/** Map the API detail onto form defaults (nulls → blank; masked secrets are not prefilled, so they stay unchanged). */
 const toFormValues = (e: EmployeeDetail): Partial<EmployeeFormValues> => ({
   employeeCode: e.employeeCode,
   firstName: e.firstName,
@@ -36,10 +37,11 @@ const toFormValues = (e: EmployeeDetail): Partial<EmployeeFormValues> => ({
 function EditForm({ employee }: { employee: EmployeeDetail }) {
   const router = useRouter();
   const update = useUpdateEmployee(employee.id);
+  const defaults = useMemo(() => toFormValues(employee), [employee]);
   return (
     <EmployeeForm
       mode="edit"
-      defaultValues={toFormValues(employee)}
+      defaultValues={defaults}
       submitting={update.isPending}
       error={update.error}
       onCancel={() => router.back()}

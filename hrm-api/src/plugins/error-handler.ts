@@ -5,6 +5,16 @@ import { AppError } from '../lib/errors';
 
 const body = (code: string, message: string, details?: unknown) => ({ error: { code, message, details } });
 
+/**
+ * Column names of a unique violation that are safe to show (never Prisma's raw `meta`, which can expose
+ * constraint names and internal columns such as blind indexes).
+ */
+const conflictFields = (meta: Record<string, unknown> | undefined): string[] => {
+  const target = meta?.target;
+  if (!Array.isArray(target)) return [];
+  return target.filter((f): f is string => typeof f === 'string' && f !== 'workspaceId' && !/(Hash|Enc)$/.test(f));
+};
+
 /** Maps every thrown error onto the `{ error: { code, message, details } }` contract. */
 export const registerErrorHandler = (app: FastifyInstance) => {
   app.setNotFoundHandler((_req, reply) => reply.status(404).send(body('not_found', 'Route not found')));
@@ -21,7 +31,10 @@ export const registerErrorHandler = (app: FastifyInstance) => {
       return reply.status(400).send(body('validation_error', 'Invalid request', details));
     }
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
-      if (err.code === 'P2002') return reply.status(409).send(body('conflict', 'Duplicate value', err.meta));
+      if (err.code === 'P2002') {
+        const fields = conflictFields(err.meta);
+        return reply.status(409).send(body('conflict', 'Duplicate value', fields.length ? { fields } : undefined));
+      }
       if (err.code === 'P2025') return reply.status(404).send(body('not_found', 'Record not found'));
     }
     if (err.statusCode === 429) return reply.status(429).send(body('rate_limited', 'Too many requests'));

@@ -107,5 +107,35 @@ export const NotificationType = {
   CORRECTION_DECISION: 'CORRECTION_DECISION',
   SUSPICIOUS_ATTENDANCE: 'SUSPICIOUS_ATTENDANCE',
   SYSTEM: 'SYSTEM',
+  APPROVAL_PENDING: 'APPROVAL_PENDING',
+  APPROVAL_DECISION: 'APPROVAL_DECISION',
+  APPROVAL_ESCALATED: 'APPROVAL_ESCALATED',
+  MISSING_PUNCH: 'MISSING_PUNCH',
+  PROBATION_ENDING: 'PROBATION_ENDING',
+  OFFLINE_UNSYNCED: 'OFFLINE_UNSYNCED',
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
+export const NOTIFICATION_TYPES = values(NotificationType);
+
+export const NotificationChannel = { PUSH: 'PUSH', SMS: 'SMS' } as const;
+export type NotificationChannel = (typeof NotificationChannel)[keyof typeof NotificationChannel];
+
+export const DeliveryStatus = { PENDING: 'PENDING', SENT: 'SENT', FAILED: 'FAILED', SKIPPED: 'SKIPPED' } as const;
+export type DeliveryStatus = (typeof DeliveryStatus)[keyof typeof DeliveryStatus];
+
+export const WorkspaceStatus = { ACTIVE: 'ACTIVE', SUSPENDED: 'SUSPENDED' } as const;
+export type WorkspaceStatus = (typeof WorkspaceStatus)[keyof typeof WorkspaceStatus];
+export const WORKSPACE_STATUSES = values(WorkspaceStatus);
+
+export const OtpPurpose = { FIRST_LOGIN: 'FIRST_LOGIN', PASSWORD_RESET: 'PASSWORD_RESET' } as const;
+export type OtpPurpose = (typeof OtpPurpose)[keyof typeof OtpPurpose];
+export const OTP_PURPOSES = values(OtpPurpose);
+
+export const FilePurpose = {
+  EMPLOYEE_DOCUMENT: 'EMPLOYEE_DOCUMENT',
+  SELFIE: 'SELFIE',
+  ATTACHMENT: 'ATTACHMENT',
+  IMPORT: 'IMPORT',
+} as const;
+export type FilePurpose = (typeof FilePurpose)[keyof typeof FilePurpose];
+export const FILE_PURPOSES = values(FilePurpose);

@@ -5,66 +5,83 @@ import {
   EMPLOYMENT_TYPES,
   GENDERS,
   NATIONALITY_TYPES,
+  updateEmployeeSchema,
   type CreateEmployeeInput,
+  type UpdateEmployeeInput,
 } from '@hrm/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMemo } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { Button, Card, Checkbox, Field, Input, Select } from '@/components/ui';
 import { useBranches, useDepartments, usePositions } from '@/features/org/hooks';
 import { ApiError } from '@/lib/api-client';
 import { useT } from '@/lib/i18n';
+import { toCreatePayload, toUpdateFields, toUpdatePayload, type EmployeeFormValues } from '../payload';
 
-export type EmployeeFormValues = CreateEmployeeInput & { createLogin?: boolean; loginMethod?: 'PIN' | 'PASSWORD' };
+export type { EmployeeFormValues } from '../payload';
 
-export interface EmployeeFormProps {
+interface EmployeeFormBaseProps {
   defaultValues?: Partial<EmployeeFormValues>;
-  /** Hide login creation for edits. */
-  mode: 'create' | 'edit';
   submitting?: boolean;
   error?: unknown;
-  onSubmit(values: CreateEmployeeInput): void;
   onCancel(): void;
 }
 
-/** Empty strings from inputs become undefined so optional schema fields validate. */
-const clean = (v: Record<string, unknown>) =>
-  Object.fromEntries(Object.entries(v).filter(([, val]) => val !== '' && val !== null && val !== undefined));
+export type EmployeeFormProps = EmployeeFormBaseProps &
+  (
+    | { mode: 'create'; onSubmit(payload: CreateEmployeeInput): void }
+    /** Edit sends only changed fields; cleared optional fields are sent as `null`. */
+    | { mode: 'edit'; onSubmit(payload: UpdateEmployeeInput): void }
+  );
 
-const resolver: Resolver<EmployeeFormValues> = async (values, ctx, opts) => {
-  const { createLogin, loginMethod, ...rest } = values;
-  const payload = { ...clean(rest), ...(createLogin ? { login: { method: loginMethod ?? 'PIN' } } : {}) };
-  return zodResolver(createEmployeeSchema)(payload as never, ctx, opts as never) as never;
+/** Validate exactly what will be sent: the create body, or every field as PATCH sees it. */
+const resolverFor = (mode: 'create' | 'edit'): Resolver<EmployeeFormValues> => async (values, ctx, opts) =>
+  mode === 'create'
+    ? (zodResolver(createEmployeeSchema)(toCreatePayload(values) as never, ctx, opts as never) as never)
+    : (zodResolver(updateEmployeeSchema)(toUpdateFields(values) as never, ctx, opts as never) as never);
+
+const FORM_DEFAULTS: Partial<EmployeeFormValues> = {
+  nationalityType: 'LAO',
+  status: 'PROBATION',
+  employmentType: 'FULL_TIME',
+  gender: 'MALE',
+  loginMethod: 'PIN',
+  hazardousWork: false,
 };
 
-export function EmployeeForm({ defaultValues, mode, submitting, error, onSubmit, onCancel }: EmployeeFormProps) {
+export function EmployeeForm(props: EmployeeFormProps) {
+  const { defaultValues, mode, submitting, error, onCancel } = props;
   const t = useT();
   const branches = useBranches();
   const departments = useDepartments();
   const positions = usePositions();
-  const { register, handleSubmit, watch, formState } = useForm<EmployeeFormValues>({
-    resolver,
-    defaultValues: { nationalityType: 'LAO', status: 'PROBATION', employmentType: 'FULL_TIME', gender: 'MALE', loginMethod: 'PIN', ...defaultValues },
-  });
+  const initial = useMemo(() => ({ ...FORM_DEFAULTS, ...defaultValues }) as EmployeeFormValues, [defaultValues]);
+  const resolver = useMemo(() => resolverFor(mode), [mode]);
+  const { register, handleSubmit, watch, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
   const errors = formState.errors as Partial<Record<string, { message?: string }>>;
   const e = (name: string) => (errors[name]?.message ? t(errors[name]!.message!) : undefined);
   const nationalityType = watch('nationalityType');
   const createLogin = watch('createLogin');
+  const status = watch('status');
   const opts = (values: readonly string[], prefix: string) => values.map((v) => ({ value: v, label: t(`${prefix}.${v}`) }));
   const refOpts = (rows?: { id: string; name: string }[]) => (rows ?? []).map((r) => ({ value: r.id, label: r.name }));
 
-  const text = (name: keyof EmployeeFormValues, labelKey: string, props: Record<string, unknown> = {}) => (
-    <Field label={t(labelKey)} htmlFor={name} error={e(name)} required={!!props.required}>
-      <Input id={name} invalid={!!errors[name]} {...register(name)} {...props} required={undefined} />
-    </Field>
-  );
+  const text = (name: keyof EmployeeFormValues, labelKey: string, extra: Record<string, unknown> = {}) => {
+    const { required, hint, ...inputProps } = extra;
+    return (
+      <Field label={t(labelKey)} htmlFor={name} error={e(name)} required={!!required} hint={hint as string | undefined}>
+        <Input id={name} invalid={!!errors[name]} {...register(name)} {...inputProps} />
+      </Field>
+    );
+  };
 
   return (
     <form
       noValidate
       data-testid="employee-form"
       onSubmit={handleSubmit((values) => {
-        const { createLogin: cl, loginMethod, ...rest } = values;
-        onSubmit({ ...(clean(rest) as CreateEmployeeInput), ...(cl && mode === 'create' ? { login: { method: loginMethod ?? 'PIN' } } : {}) });
+        if (props.mode === 'create') props.onSubmit(toCreatePayload(values));
+        else props.onSubmit(toUpdatePayload(values, initial));
       })}
       className="flex flex-col gap-4"
     >
@@ -102,9 +119,14 @@ export function EmployeeForm({ defaultValues, mode, submitting, error, onSubmit,
           <Field label={t('employee.employmentType')} htmlFor="employmentType" required>
             <Select id="employmentType" options={opts(EMPLOYMENT_TYPES, 'employmentType')} {...register('employmentType')} />
           </Field>
-          <Field label={t('employee.status')} htmlFor="status">
+          <Field
+            label={t('employee.status')}
+            htmlFor="status"
+            hint={mode === 'edit' && (status === 'RESIGNED' || status === 'TERMINATED') ? t('empx.status.loginDisabledHint') : undefined}
+          >
             <Select id="status" options={opts(EMPLOYMENT_STATUSES, 'status')} {...register('status')} />
           </Field>
+          {mode === 'edit' && text('effectiveDate', 'empx.effectiveDate', { type: 'date', hint: t('empx.effectiveDate.hint') })}
           <Field label={t('employee.branch')} htmlFor="branchId">
             <Select id="branchId" placeholder="—" options={refOpts(branches.data)} {...register('branchId')} />
           </Field>
@@ -137,7 +159,7 @@ export function EmployeeForm({ defaultValues, mode, submitting, error, onSubmit,
               />
             )}
           </div>
-          {e('email') && <p className="mt-2 text-xs text-danger">{e('email')}</p>}
+          {createLogin && <p className="mt-2 text-xs text-ink-muted">{t('empx.credential.identifierHint')}</p>}
         </Card>
       )}
 

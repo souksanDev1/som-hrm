@@ -8,11 +8,10 @@ import { useIssueCredential } from '../hooks';
 export interface CredentialCardProps {
   employeeId: string;
   hasLogin: boolean;
-  hasEmail: boolean;
 }
 
-/** HR issues or resets a PIN/password; the temporary secret is shown exactly once. */
-export function CredentialCard({ employeeId, hasLogin, hasEmail }: CredentialCardProps) {
+/** HR issues or resets a PIN/password (no email needed); the temporary secret is shown exactly once. */
+export function CredentialCard({ employeeId, hasLogin }: CredentialCardProps) {
   const t = useT();
   const issue = useIssueCredential(employeeId);
   const [secret, setSecret] = useState<string | null>(null);
@@ -28,12 +27,17 @@ export function CredentialCard({ employeeId, hasLogin, hasEmail }: CredentialCar
         <Button variant="secondary" icon="pin" loading={issue.isPending && issue.variables === 'PIN'} onClick={() => void run('PIN').catch(() => undefined)} data-testid="issue-pin">
           {t(hasLogin ? 'employee.resetPin' : 'auth.usePin')}
         </Button>
-        {hasEmail && (
-          <Button variant="secondary" icon="key" loading={issue.isPending && issue.variables === 'PASSWORD'} onClick={() => void run('PASSWORD').catch(() => undefined)}>
-            {t('auth.usePassword')}
-          </Button>
-        )}
+        <Button
+          variant="secondary"
+          icon="key"
+          loading={issue.isPending && issue.variables === 'PASSWORD'}
+          onClick={() => void run('PASSWORD').catch(() => undefined)}
+          data-testid="issue-password"
+        >
+          {t(hasLogin ? 'empx.credential.resetPassword' : 'auth.usePassword')}
+        </Button>
       </div>
+      <p className="mt-2 text-xs text-ink-muted">{t('empx.credential.identifierHint')}</p>
       {issue.error ? (
         <p role="alert" className="mt-2 text-sm text-danger">{t(issue.error instanceof ApiError ? issue.error.code : 'unknown')}</p>
       ) : null}

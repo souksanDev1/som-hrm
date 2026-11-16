@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { Button, Icon } from '@/components/ui';
-import { useLogout } from '@/features/auth/hooks';
+import { useChangeLocale, useLogout } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { usePrefsStore, useT } from '@/lib/i18n';
 
@@ -9,7 +9,8 @@ export function Topbar() {
   const t = useT();
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const { locale, setLocale, theme, toggleTheme } = usePrefsStore();
+  const { locale, theme, toggleTheme } = usePrefsStore();
+  const changeLocale = useChangeLocale();
   const logout = useLogout();
 
   return (
@@ -18,13 +19,16 @@ export function Topbar() {
         <p className="truncate text-sm font-semibold text-ink dark:text-night-ink">{user?.workspaceName}</p>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
-        <Button variant="ghost" size="sm" onClick={() => setLocale(locale === 'lo' ? 'en' : 'lo')} aria-label="language" data-testid="toggle-locale">
+        <Button variant="ghost" size="sm" onClick={() => changeLocale(locale === 'lo' ? 'en' : 'lo')} aria-label="language" data-testid="toggle-locale">
           {locale === 'lo' ? 'EN' : 'ລາວ'}
         </Button>
         <Button variant="ghost" size="sm" onClick={toggleTheme} aria-label="theme">
           <Icon name={theme === 'light' ? 'dark_mode' : 'light_mode'} className="text-[20px]" />
         </Button>
-        <span className="hidden max-w-[12rem] truncate text-sm text-ink-muted md:inline">{user?.displayName}</span>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/account')} aria-label={t('authx.account.title')} data-testid="open-account">
+          <Icon name="manage_accounts" className="text-[20px]" />
+          <span className="hidden max-w-[12rem] truncate text-sm text-ink-muted md:inline">{user?.displayName}</span>
+        </Button>
         <Button
           variant="secondary"
           size="sm"

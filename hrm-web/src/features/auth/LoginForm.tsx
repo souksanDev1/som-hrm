@@ -1,6 +1,7 @@
 'use client';
 import { passwordLoginSchema, pinLoginSchema, type PasswordLoginInput, type PinLoginInput } from '@hrm/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { Button, Field, Input, PasswordInput } from '@/components/ui';
@@ -67,7 +68,7 @@ export function LoginForm({ defaultWorkspaceCode = '', onSuccess }: LoginFormPro
       </Field>
 
       <Field
-        label={t(mode === 'PIN' ? 'auth.identifierPin' : 'auth.identifier')}
+        label={t(mode === 'PIN' ? 'auth.identifierPin' : 'authx.login.identifier')}
         htmlFor="identifier"
         error={err(formState.errors.identifier?.message)}
         required
@@ -94,7 +95,9 @@ export function LoginForm({ defaultWorkspaceCode = '', onSuccess }: LoginFormPro
       <Button type="submit" size="lg" fullWidth loading={formState.isSubmitting}>
         {t('auth.submit')}
       </Button>
-      <p className="text-center text-xs text-ink-muted">{t('auth.forgot')}</p>
+      <Link href="/forgot-password" className="text-center text-sm text-primary hover:underline" data-testid="forgot-link">
+        {t('authx.login.forgotLink')}
+      </Link>
     </form>
   );
 }

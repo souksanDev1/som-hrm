@@ -67,7 +67,7 @@ Onboarding/Offboarding, ຜັງອົງກອນ, ແຈ້ງເຕືອນ
 > Backend + Web + Mobile (+ Kiosk ຖ້າກ່ຽວຂ້ອງ) ແລະ test ກ່ອນຍ້າຍໄປ milestone ຖັດໄປ. ລຳດັບທົດສອບອຸປະກອນ: **Web + Android ກ່ອນ, iOS ພາຍຫຼັງ**.
 
 - **M1 (ສຳເລັດ, commit b778f88)**: Monorepo + shared + Prisma schema + RLS + Auth (password/PIN, JWT refresh) + RBAC + Audit log + Employees + Org chart
-- **M2 Foundation hardening**: ແກ້ B1–B12 · SOM Super Admin (`/platform`, PlatformUser, ສ້າງ workspace — FR-WS-01.1) ·
+- **M2 Foundation hardening (ສຳເລັດ 2026-11-16; ຍັງຄ້າງ: SMS gateway ຈິງ, FCM/APNs push, DB role BYPASSRLS ແຍກ → M7)**: ແກ້ B1–B12 · SOM Super Admin (`/platform`, PlatformUser, ສ້າງ workspace — FR-WS-01.1) ·
   Business parameter store effective-dated (FR-WS-08) · Auth: ID/ເບີໂທ + password ບໍ່ຕ້ອງ email, OTP + SMS adapter,
   force change ທີ່ API, ປິດ login ຕອນອອກວຽກ (FR-AUTH-01..03, 06) · ປ່ຽນພາສາຕໍ່ user (FR-WS-07) · File storage adapter ·
   pg-boss job runner · Notification outbox + in-app center ·

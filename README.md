@@ -17,7 +17,8 @@ cp hrm-api/.env.example hrm-api/.env      # ແລ້ວໃສ່ JWT_SECRET ແ
 pnpm --filter @hrm/api db:start           # PostgreSQL 16 ໃນເຄື່ອງ (port 5432) — ເປີດຄ້າງໄວ້ໃນ terminal ອື່ນ
 pnpm --filter @hrm/api db:deploy          # ສ້າງຕາຕະລາງ + RLS
 pnpm db:seed                              # ຂໍ້ມູນຕົວຢ່າງ
-pnpm dev:api                              # http://localhost:4000
+pnpm dev:api                              # http://localhost:4000 (OpenAPI: /docs)
+pnpm --filter @hrm/api worker             # background jobs (pg-boss): notification delivery, document expiry, deactivation
 pnpm dev:web                              # http://localhost:3000
 pnpm dev:mobile                           # Expo (i = iOS simulator, a = Android emulator)
 ```
@@ -29,6 +30,10 @@ pnpm dev:mobile                           # Expo (i = iOS simulator, a = Android
 
 ເບິ່ງ [hrm-api/prisma/seed.ts](hrm-api/prisma/seed.ts) — ລະຫັດບໍລິສັດ `som-demo`, HR ເຂົ້າດ້ວຍອີເມວ/ລະຫັດຜ່ານ,
 ພະນັກງານໜ້າງານ E003 ເຂົ້າດ້ວຍ ເບີໂທ/ລະຫັດພະນັກງານ + PIN.
+SOM Super Admin (`/platform`): ເບິ່ງ seed ດຽວກັນ; ສ້າງບັນຊີໃໝ່ດ້ວຍ `pnpm --filter @hrm/api platform:create-admin`.
+
+ຄ່າ env ໃໝ່ (ເບິ່ງ [hrm-api/.env.example](hrm-api/.env.example)): `REQUIRE_PHONE_VERIFICATION` (ປິດອັດຕະໂນມັດໃນ production
+ຖ້າຍັງໃຊ້ SMS ແບບ console), `TRUST_PROXY`, `FILE_STORAGE_DIR`, `FILE_MAX_BYTES`, push provider ຂອງ worker.
 
 ## ຄຳສັ່ງກວດສອບ (ທຸກອັນຕ້ອງຜ່ານກ່ອນ commit)
 
@@ -59,6 +64,6 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm e2e
 
 - **M1 (ສຳເລັດ)**: monorepo, shared, Prisma schema ທັງໝົດ + RLS, auth (password/PIN, refresh rotation, lockout),
   RBAC, audit log, ພະນັກງານ (ເອກະສານຕ່າງປະເທດ + ສະຖານະໝົດອາຍຸ 90/60/30), ຜັງອົງກອນ, ໜ້າ login/ແຈ້ງເຕືອນ/error/offline.
-- M2: ລົງເວລາ (offline queue, anti-fake-GPS, selfie), ກະ 6 ມື້, OT, ນຳເຂົ້າເຄື່ອງສະແກນ, ຄຳຂໍແກ້ເວລາ
-- M3: ການລາ (ກົດລາວ), ອະນຸມັດ + ຜູ້ອະນຸມັດແທນ, push notification
-- M4: Onboarding/Offboarding (ເກັບ OT/ວັນລາເຫຼືອ), ແຈ້ງເຕືອນເອກະສານອັດຕະໂນມັດ, ລາຍງານ, dashboard
+- **M2 (ສຳເລັດ)**: SOM Super Admin, parameter store (effective-dated), OTP (ຢືນຢັນເບີ/ລືມລະຫັດ), login ບໍ່ຕ້ອງ email,
+  ປິດ login ຕອນອອກວຽກ, ໄຟລ໌ເອກະສານ (PDF/JPG/PNG), job runner, notification center, OpenAPI, audit log append-only.
+- M3–M7: ເບິ່ງ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)

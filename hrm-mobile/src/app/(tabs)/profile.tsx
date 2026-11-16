@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { Button, Card, InfoRow, QueryView, Screen } from '@/components/ui';
-import { useLogout } from '@/features/auth/hooks';
+import { useChangeLocale, useLogout } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useMyProfile } from '@/features/profile/api';
 import { ExpiryBadge } from '@/features/profile/ExpiryBadge';
@@ -11,7 +11,8 @@ export default function ProfileScreen() {
   const t = useT();
   const profile = useMyProfile();
   const logout = useLogout();
-  const { locale, setLocale } = usePrefsStore();
+  const locale = usePrefsStore((s) => s.locale);
+  const changeLocale = useChangeLocale();
   const method = useAuthStore((s) => s.lastLoginMethod);
 
   return (
@@ -38,7 +39,7 @@ export default function ProfileScreen() {
                       <Text className="text-sm font-medium text-ink dark:text-night-ink">{t(`document.${d.type}`)}</Text>
                       <Text className="text-xs text-ink-muted">{d.expiresAt ?? '—'}</Text>
                     </View>
-                    <ExpiryBadge expiresAt={d.expiresAt} />
+                    <ExpiryBadge expiryStatus={d.expiryStatus} expiryThresholdDays={d.expiryThresholdDays} />
                   </View>
                 ))}
               </Card>
@@ -49,7 +50,7 @@ export default function ProfileScreen() {
       <Card>
         <View className="gap-2">
           {method === 'PIN' && <Button title={t('auth.changePin')} variant="secondary" onPress={() => router.push('/change-pin')} testID="open-change-pin" />}
-          <Button title={locale === 'lo' ? 'English' : 'ພາສາລາວ'} variant="secondary" onPress={() => setLocale(locale === 'lo' ? 'en' : 'lo')} />
+          <Button title={locale === 'lo' ? 'English' : 'ພາສາລາວ'} variant="secondary" onPress={() => changeLocale(locale === 'lo' ? 'en' : 'lo')} testID="toggle-locale" />
           <Button
             title={t('auth.logout')}
             variant="danger"
