@@ -10,7 +10,7 @@ const createEmployee = async (page: Page, code: string, extra: (page: Page) => P
   await page.locator('#hireDate').fill('2026-01-05');
   await extra(page);
   await page.getByTestId('employee-submit').click();
-  await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+  await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
 };
 
 test.describe('employee edit, contacts, history and document delete', () => {
@@ -31,7 +31,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await page.locator('#email').fill('');
     await page.getByTestId('employee-submit').click();
     expect((await patch).postDataJSON()).toEqual({ email: null });
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
     await expect(page.getByText(`${code.toLowerCase()}@e2e.test`)).toHaveCount(0);
     await expect(page.getByText('ບ້ານ ທົດສອບ')).toBeVisible(); // untouched field kept
   });
@@ -43,7 +43,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await page.locator('#status').selectOption('ACTIVE');
     await page.locator('#effectiveDate').fill('2026-02-01');
     await page.getByTestId('employee-submit').click();
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
     const rows = page.getByTestId('history-card').getByTestId('history-row');
     await expect(rows).toHaveCount(2);
     await expect(rows.first()).toContainText('2026-02-01');
@@ -107,7 +107,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await page.locator('#managerId').selectOption({ label: 'E001 · ສົມສັກ ພົມມະວົງ' });
     await page.locator('#effectiveDate').fill('2026-03-01');
     await page.getByTestId('employee-submit').click();
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
     const latest = page.getByTestId('history-card').getByTestId('history-row').first();
     await expect(latest).toContainText('2026-03-01');
     await expect(latest).toContainText('ສົມສັກ ພົມມະວົງ');

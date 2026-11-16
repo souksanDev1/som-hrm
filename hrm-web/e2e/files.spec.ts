@@ -15,7 +15,7 @@ test.describe('document files', () => {
     const row = page.locator('[data-testid="employee-row"]:visible, [data-testid="employee-card"]:visible');
     await expect(row).toHaveCount(1);
     await row.first().getByRole('link').first().click();
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
 
     const doc = page.getByTestId('document-row').first();
     const fileName = `permit-${info.project.name}.pdf`;

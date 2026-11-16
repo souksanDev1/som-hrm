@@ -41,7 +41,7 @@ const addEmployee = (ws: WorkspaceFixture) =>
     tx.employee.create({
       data: {
         workspaceId: ws.workspaceId, employeeCode: `S${++seq}`, firstName: 'ສົມ', lastName: `${seq}`, gender: 'MALE',
-        hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME',
+        hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY',
       },
     }),
   );

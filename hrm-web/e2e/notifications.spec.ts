@@ -27,7 +27,7 @@ test.describe('notification center', () => {
   test('opens the linked screen when a notification is clicked', async ({ page }) => {
     await page.goto('/notifications');
     await page.getByTestId('notification-row').filter({ hasText: 'Nguyen Van An' }).first().getByRole('button').first().click();
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
     await expect(page.getByRole('heading', { name: /Nguyen Van An/ })).toBeVisible();
   });
 });

@@ -13,7 +13,7 @@ test.describe('expiring documents overview (FR-EMP-06)', () => {
     // Seed (E004 Nguyen Van An): work permit +25 days, visa +55 days, medical certificate expired 10 days ago, passport +800 days.
     await page.goto('/documents/expiring');
     await expect(rows(page).filter({ hasText: 'Nguyen' }).first()).toBeVisible();
-    await expect(page.locator('[data-expiry="EXPIRING"][data-threshold="30"]').first()).toBeVisible();
+    await expect(page.locator('[data-expiry="EXPIRING"][data-threshold="30"]:visible').first()).toBeVisible();
     const expired = page.locator('[data-expiry="EXPIRED"]:visible').first();
     await expect(expired).toHaveText('ໝົດອາຍຸແລ້ວ');
     await expect(expired.locator('..')).toHaveClass(/text-danger/);
@@ -42,7 +42,7 @@ test.describe('expiring documents overview (FR-EMP-06)', () => {
   test('opens the employee from a row', async ({ page }) => {
     await page.goto('/documents/expiring?type=WORK_PERMIT');
     await rows(page).filter({ hasText: 'Nguyen' }).first().getByRole('link').first().click();
-    await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+    await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
     await expect(page.getByRole('heading', { name: 'Nguyen Van An' })).toBeVisible();
   });
 });

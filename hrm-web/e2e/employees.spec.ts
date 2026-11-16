@@ -9,7 +9,7 @@ const openEmployee = async (page: Page, query: string) => {
   await page.getByTestId('employee-search').fill(query);
   await expect(rowsOrCards(page)).toHaveCount(1);
   await rowsOrCards(page).first().getByRole('link').first().click();
-  await expect(page).toHaveURL(/\/employees\/[^/]+$/);
+  await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
 };
 
 test.describe('employees', () => {
