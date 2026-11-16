@@ -66,4 +66,6 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm e2e
   RBAC, audit log, ພະນັກງານ (ເອກະສານຕ່າງປະເທດ + ສະຖານະໝົດອາຍຸ 90/60/30), ຜັງອົງກອນ, ໜ້າ login/ແຈ້ງເຕືອນ/error/offline.
 - **M2 (ສຳເລັດ)**: SOM Super Admin, parameter store (effective-dated), OTP (ຢືນຢັນເບີ/ລືມລະຫັດ), login ບໍ່ຕ້ອງ email,
   ປິດ login ຕອນອອກວຽກ, ໄຟລ໌ເອກະສານ (PDF/JPG/PNG), job runner, notification center, OpenAPI, audit log append-only.
-- M3–M7: ເບິ່ງ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
+- **M3 (ສຳເລັດ)**: ປິດ/ເປີດ ສາຂາ-ພະແນກ-ຕຳແໜ່ງ + geofence, ປະຕິທິນວັນພັກ (8 ມີນາ, ວັນຊາດຕ່າງປະເທດ), ມື້ເຮັດວຽກ
+  ມາດຕະຖານ/ລາຍຄົນ (effective date), ຂໍ້ມູນພະນັກງານຄົບ (ຊື່ລາວ/ອັງກິດ, ທີ່ຢູ່, ສັນຍາ/ການຈ່າຍ), ເອກະສານໃກ້ໝົດອາຍຸ, import Excel/CSV.
+- M4–M7: ເບິ່ງ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)

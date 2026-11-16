@@ -72,7 +72,7 @@ Onboarding/Offboarding, ຜັງອົງກອນ, ແຈ້ງເຕືອນ
   force change ທີ່ API, ປິດ login ຕອນອອກວຽກ (FR-AUTH-01..03, 06) · ປ່ຽນພາສາຕໍ່ user (FR-WS-07) · File storage adapter ·
   pg-boss job runner · Notification outbox + in-app center ·
   OpenAPI · RLS system role ແຍກ · audit log append-only
-- **M3 Workspace config + Employees**: working days ມາດຕະຖານ/ລາຍຄົນ/bulk/restore + effective date (FR-WS-03) · Holiday CRUD
+- **M3 Workspace config + Employees (ສຳເລັດ 2026-11-17)**: working days ມາດຕະຖານ/ລາຍຄົນ/bulk/restore + effective date (FR-WS-03) · Holiday CRUD
   (8 ມີນາ, ທົດແທນ, ປະເພນີ, ຕ່າງປະເທດ — FR-WS-04/05) · ຂໍ້ມູນພະນັກງານຄົບ (FR-EMP-01..04, ແຍກ contract/pay type) · upload ເອກະສານ ·
   alert ໝົດອາຍຸ 90/60/30/7 (job) + overview · employment history + effective date · bulk import Excel/CSV + preview · ກັນຊ້ຳ SSN/ບັດ (blind index)
 - **M4 Approval engine + Notification events**: chain ຈາກ reporting line, delegate + ຊ່ວງວັນ, auto-route ເມື່ອ manager ລາ,
