@@ -22,7 +22,7 @@ const createEmployee = (ws: WorkspaceFixture, code: string, status: 'ACTIVE' | '
     tx.employee.create({
       data: {
         workspaceId: ws.workspaceId, employeeCode: code, firstName: 'Somchai', lastName: code, gender: 'MALE',
-        hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME', status, nationalityType: 'FOREIGN', nationality: 'TH',
+        hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY', status, nationalityType: 'FOREIGN', nationality: 'TH',
       },
     }),
   );
@@ -81,6 +81,38 @@ describe('document-expiry-alerts', () => {
 
     expect(await runDocumentExpiryAlerts(t.db, ws.workspaceId, NOW)).toEqual({ documents: 1, notifications: 1 });
     expect((await notificationsOf(ws)).map((r) => r.dedupeKey)).toEqual([`doc-expiry:${in10.id}:14`]);
+  });
+
+  it('FR-EMP-05.2 recipients: every active HR user and the employee — not managers, not disabled logins, never twice', async () => {
+    const ws = await createWorkspace(t.db);
+    const owner = await t.db.tenant(ws.workspaceId, (tx) => tx.user.findFirstOrThrow({ where: { email: ws.ownerEmail } }));
+    const hr = await createUser(t.db, ws, { email: 'hr@x.test', password: 'Passw0rd1', role: 'HR_ADMIN' });
+    const disabledHr = await createUser(t.db, ws, { email: 'old-hr@x.test', password: 'Passw0rd1', role: 'HR_ADMIN' });
+    await t.db.tenant(ws.workspaceId, (tx) => tx.user.update({ where: { id: disabledHr.id }, data: { isActive: false } }));
+    await createUser(t.db, ws, { email: 'mgr@x.test', password: 'Passw0rd1', role: 'MANAGER' });
+
+    const worker = await createEmployee(ws, 'R01');
+    const workerUser = await createUser(t.db, ws, { email: 'r01@x.test', password: 'Passw0rd1', role: 'EMPLOYEE', employeeId: worker.id });
+    // An HR officer whose own document expires is notified once, not as HR and again as the employee.
+    const hrEmp = await createEmployee(ws, 'R02');
+    const hrSelf = await createUser(t.db, ws, { email: 'r02@x.test', password: 'Passw0rd1', role: 'HR_ADMIN', employeeId: hrEmp.id });
+    const offline = await createEmployee(ws, 'R03');
+    const offlineUser = await createUser(t.db, ws, { email: 'r03@x.test', password: 'Passw0rd1', role: 'EMPLOYEE', employeeId: offline.id });
+    await t.db.tenant(ws.workspaceId, (tx) => tx.user.update({ where: { id: offlineUser.id }, data: { isActive: false } }));
+
+    const permit = await t.db.tenant(ws.workspaceId, (tx) =>
+      tx.employeeDocument.create({ data: { workspaceId: ws.workspaceId, employeeId: worker.id, type: 'RESIDENCE_PERMIT', expiresAt: day(30) } }),
+    );
+    const own = await addDocument(ws, hrEmp.id, day(-2));
+    const quiet = await addDocument(ws, offline.id, day(5));
+
+    await runDocumentExpiryAlerts(t.db, ws.workspaceId, NOW);
+    const byDoc = (docId: string) =>
+      notificationsOf(ws).then((rows) => rows.filter((r) => r.dedupeKey?.includes(docId)).map((r) => r.userId).sort());
+    const hrIds = [owner.id, hr.id, hrSelf.id];
+    expect(await byDoc(permit.id)).toEqual([...hrIds, workerUser.id].sort());
+    expect(await byDoc(own.id)).toEqual([...hrIds].sort());
+    expect(await byDoc(quiet.id)).toEqual([...hrIds].sort());
   });
 });
 

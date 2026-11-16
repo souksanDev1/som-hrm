@@ -7,7 +7,10 @@ import { useEmployeeHistory } from '../hooks';
 
 const PAGE_SIZE = 10;
 
-/** Field changes of one history entry, e.g. "Status: PROBATION → ACTIVE". Values are shown as stored. */
+/**
+ * Field changes of one history entry, e.g. "Status: Probation → Active". Ids are shown with the names the
+ * API resolved (`labels`); `employmentType` only appears in entries written before the M3 split.
+ */
 function Changes({ entry }: { entry: EmploymentHistoryEntry }) {
   const t = useT();
   const keys = Object.keys(entry.toValue ?? {});
@@ -15,7 +18,9 @@ function Changes({ entry }: { entry: EmploymentHistoryEntry }) {
     if (v === null || v === undefined) return '—';
     if (k === 'status') return t(`status.${String(v)}`);
     if (k === 'employmentType') return t(`employmentType.${String(v)}`);
-    return String(v);
+    if (k === 'contractType') return t(`empx.contractType.${String(v)}`);
+    if (k === 'payType') return t(`empx.payType.${String(v)}`);
+    return entry.labels[String(v)] ?? String(v);
   };
   return (
     <ul className="text-xs text-ink-muted">

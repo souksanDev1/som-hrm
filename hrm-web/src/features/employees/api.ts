@@ -9,12 +9,16 @@ import type {
   EmployeeSummary,
   EmploymentHistoryEntry,
   EmploymentHistoryQuery,
+  ExpiringDocument,
+  ExpiringDocumentsQuery,
   Paginated,
+  UpdateEmergencyContactInput,
   UpdateEmployeeInput,
 } from '@hrm/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export type EmployeeFilters = Partial<EmployeeListQuery>;
+export type ExpiringDocumentFilters = Partial<ExpiringDocumentsQuery>;
 
 export const employeesApi = {
   list: (q: EmployeeFilters) => apiFetch<Paginated<EmployeeSummary>>('/employees', { query: q }),
@@ -28,8 +32,11 @@ export const employeesApi = {
     apiFetch<EmployeeDetail>(`/employees/${id}/documents/${documentId}`, { method: 'DELETE' }),
   addContact: (id: string, body: CreateEmergencyContactInput) =>
     apiFetch<EmployeeDetail>(`/employees/${id}/emergency-contacts`, { method: 'POST', body }),
+  updateContact: (id: string, contactId: string, body: UpdateEmergencyContactInput) =>
+    apiFetch<EmployeeDetail>(`/employees/${id}/emergency-contacts/${contactId}`, { method: 'PATCH', body }),
   removeContact: (id: string, contactId: string) =>
     apiFetch<EmployeeDetail>(`/employees/${id}/emergency-contacts/${contactId}`, { method: 'DELETE' }),
+  expiringDocuments: (q: ExpiringDocumentFilters) => apiFetch<Paginated<ExpiringDocument>>('/documents/expiring', { query: q }),
   issueCredential: (id: string, method: 'PIN' | 'PASSWORD') =>
     apiFetch<CredentialIssued>(`/employees/${id}/credentials`, { method: 'POST', body: { method } }),
 };

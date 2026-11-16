@@ -9,10 +9,13 @@ import {
   employeeSummarySchema,
   employmentHistoryEntrySchema,
   employmentHistoryQuerySchema,
+  expiringDocumentSchema,
+  expiringDocumentsQuerySchema,
   idParamsSchema,
   issueCredentialSchema,
   paginatedSchema,
   PERMISSIONS,
+  updateEmergencyContactSchema,
   updateEmployeeSchema,
 } from '@hrm/shared';
 import { z } from 'zod';
@@ -32,6 +35,13 @@ export const employeesRoutes = async (app: AppInstance) => {
     '/employees',
     { preHandler: read, schema: { querystring: employeeListQuerySchema, response: { 200: paginatedSchema(employeeSummarySchema) } } },
     async (req) => svc.list(req.auth, req.query),
+  );
+
+  // FR-EMP-06: expired / expiring documents across the caller's data scope.
+  app.get(
+    '/documents/expiring',
+    { preHandler: read, schema: { querystring: expiringDocumentsQuerySchema, response: { 200: paginatedSchema(expiringDocumentSchema) } } },
+    async (req) => svc.expiringDocuments(req.auth, req.query),
   );
 
   app.get(
@@ -77,6 +87,12 @@ export const employeesRoutes = async (app: AppInstance) => {
     '/employees/:id/emergency-contacts',
     { preHandler: write, schema: { params: idParamsSchema, body: createEmergencyContactSchema, response: { 201: employeeDetailSchema } } },
     async (req, reply) => reply.status(201).send(await svc.addContact(req.auth, req.params.id, req.body)),
+  );
+
+  app.patch(
+    '/employees/:id/emergency-contacts/:contactId',
+    { preHandler: write, schema: { params: contactParams, body: updateEmergencyContactSchema, response: { 200: employeeDetailSchema } } },
+    async (req) => svc.updateContact(req.auth, req.params.id, req.params.contactId, req.body),
   );
 
   app.delete(

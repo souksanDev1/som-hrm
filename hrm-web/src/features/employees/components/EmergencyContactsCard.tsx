@@ -16,15 +16,25 @@ export interface EmergencyContactsCardProps {
 
 export function EmergencyContactsCard({ employeeId, contacts, canEdit }: EmergencyContactsCardProps) {
   const t = useT();
-  const { add, remove } = useEmergencyContacts(employeeId);
+  const { add, update, remove } = useEmergencyContacts(employeeId);
   const [open, setOpen] = useState(false);
+  /** The contact being edited (FR-EMP-01.5), or null when adding. */
+  const [editing, setEditing] = useState<EmergencyContact | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const form = useForm<CreateEmergencyContactInput>({ resolver: zodResolver(createEmergencyContactSchema) });
   const err = (m?: string) => (m ? t(m) : undefined);
-  const error = add.error ?? remove.error;
+  const error = add.error ?? update.error ?? remove.error;
+  const saving = add.isPending || update.isPending;
+
+  const openFor = (contact: EmergencyContact | null) => {
+    setEditing(contact);
+    form.reset(contact ? { name: contact.name, relationship: contact.relationship, phone: contact.phone } : { name: '', relationship: '', phone: '' });
+    setOpen(true);
+  };
 
   const submit = form.handleSubmit(async (values) => {
-    await add.mutateAsync(values);
+    if (editing) await update.mutateAsync({ contactId: editing.id, body: values });
+    else await add.mutateAsync(values);
     form.reset();
     setOpen(false);
   });
@@ -34,7 +44,7 @@ export function EmergencyContactsCard({ employeeId, contacts, canEdit }: Emergen
       title={t('employee.emergencyContacts')}
       actions={
         canEdit && (
-          <Button size="sm" variant="secondary" icon="add" onClick={() => setOpen(true)} data-testid="add-contact">
+          <Button size="sm" variant="secondary" icon="add" onClick={() => openFor(null)} data-testid="add-contact">
             {t('common.add')}
           </Button>
         )
@@ -52,7 +62,17 @@ export function EmergencyContactsCard({ employeeId, contacts, canEdit }: Emergen
                 <span className="block tabular-nums text-ink-muted">{c.phone}</span>
               </div>
               {canEdit && (
-                <Button size="sm" variant="ghost" icon="delete" aria-label={t('empx.contacts.remove')} onClick={() => setPendingDelete(c.id)} />
+                <>
+                  <Button size="sm" variant="ghost" icon="edit" aria-label={t('empx.contacts.edit')} data-testid="edit-contact" onClick={() => openFor(c)} />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon="delete"
+                    aria-label={t('empx.contacts.remove')}
+                    data-testid="remove-contact"
+                    onClick={() => setPendingDelete(c.id)}
+                  />
+                </>
               )}
             </li>
           ))}
@@ -73,12 +93,12 @@ export function EmergencyContactsCard({ employeeId, contacts, canEdit }: Emergen
 
       <Modal
         open={open}
-        title={t('empx.contacts.add')}
+        title={t(editing ? 'empx.contacts.edit' : 'empx.contacts.add')}
         onClose={() => setOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
-            <Button onClick={() => void submit().catch(() => undefined)} loading={add.isPending} data-testid="save-contact">{t('common.save')}</Button>
+            <Button onClick={() => void submit().catch(() => undefined)} loading={saving} data-testid="save-contact">{t('common.save')}</Button>
           </>
         }
       >

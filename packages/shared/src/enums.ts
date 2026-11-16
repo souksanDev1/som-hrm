@@ -19,15 +19,15 @@ export const EmploymentStatus = {
 export type EmploymentStatus = (typeof EmploymentStatus)[keyof typeof EmploymentStatus];
 export const EMPLOYMENT_STATUSES = values(EmploymentStatus);
 
-export const EmploymentType = {
-  FULL_TIME: 'FULL_TIME',
-  PART_TIME: 'PART_TIME',
-  DAILY: 'DAILY',
-  HOURLY: 'HOURLY',
-  CONTRACT: 'CONTRACT',
-} as const;
-export type EmploymentType = (typeof EmploymentType)[keyof typeof EmploymentType];
-export const EMPLOYMENT_TYPES = values(EmploymentType);
+/** FR-EMP-03.5 — kind of employment contract. */
+export const ContractType = { INDEFINITE: 'INDEFINITE', FIXED_TERM: 'FIXED_TERM', PROBATION: 'PROBATION' } as const;
+export type ContractType = (typeof ContractType)[keyof typeof ContractType];
+export const CONTRACT_TYPES = values(ContractType);
+
+/** FR-EMP-03.6 — how pay is calculated. */
+export const PayType = { MONTHLY: 'MONTHLY', DAILY: 'DAILY', HOURLY: 'HOURLY' } as const;
+export type PayType = (typeof PayType)[keyof typeof PayType];
+export const PAY_TYPES = values(PayType);
 
 export const NationalityType = { LAO: 'LAO', FOREIGN: 'FOREIGN' } as const;
 export type NationalityType = (typeof NationalityType)[keyof typeof NationalityType];
@@ -37,6 +37,7 @@ export const DocumentType = {
   WORK_PERMIT: 'WORK_PERMIT',
   VISA: 'VISA',
   PASSPORT: 'PASSPORT',
+  RESIDENCE_PERMIT: 'RESIDENCE_PERMIT',
   ID_CARD: 'ID_CARD',
   FAMILY_BOOK: 'FAMILY_BOOK',
   CONTRACT: 'CONTRACT',
@@ -51,6 +52,7 @@ export const FOREIGN_WORKER_DOCUMENTS: readonly DocumentType[] = [
   DocumentType.WORK_PERMIT,
   DocumentType.VISA,
   DocumentType.PASSPORT,
+  DocumentType.RESIDENCE_PERMIT,
 ];
 
 export const LoginMethod = { PASSWORD: 'PASSWORD', PIN: 'PIN' } as const;

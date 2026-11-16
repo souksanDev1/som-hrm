@@ -93,50 +93,50 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-EMP-01** | | **Personal data** (TOR p.5) | | | | | | | |
-| FR-EMP-01.1 | MUST | First/last name in Lao and English | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-01.2 | MUST | Date of birth, gender, nationality | Web/Mobile | Yes | Yes | M3 | Implemented | Partial |  |
-| FR-EMP-01.3 | MUST | Phone and email (email optional) | Web/Mobile | Yes | Yes | M3 | Implemented | Partial |  |
-| FR-EMP-01.4 | MUST | Address: village (ບ້ານ), district (ເມືອງ), province (ແຂວງ) | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-01.5 | MUST | Emergency contact | Web/Mobile | Yes | Yes | M3 | In Progress | Partial | Add/delete only; no update; not audited. |
+| FR-EMP-01.1 | MUST | First/last name in Lao and English | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | M3: firstName/lastName = Lao, new firstNameEn/lastNameEn (backfilled from plain-Latin names); searchable; web/mobile. Playwright/Maestro added, run pending. |
+| FR-EMP-01.2 | MUST | Date of birth, gender, nationality | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | Verified M3: DOB, gender, nationality (+country for foreign) on API/web; clearable. |
+| FR-EMP-01.3 | MUST | Phone and email (email optional) | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | Verified M3: Lao phone normalised, email optional; clearable. |
+| FR-EMP-01.4 | MUST | Address: village (ບ້ານ), district (ເມືອງ), province (ແຂວງ) | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | M3: village/district free text + province code from LAO_PROVINCES (18) picker; free-text detail kept. Playwright/Maestro added, run pending. |
+| FR-EMP-01.5 | MUST | Emergency contact | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | M3: add/update/delete (PATCH .../emergency-contacts/:id), all audited with contactId. Playwright/Maestro added, run pending. |
 | **FR-EMP-02** | | **Lao documents** (TOR p.5) | | | | | | | |
-| FR-EMP-02.1 | MUST | ID card number | Web | Yes | Yes | M3 | In Progress | Pending | idCardNo stored in plaintext, not unique. |
-| FR-EMP-02.2 | MUST | Family book (ສຳມະໂນຄົວ) number + household head name | Web | Yes | Yes | M3 | In Progress | Pending | Number encrypted; owner name missing. |
-| FR-EMP-02.3 | MUST | Social security number + registration date | Web | Yes | Yes | M3 | In Progress | Pending | SSN encrypted; registration date missing. |
+| FR-EMP-02.1 | MUST | ID card number | Web | Yes | Yes | M3 | Implemented | Partial | Verified M3: AES-GCM encrypted + HMAC blind index unique per workspace; masked without employee.sensitive.read. |
+| FR-EMP-02.2 | MUST | Family book (ສຳມະໂນຄົວ) number + household head name | Web | Yes | Yes | M3 | Implemented | Partial | M3: familyBookNo encrypted/masked + familyBookHolder (household head). |
+| FR-EMP-02.3 | MUST | Social security number + registration date | Web | Yes | Yes | M3 | Implemented | Partial | M3: SSN encrypted/masked + ssnRegisteredAt. |
 | **FR-EMP-03** | | **Employment data** (TOR p.5) | | | | | | | |
 | FR-EMP-03.1 | MUST | Employee code | Web/Mobile | Yes | Yes | M3 | Implemented | Completed |  |
 | FR-EMP-03.2 | MUST | Position, department, branch | Web/Mobile | Yes | Yes | M3 | Implemented | Completed |  |
 | FR-EMP-03.3 | MUST | Direct manager | Web/Mobile | Yes | Yes | M3 | Implemented | Completed | Cycle prevention. |
 | FR-EMP-03.4 | MUST | Start date | Web/Mobile | Yes | Yes | M3 | Implemented | Completed |  |
-| FR-EMP-03.5 | MUST | Contract type: indefinite / fixed-term / probation | Web/Mobile | Yes | Yes | M3 | In Progress | Pending | EmploymentType mixes contract + pay type; must split. |
-| FR-EMP-03.6 | MUST | Pay type: monthly / daily / hourly | Web/Mobile | Yes | Yes | M3 | In Progress | Pending | Folded into EmploymentType. |
+| FR-EMP-03.5 | MUST | Contract type: indefinite / fixed-term / probation | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | M3: contractType INDEFINITE/FIXED_TERM/PROBATION + contractEndDate/probationEndDate (not before hire date); migrated from EmploymentType (dropped). Playwright/Maestro added, run pending. |
+| FR-EMP-03.6 | MUST | Pay type: monthly / daily / hourly | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | M3: payType MONTHLY/DAILY/HOURLY, migrated from EmploymentType; tracked in history. Playwright/Maestro added, run pending. |
 | FR-EMP-03.7 | MUST | Flag for hazardous-work employees | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | hazardousWork flag. |
 | **FR-EMP-04** | | **Foreign-employee documents** (TOR p.5) | | | | | | | |
-| FR-EMP-04.1 | MUST | Passport | Web | Yes | Yes | M3 | Implemented | Partial | Metadata only; no file. |
-| FR-EMP-04.2 | MUST | Visa | Web | Yes | Yes | M3 | Implemented | Partial | Metadata only; no file. |
-| FR-EMP-04.3 | MUST | Work permit | Web | Yes | Yes | M3 | Implemented | Partial | Metadata only; no file. |
-| FR-EMP-04.4 | MUST | Residence (stay) permit | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-EMP-04.1 | MUST | Passport | Web | Yes | Yes | M3 | Implemented | Partial | Verified M3: metadata + file upload (M2) for any document type. |
+| FR-EMP-04.2 | MUST | Visa | Web | Yes | Yes | M3 | Implemented | Partial | Verified M3: metadata + file upload (M2) for any document type. |
+| FR-EMP-04.3 | MUST | Work permit | Web | Yes | Yes | M3 | Implemented | Partial | Verified M3: metadata + file upload (M2) for any document type. |
+| FR-EMP-04.4 | MUST | Residence (stay) permit | Web | Yes | Yes | M3 | Implemented | Partial | M3: DocumentType RESIDENCE_PERMIT (foreign-worker doc; file upload, expiry alerts, overview). |
 | FR-EMP-04.5 | MUST | Each document stores number, issue date, expiry date and an attached file | Web | Yes | Yes | M2 | In Progress | Pending | Number/dates stored; file upload missing. |
 | **FR-EMP-05** | | **Document-expiry alerts** (TOR p.6) | | | | | | | |
 | FR-EMP-05.1 | MUST | Alert at **90, 60, 30 and 7 days** before expiry | Web/Mobile | Yes | Yes | M3 | In Progress | Partial | M2: 90/60/30/7 from workspace param + daily job; expiry status from API. Overview/UI polish in M3. |
-| FR-EMP-05.2 | MUST | Send to both HR and the employee | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-05.3 | SHOULD | HR configures the alert days | Web/Mobile | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-05.4 | MUST | Red status once expired | Web/Mobile | Yes | — | M3 | Implemented | Partial | M2: status computed by API (documentExpiry). |
-| FR-EMP-06 | SHOULD | Expiring-documents overview, filterable by branch and document type | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-EMP-05.2 | MUST | Send to both HR and the employee | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | Verified M3: job notifies every active employee.write user + the employee (once, deduped); API test covers recipients. |
+| FR-EMP-05.3 | SHOULD | HR configures the alert days | Web/Mobile | Yes | Yes | M3 | Implemented | Partial | Verified M3: document.expiryAlertDays on Settings > Parameters; editing needs settings.manage (OWNER), HR_ADMIN can view only. |
+| FR-EMP-05.4 | MUST | Red status once expired | Web/Mobile | Yes | — | M3 | Implemented | Partial | Verified M3: API status; red (danger) badge on web detail/overview and mobile profile. Playwright/Maestro added, run pending. |
+| FR-EMP-06 | SHOULD | Expiring-documents overview, filterable by branch and document type | Web | Yes | Yes | M3 | Implemented | Partial | M3: GET /documents/expiring (branch/type/status filters, data scope) + web /documents/expiring. Playwright/Maestro added, run pending. |
 | **FR-EMP-07** | | **Document upload** (TOR p.6) | | | | | | | |
 | FR-EMP-07.1 | MUST | Upload contract, ID cards, education certificates | Web | Yes | Yes | M2 | Implemented | Completed | M2: PUT/GET /employees/:id/documents/:docId/file; web FileUpload. |
 | FR-EMP-07.2 | MUST | Support PDF, JPG, PNG | Web | Yes | Yes | M2 | Implemented | Completed | M2: magic-byte validation PDF/JPG/PNG; size limit. |
 | **FR-EMP-08** | | **Employment history** (TOR p.6) | | | | | | | |
-| FR-EMP-08.1 | MUST | Record position changes | Web | Yes | Yes | M3 | In Progress | Pending | History written; effective date = today; no read endpoint. |
-| FR-EMP-08.2 | MUST | Record department/branch transfers | Web | Yes | Yes | M3 | In Progress | Pending | Same as 08.1. |
-| FR-EMP-08.3 | MUST | Record manager changes | Web | Yes | Yes | M3 | In Progress | Pending | Same as 08.1. |
-| FR-EMP-08.4 | MUST | Each entry has an effective date | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-EMP-08.1 | MUST | Record position changes | Web | Yes | Yes | M3 | Implemented | Partial | M3: position changes recorded; history shows resolved names on web detail. Playwright/Maestro added, run pending. |
+| FR-EMP-08.2 | MUST | Record department/branch transfers | Web | Yes | Yes | M3 | Implemented | Partial | M3: department/branch changes recorded with names. Playwright/Maestro added, run pending. |
+| FR-EMP-08.3 | MUST | Record manager changes | Web | Yes | Yes | M3 | Implemented | Partial | M3: manager changes recorded; web form now has a manager picker. Playwright/Maestro added, run pending. |
+| FR-EMP-08.4 | MUST | Each entry has an effective date | Web | Yes | Yes | M3 | Implemented | Partial | M3: HR-chosen effective date (default today in workspace TZ) per entry. Playwright/Maestro added, run pending. |
 | **FR-EMP-09** | | **Bulk import** (TOR p.6) | | | | | | | |
 | FR-EMP-09.1 | MUST | Import via Excel/CSV | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | FR-EMP-09.2 | MUST | Report error rows before the import is confirmed | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | **FR-EMP-10** | | **Duplicate checks within a Workspace** (TOR p.6) | | | | | | | |
 | FR-EMP-10.1 | MUST | Employee code | Web | Yes | Yes | M3 | Implemented | Completed | Unique (workspaceId, employeeCode). |
-| FR-EMP-10.2 | MUST | Social security number | Web | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-10.3 | MUST | ID card number | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-EMP-10.2 | MUST | Social security number | Web | Yes | Yes | M3 | Implemented | Partial | M3: 409 duplicate_social_security_no, also for the race (P2002 -> savepoint re-check). |
+| FR-EMP-10.3 | MUST | ID card number | Web | Yes | Yes | M3 | Implemented | Partial | M3: 409 duplicate_national_id, also for the race (P2002 -> savepoint re-check). |
 ## FR-ORG
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |

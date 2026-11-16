@@ -1,7 +1,9 @@
 import {
+  employmentDateIssues,
   PERMISSIONS,
   type CreateDocumentData as DocumentData,
   type CreateEmergencyContactData as ContactData,
+  type UpdateEmergencyContactData as ContactUpdate,
   type CreateEmployeeData,
   type UpdateEmployeeData as UpdateData,
   type CreateEmployeeResponse,
@@ -11,6 +13,8 @@ import {
   type EmployeeSummary,
   type EmploymentHistoryEntry,
   type EmploymentHistoryQuery,
+  type ExpiringDocument,
+  type ExpiringDocumentsQuery,
   type Paginated,
 } from '@hrm/shared';
 import type { EmploymentStatus, Prisma } from '@prisma/client';
@@ -23,11 +27,25 @@ import type { FileStorage } from '../../lib/storage';
 import type { AuthContext } from '../auth/auth.service';
 import { auditRepository } from '../audit/audit.repository';
 import { parameterReader } from '../parameters/parameters.service';
-import { toEmployeeDetail, toEmployeeSummary, type ExpiryContext } from './employees.mapper';
+import { toEmployeeDetail, toEmployeeSummary, toExpiringDocument, type ExpiryContext } from './employees.mapper';
 import { employeesRepository as repo, isActiveStatus } from './employees.repository';
 
-/** Fields whose change is recorded in EmploymentHistory. */
-const TRACKED_FIELDS = ['status', 'departmentId', 'positionId', 'branchId', 'managerId', 'employmentType'] as const;
+/** Fields whose change is recorded in EmploymentHistory (FR-EMP-08). */
+const TRACKED_FIELDS = ['status', 'departmentId', 'positionId', 'branchId', 'managerId', 'contractType', 'payType'] as const;
+/** History fields holding ids that the history endpoint resolves to display names. */
+const REF_FIELDS = ['branchId', 'departmentId', 'positionId', 'managerId'] as const;
+
+/** Optional `@db.Date` columns (ISO strings in the API). */
+const OPTIONAL_DATE_FIELDS = ['dateOfBirth', 'ssnRegisteredAt', 'contractEndDate', 'probationEndDate'] as const;
+type OptionalDates = Partial<Record<(typeof OPTIONAL_DATE_FIELDS)[number], string | null>>;
+/** `undefined` = leave unchanged, `null`/"" = clear. */
+const dateColumns = (input: OptionalDates) =>
+  Object.fromEntries(
+    OPTIONAL_DATE_FIELDS.filter((k) => input[k] !== undefined).map((k) => {
+      const v = input[k];
+      return [k, v ? parseIsoDate(v) : null];
+    }),
+  );
 
 type Access = Pick<AuthContext, 'workspaceId' | 'employeeId' | 'permissions'>;
 
@@ -61,17 +79,45 @@ export const employeeAccess = {
 
 type UniqueKeys = { employeeCode?: string; idCardNoHash?: string | null; socialSecurityNoHash?: string | null };
 
-/**
- * Stable 409 codes for Employee unique keys (FR-EMP-10.2/10.3). Checked up front because Postgres
- * does not report which index failed through Prisma; a concurrent insert that slips past the check
- * still hits the unique index and becomes a generic `conflict`.
- */
+/** Stable, translated 409 codes for the Employee unique keys (FR-EMP-10.1–10.3). */
+const UNIQUE_KEY_CODES = {
+  employeeCode: 'employee_code_taken',
+  idCardNoHash: 'duplicate_national_id',
+  socialSecurityNoHash: 'duplicate_social_security_no',
+} as const satisfies Record<keyof UniqueKeys, string>;
+const UNIQUE_KEYS = Object.keys(UNIQUE_KEY_CODES) as (keyof UniqueKeys)[];
+
+/** Checked up front so the caller gets the specific code before any write. */
 const assertUnique = async (tx: Tx, workspaceId: string, excludeId: string | null, keys: UniqueKeys) => {
   const taken = await repo.findUniqueConflicts(tx, workspaceId, excludeId, keys);
-  if (taken.includes('employeeCode')) throw conflict('employee_code_taken');
-  if (taken.includes('idCardNoHash')) throw conflict('duplicate_national_id');
-  if (taken.includes('socialSecurityNoHash')) throw conflict('duplicate_social_security_no');
+  const key = UNIQUE_KEYS.find((k) => taken.includes(k));
+  if (key) throw conflict(UNIQUE_KEY_CODES[key]);
 };
+
+/**
+ * Run an Employee insert/update guarded by `assertUnique`. A concurrent write that slipped past the
+ * check still hits the unique index (P2002), but Prisma does not say which index failed ("not
+ * available"), so roll back to a savepoint and re-check: the winning row is now committed and
+ * visible, and the caller gets the same specific code (FR-EMP-10.2/10.3).
+ */
+const writeUnique = async <T>(tx: Tx, workspaceId: string, excludeId: string | null, keys: UniqueKeys, write: () => Promise<T>): Promise<T> => {
+  await tx.$executeRaw`SAVEPOINT employee_unique`;
+  try {
+    const result = await write();
+    await tx.$executeRaw`RELEASE SAVEPOINT employee_unique`;
+    return result;
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+    await tx.$executeRaw`ROLLBACK TO SAVEPOINT employee_unique`;
+    await assertUnique(tx, workspaceId, excludeId, keys);
+    throw conflict();
+  }
+};
+
+const asRecord = (v: Prisma.JsonValue | null) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+/** Ids of branches/departments/positions/managers mentioned in a history entry. */
+const historyRefIds = (h: { fromValue: Prisma.JsonValue | null; toValue: Prisma.JsonValue | null }): string[] =>
+  [asRecord(h.fromValue), asRecord(h.toValue)].flatMap((v) => REF_FIELDS.map((f) => v?.[f]).filter((id): id is string => typeof id === 'string'));
 
 export interface EmployeesServiceDeps {
   /** Used to remove a deleted document's file bytes; optional so tests/tools can omit it. */
@@ -202,6 +248,38 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
     }
   };
 
+  /** One create path for the API and (per row) for bulk import (FR-EMP-09): validate with createEmployeeSchema first. */
+  const createEmployee = async (tx: Tx, ctx: AuthContext, input: CreateEmployeeData): Promise<CreateEmployeeResponse> => {
+    const ws = ctx.workspaceId;
+    await assertRefs(tx, ws, input);
+    if (isActiveStatus(input.status)) await assertSeatAvailable(tx, ws);
+    const { login, idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate, hireDate, ...rest } =
+      input;
+    const pii = piiColumns({ idCardNo: idCardNo ?? null, socialSecurityNo: socialSecurityNo ?? null, familyBookNo: familyBookNo ?? null });
+    const keys = { employeeCode: input.employeeCode, ...pii };
+    await assertUnique(tx, ws, null, keys);
+    const employee = await writeUnique(tx, ws, null, keys, () =>
+      repo.create(tx, {
+        ...rest,
+        workspaceId: ws,
+        hireDate: parseIsoDate(hireDate),
+        ...dateColumns({ dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate }),
+        ...pii,
+      }),
+    );
+    await repo.createHistory(tx, {
+      workspaceId: ws,
+      employeeId: employee.id,
+      changeType: 'HIRED',
+      toValue: Object.fromEntries(TRACKED_FIELDS.map((f) => [f, employee[f]])),
+      effectiveDate: employee.hireDate,
+      createdById: ctx.userId,
+    });
+    await auditRepository.create(tx, { workspaceId: ws, actorUserId: ctx.userId, action: 'employee.created', entity: 'Employee', entityId: employee.id });
+    const credential = login ? await issueCredential(tx, ctx, employee, login.method, login.roleCode) : null;
+    return { employee: await loadDetail(tx, ctx, employee.id), credential };
+  };
+
   return {
     list: (ctx: AuthContext, q: EmployeeListQuery): Promise<Paginated<EmployeeSummary>> =>
       db.tenant(ctx.workspaceId, async (tx) => {
@@ -231,7 +309,7 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
         const { items, total } = await repo.listHistory(tx, ctx.workspaceId, id, q.page, q.pageSize);
         const authorIds = [...new Set(items.map((h) => h.createdById).filter((v): v is string => !!v))];
         const names = new Map((await repo.userNames(tx, ctx.workspaceId, authorIds)).map((u) => [u.id, u.displayName]));
-        const asRecord = (v: Prisma.JsonValue | null) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+        const refs = await repo.refNames(tx, ctx.workspaceId, [...new Set(items.flatMap(historyRefIds))]);
         return {
           items: items.map((h) => ({
             id: h.id,
@@ -242,6 +320,7 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
             note: h.note,
             createdAt: h.createdAt.toISOString(),
             createdBy: h.createdById && names.has(h.createdById) ? { id: h.createdById, name: names.get(h.createdById)! } : null,
+            labels: Object.fromEntries(historyRefIds(h).filter((id) => refs.has(id)).map((id) => [id, refs.get(id)!])),
           })),
           total,
           page: q.page,
@@ -250,38 +329,10 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
       }),
 
     create: (ctx: AuthContext, input: CreateEmployeeData): Promise<CreateEmployeeResponse> =>
-      db.tenant(ctx.workspaceId, async (tx) => {
-        const ws = ctx.workspaceId;
-        await assertRefs(tx, ws, input);
-        if (isActiveStatus(input.status)) await assertSeatAvailable(tx, ws);
-        const { login, idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, hireDate, ...rest } = input;
-        const pii = piiColumns({ idCardNo: idCardNo ?? null, socialSecurityNo: socialSecurityNo ?? null, familyBookNo: familyBookNo ?? null });
-        await assertUnique(tx, ws, null, { employeeCode: input.employeeCode, ...pii });
-        let employee;
-        try {
-          employee = await repo.create(tx, {
-            ...rest,
-            workspaceId: ws,
-            hireDate: parseIsoDate(hireDate),
-            dateOfBirth: optionalDate(dateOfBirth),
-            ...pii,
-          });
-        } catch (err) {
-          if (isUniqueViolation(err)) throw conflict();
-          throw err;
-        }
-        await repo.createHistory(tx, {
-          workspaceId: ws,
-          employeeId: employee.id,
-          changeType: 'HIRED',
-          toValue: { status: employee.status, departmentId: employee.departmentId, positionId: employee.positionId },
-          effectiveDate: employee.hireDate,
-          createdById: ctx.userId,
-        });
-        await auditRepository.create(tx, { workspaceId: ws, actorUserId: ctx.userId, action: 'employee.created', entity: 'Employee', entityId: employee.id });
-        const credential = login ? await issueCredential(tx, ctx, employee, login.method, login.roleCode) : null;
-        return { employee: await loadDetail(tx, ctx, employee.id), credential };
-      }),
+      db.tenant(ctx.workspaceId, (tx) => createEmployee(tx, ctx, input)),
+
+    /** Same as `create`, inside the caller's transaction (e.g. a bulk import committing all rows at once). */
+    createInTx: createEmployee,
 
     update: (ctx: AuthContext, id: string, input: UpdateData): Promise<EmployeeDetail> =>
       db.tenant(ctx.workspaceId, async (tx) => {
@@ -297,21 +348,25 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
         const reactivating = !isActiveStatus(before.status) && isActiveStatus(status);
         if (reactivating) await assertSeatAvailable(tx, ws);
 
-        const { idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, hireDate, effectiveDate, ...rest } = input;
+        const { idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate, hireDate, effectiveDate, ...rest } =
+          input;
+        // Cross-field rules on the stored values merged with the patch (FR-EMP-03.5).
+        const dateIssues = employmentDateIssues({
+          hireDate: hireDate ?? toIsoDate(before.hireDate),
+          contractEndDate: contractEndDate !== undefined ? contractEndDate : toIsoDate(before.contractEndDate),
+          probationEndDate: probationEndDate !== undefined ? probationEndDate : toIsoDate(before.probationEndDate),
+        });
+        if (dateIssues.length) throw badRequest('before_hire_date', { fields: dateIssues.map((i) => i.field) });
         const pii = piiColumns({ idCardNo, socialSecurityNo, familyBookNo });
-        await assertUnique(tx, ws, id, { employeeCode: input.employeeCode, ...pii });
+        const keys = { employeeCode: input.employeeCode, ...pii };
+        await assertUnique(tx, ws, id, keys);
         const data: Prisma.EmployeeUncheckedUpdateInput = {
           ...rest,
           ...(hireDate ? { hireDate: parseIsoDate(hireDate) } : {}),
-          ...(dateOfBirth !== undefined ? { dateOfBirth: dateOfBirth ? parseIsoDate(dateOfBirth) : null } : {}),
+          ...dateColumns({ dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate }),
           ...pii,
         };
-        try {
-          await repo.update(tx, id, data);
-        } catch (err) {
-          if (isUniqueViolation(err)) throw conflict();
-          throw err;
-        }
+        await writeUnique(tx, ws, id, keys, () => repo.update(tx, id, data));
         if (isActiveStatus(before.status) && !isActiveStatus(status)) await deactivateLogin(tx, ctx, id, status);
 
         const changed = TRACKED_FIELDS.filter((f) => input[f] !== undefined && input[f] !== before[f]);
@@ -386,8 +441,32 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
     addContact: (ctx: AuthContext, employeeId: string, input: ContactData) =>
       db.tenant(ctx.workspaceId, async (tx) => {
         await findInScope(tx, ctx, employeeId);
-        await repo.createContact(tx, { workspaceId: ctx.workspaceId, employeeId, ...input });
-        await auditRepository.create(tx, { workspaceId: ctx.workspaceId, actorUserId: ctx.userId, action: 'employee.contact_added', entity: 'Employee', entityId: employeeId });
+        const contact = await repo.createContact(tx, { workspaceId: ctx.workspaceId, employeeId, ...input });
+        await auditRepository.create(tx, {
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.userId,
+          action: 'employee.contact_added',
+          entity: 'Employee',
+          entityId: employeeId,
+          meta: { contactId: contact.id },
+        });
+        return loadDetail(tx, ctx, employeeId);
+      }),
+
+    /** FR-EMP-01.5: edit an emergency contact; audited with the changed field names (no values). */
+    updateContact: (ctx: AuthContext, employeeId: string, contactId: string, input: ContactUpdate) =>
+      db.tenant(ctx.workspaceId, async (tx) => {
+        await findInScope(tx, ctx, employeeId);
+        const { count } = await repo.updateContact(tx, ctx.workspaceId, employeeId, contactId, input);
+        if (!count) throw notFound();
+        await auditRepository.create(tx, {
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.userId,
+          action: 'employee.contact_updated',
+          entity: 'Employee',
+          entityId: employeeId,
+          meta: { contactId, fields: Object.keys(input).filter((k) => input[k as keyof ContactUpdate] !== undefined) },
+        });
         return loadDetail(tx, ctx, employeeId);
       }),
 
@@ -396,8 +475,29 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
         await findInScope(tx, ctx, employeeId);
         const { count } = await repo.deleteContact(tx, ctx.workspaceId, employeeId, contactId);
         if (!count) throw notFound();
-        await auditRepository.create(tx, { workspaceId: ctx.workspaceId, actorUserId: ctx.userId, action: 'employee.contact_removed', entity: 'Employee', entityId: employeeId });
+        await auditRepository.create(tx, {
+          workspaceId: ctx.workspaceId,
+          actorUserId: ctx.userId,
+          action: 'employee.contact_removed',
+          entity: 'Employee',
+          entityId: employeeId,
+          meta: { contactId },
+        });
         return loadDetail(tx, ctx, employeeId);
+      }),
+
+    /**
+     * Expiring-documents overview (FR-EMP-06): expired documents plus those inside the largest
+     * `document.expiryAlertDays` threshold, limited to the caller's data scope (B8).
+     */
+    expiringDocuments: (ctx: AuthContext, q: ExpiringDocumentsQuery): Promise<Paginated<ExpiringDocument>> =>
+      db.tenant(ctx.workspaceId, async (tx) => {
+        const scope = await employeeAccess.scope(tx, ctx);
+        const expiry = await expiryContext(tx, ctx.workspaceId);
+        const day = parseIsoDate(expiry.today);
+        const horizon = new Date(day.getTime() + Math.max(...expiry.alertDays) * 86_400_000);
+        const { items, total } = await repo.listExpiringDocuments(tx, ctx.workspaceId, q, { today: day, horizon }, scope);
+        return { items: items.map((d) => toExpiringDocument(d, expiry)), total, page: q.page, pageSize: q.pageSize };
       }),
 
     /** HR creates a login or resets the PIN/password (staff without email rely on this). */

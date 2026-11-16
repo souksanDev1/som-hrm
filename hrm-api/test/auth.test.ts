@@ -19,7 +19,7 @@ const createPinWorker = async (ws: WorkspaceFixture, pin = '482913') =>
     const e = await tx.employee.create({
       data: {
         workspaceId: ws.workspaceId, employeeCode: 'F100', firstName: 'A', lastName: 'B', gender: 'MALE',
-        phone: '02055551111', hireDate: new Date('2024-01-01'), employmentType: 'DAILY',
+        phone: '02055551111', hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'DAILY',
       },
     });
     return tx.user.create({
@@ -39,7 +39,7 @@ const createStaffUser = async (
     const e = await tx.employee.create({
       data: {
         workspaceId: ws.workspaceId, employeeCode: opts.code, firstName: 'S', lastName: opts.code, gender: 'FEMALE',
-        phone: opts.phone, hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME',
+        phone: opts.phone, hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY',
       },
     });
     return tx.user.create({

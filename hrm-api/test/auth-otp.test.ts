@@ -45,7 +45,7 @@ const createStaff = async (ws: WorkspaceFixture, opts: { code: string; phone?: s
     const e = await tx.employee.create({
       data: {
         workspaceId: ws.workspaceId, employeeCode: opts.code, firstName: 'O', lastName: opts.code, gender: 'MALE',
-        phone, hireDate: new Date('2024-01-01'), employmentType: 'DAILY',
+        phone, hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'DAILY',
       },
     });
     const user = await tx.user.create({

@@ -35,6 +35,9 @@ export function EmployeeList({ items }: { items: readonly EmployeeSummary[] }) {
                       {t('nationality.FOREIGN')}
                     </Badge>
                   )}
+                  {(e.firstNameEn || e.lastNameEn) && (
+                    <span className="block text-xs text-ink-muted">{[e.firstNameEn, e.lastNameEn].filter(Boolean).join(' ')}</span>
+                  )}
                 </td>
                 <td className="py-3 pr-3 text-ink-muted">{e.department?.name ?? '—'}</td>
                 <td className="py-3 pr-3 text-ink-muted">{e.position?.name ?? '—'}</td>

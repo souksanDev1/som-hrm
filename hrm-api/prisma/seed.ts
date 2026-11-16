@@ -58,11 +58,12 @@ const main = async () => {
     const boss = await tx.employee.create({
       data: {
         workspaceId: ws, employeeCode: 'E001', firstName: 'ສົມສັກ', lastName: 'ພົມມະວົງ', gender: 'MALE',
-        email: 'admin@som.la', phone: '02055550001', hireDate: new Date('2019-03-01'), employmentType: 'FULL_TIME',
+        firstNameEn: 'Somsak', lastNameEn: 'Phommavong', village: 'ໂພນທັນ', district: 'ໄຊເສດຖາ', province: 'VT',
+        email: 'admin@som.la', phone: '02055550001', hireDate: new Date('2019-03-01'), contractType: 'INDEFINITE', payType: 'MONTHLY',
         status: 'ACTIVE', branchId: hq.id, departmentId: hr.id, positionId: director.id,
         socialSecurityNoEnc: cipher.encrypt('SS1000001'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000001'),
         idCardNoEnc: cipher.encrypt('01-0012345'), idCardNoHash: cipher.blindIndex('national_id', '01-0012345'),
-        familyBookNoEnc: cipher.encrypt('VT-12345'),
+        familyBookNoEnc: cipher.encrypt('VT-12345'), familyBookHolder: 'ສົມສັກ ພົມມະວົງ', ssnRegisteredAt: new Date('2019-04-01'),
       },
     });
     await tx.user.update({ where: { id: owner.id }, data: { employeeId: boss.id } });
@@ -70,14 +71,16 @@ const main = async () => {
     const lead = await tx.employee.create({
       data: {
         workspaceId: ws, employeeCode: 'E002', firstName: 'ບົວພັນ', lastName: 'ສີສຸວັນ', gender: 'FEMALE',
-        phone: '02055550002', hireDate: new Date('2022-06-15'), employmentType: 'FULL_TIME', status: 'ACTIVE',
+        firstNameEn: 'Bouaphan', lastNameEn: 'Sisouvanh',
+        phone: '02055550002', hireDate: new Date('2022-06-15'), contractType: 'INDEFINITE', payType: 'MONTHLY', status: 'ACTIVE',
         branchId: site.id, departmentId: ops.id, positionId: supervisor.id, managerId: boss.id,
       },
     });
     const field = await tx.employee.create({
       data: {
         workspaceId: ws, employeeCode: DEMO.fieldWorker.code, firstName: 'ຄຳແພງ', lastName: 'ແກ້ວມະນີ', gender: 'MALE',
-        phone: DEMO.fieldWorker.phone, hireDate: new Date('2025-01-10'), employmentType: 'DAILY', status: 'ACTIVE',
+        firstNameEn: 'Khamphaeng', lastNameEn: 'Keomany', village: 'ຫ້ວຍ', district: 'ປາກເຊ', province: 'CH',
+        phone: DEMO.fieldWorker.phone, hireDate: new Date('2025-01-10'), contractType: 'INDEFINITE', payType: 'DAILY', status: 'ACTIVE',
         hazardousWork: true, branchId: site.id, departmentId: ops.id, positionId: worker.id, managerId: lead.id,
         socialSecurityNoEnc: cipher.encrypt('SS1000003'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000003'),
       },
@@ -93,9 +96,9 @@ const main = async () => {
 
     const foreign = await tx.employee.create({
       data: {
-        workspaceId: ws, employeeCode: 'E004', firstName: 'Nguyen', lastName: 'Van An', gender: 'MALE',
+        workspaceId: ws, employeeCode: 'E004', firstName: 'Nguyen', lastName: 'Van An', firstNameEn: 'Nguyen', lastNameEn: 'Van An', gender: 'MALE',
         nationalityType: 'FOREIGN', nationality: 'Vietnam', phone: '02055550004', hireDate: new Date('2024-04-01'),
-        employmentType: 'CONTRACT', status: 'ACTIVE', branchId: site.id, departmentId: ops.id, positionId: worker.id, managerId: lead.id,
+        contractType: 'FIXED_TERM', contractEndDate: new Date('2027-03-31'), payType: 'MONTHLY', status: 'ACTIVE', branchId: site.id, departmentId: ops.id, positionId: worker.id, managerId: lead.id,
       },
     });
     await tx.employeeDocument.createMany({

@@ -15,6 +15,8 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/dashboard', labelKey: 'nav.dashboard', icon: 'space_dashboard', mobile: true },
   { href: '/employees', labelKey: 'nav.employees', icon: 'group', permission: PERMISSIONS.EMPLOYEE_READ, mobile: true },
+  // FR-EMP-06: expired / expiring documents within the user's data scope.
+  { href: '/documents/expiring', labelKey: 'empx.expiring.title', icon: 'event_busy', permission: PERMISSIONS.EMPLOYEE_READ },
   { href: '/org', labelKey: 'nav.org', icon: 'account_tree', permission: PERMISSIONS.ORG_READ, mobile: true },
   { href: '/notifications', labelKey: 'nav.notifications', icon: 'notifications', mobile: true, badge: 'unreadNotifications' },
   // Same permission as the page (RequirePermission ORG_WRITE); also a mobile tab so it is reachable below 1024px.

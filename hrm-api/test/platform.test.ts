@@ -161,8 +161,8 @@ describe('platform workspaces', () => {
     await t.db.tenant(ws.workspaceId, (tx) =>
       tx.employee.createMany({
         data: [
-          { workspaceId: ws.workspaceId, employeeCode: 'A1', firstName: 'A', lastName: 'A', gender: 'MALE', hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME' },
-          { workspaceId: ws.workspaceId, employeeCode: 'A2', firstName: 'B', lastName: 'B', gender: 'MALE', hireDate: new Date('2024-01-01'), employmentType: 'FULL_TIME', status: 'RESIGNED' },
+          { workspaceId: ws.workspaceId, employeeCode: 'A1', firstName: 'A', lastName: 'A', gender: 'MALE', hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY' },
+          { workspaceId: ws.workspaceId, employeeCode: 'A2', firstName: 'B', lastName: 'B', gender: 'MALE', hireDate: new Date('2024-01-01'), contractType: 'INDEFINITE', payType: 'MONTHLY', status: 'RESIGNED' },
         ],
       }),
     );

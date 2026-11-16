@@ -10,18 +10,28 @@ export type EmployeeFormValues = Omit<CreateEmployeeInput, 'login'> & {
 
 /** Fields that may be left blank: omitted on create, cleared (null) on edit. */
 export const OPTIONAL_EMPLOYEE_FIELDS = [
+  'firstNameEn',
+  'lastNameEn',
   'nickname',
   'dateOfBirth',
   'phone',
   'email',
   'address',
+  'village',
+  'district',
+  'province',
   'nationality',
   'idCardNo',
   'socialSecurityNo',
+  'ssnRegisteredAt',
   'familyBookNo',
+  'familyBookHolder',
+  'contractEndDate',
+  'probationEndDate',
   'branchId',
   'departmentId',
   'positionId',
+  'managerId',
 ] as const satisfies readonly (keyof EmployeeFormValues)[];
 
 const isBlank = (v: unknown) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');

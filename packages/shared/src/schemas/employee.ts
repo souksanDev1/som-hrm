@@ -1,13 +1,15 @@
 import { z } from 'zod';
 import {
+  CONTRACT_TYPES,
   DOCUMENT_TYPES,
   EMPLOYMENT_STATUSES,
-  EMPLOYMENT_TYPES,
   GENDERS,
   NATIONALITY_TYPES,
   NationalityType,
+  PAY_TYPES,
 } from '../enums';
 import { EXPIRY_STATES } from '../domain/documents';
+import { LAO_PROVINCE_CODES } from '../domain/lao-address';
 import { storedFileSchema } from './file';
 import { emptyToNull, emptyToUndefined, isoDateSchema, laoPhoneSchema, paginationQuerySchema } from './common';
 
@@ -29,6 +31,8 @@ export const socialSecurityNoSchema = z.string().trim().regex(/^[A-Za-z0-9-]{6,2
 /** Family-book (ສຳມະໂນຄົວ) number. */
 export const familyBookNoSchema = z.string().trim().regex(/^[A-Za-z0-9/-]{3,30}$/, 'invalid_family_book');
 const emailSchema = z.string().trim().toLowerCase().email('invalid_email');
+/** Province code from LAO_PROVINCES (FR-EMP-01.4). */
+export const laoProvinceSchema = z.enum(LAO_PROVINCE_CODES, { errorMap: () => ({ message: 'invalid_province' }) });
 
 const requiredFields = {
   employeeCode: z.string().trim().regex(/^[A-Za-z0-9-]{1,20}$/, 'invalid_employee_code'),
@@ -36,7 +40,10 @@ const requiredFields = {
   lastName: z.string().trim().min(1, 'required').max(80),
   gender: z.enum(GENDERS),
   hireDate: isoDateSchema,
-  employmentType: z.enum(EMPLOYMENT_TYPES),
+  /** FR-EMP-03.5 */
+  contractType: z.enum(CONTRACT_TYPES),
+  /** FR-EMP-03.6 */
+  payType: z.enum(PAY_TYPES),
 };
 
 /**
@@ -49,15 +56,25 @@ const optionalFields = <M extends 'create' | 'update'>(mode: M) => {
   const wrap = <T extends z.ZodTypeAny>(s: T) => (mode === 'create' ? emptyToUndefined(s) : emptyToNull(s)) as Wrapped<T>;
   const text = (max: number) => (mode === 'create' ? optionalText(max) : clearableText(max)) as Text;
   return {
+    /** English name (FR-EMP-01.1); firstName/lastName hold the Lao name. */
+    firstNameEn: text(80),
+    lastNameEn: text(80),
     nickname: text(40),
     dateOfBirth: wrap(isoDateSchema),
     phone: wrap(laoPhoneSchema),
     email: wrap(emailSchema),
     address: text(300),
+    village: text(80),
+    district: text(80),
+    province: wrap(laoProvinceSchema),
     nationality: text(60),
     idCardNo: text(30),
     socialSecurityNo: wrap(socialSecurityNoSchema),
+    ssnRegisteredAt: wrap(isoDateSchema),
     familyBookNo: wrap(familyBookNoSchema),
+    familyBookHolder: text(120),
+    contractEndDate: wrap(isoDateSchema),
+    probationEndDate: wrap(isoDateSchema),
     branchId: wrap(z.string()),
     departmentId: wrap(z.string()),
     positionId: wrap(z.string()),
@@ -68,6 +85,34 @@ const optionalFields = <M extends 'create' | 'update'>(mode: M) => {
 const foreignNeedsNationality = <T extends { nationalityType?: string; nationality?: string | null }>(v: T) =>
   v.nationalityType !== 'FOREIGN' || !!v.nationality;
 const nationalityRequired = { message: 'nationality_required', path: ['nationality'] };
+
+/** Dates that must not precede the hire date. */
+const DATES_AFTER_HIRE = ['contractEndDate', 'probationEndDate'] as const;
+export interface EmploymentDateIssue {
+  field: (typeof DATES_AFTER_HIRE)[number];
+  code: 'before_hire_date';
+}
+
+/**
+ * Cross-field date rules shared by the create/update schemas and the API's update path (which
+ * checks the merged stored + patched values). ISO dates compare correctly as strings.
+ */
+export const employmentDateIssues = (v: {
+  hireDate?: string | null;
+  contractEndDate?: string | null;
+  probationEndDate?: string | null;
+}): EmploymentDateIssue[] => {
+  const hire = v.hireDate;
+  if (!hire) return [];
+  return DATES_AFTER_HIRE.filter((f) => {
+    const d = v[f];
+    return !!d && d < hire;
+  }).map((field) => ({ field, code: 'before_hire_date' }));
+};
+
+const refineEmploymentDates = (v: Parameters<typeof employmentDateIssues>[0], ctx: z.RefinementCtx) => {
+  for (const issue of employmentDateIssues(v)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.code, path: [issue.field] });
+};
 
 /** Login methods HR can issue. PASSWORD does not need an email: staff sign in with employee code or phone. */
 export const credentialMethodSchema = z.enum(['PASSWORD', 'PIN']);
@@ -87,7 +132,8 @@ export const createEmployeeSchema = z
     /** Optionally create a login. PIN login works for staff without email/smartphone. */
     login: issueCredentialSchema.optional(),
   })
-  .refine(foreignNeedsNationality, nationalityRequired);
+  .refine(foreignNeedsNationality, nationalityRequired)
+  .superRefine(refineEmploymentDates);
 export type CreateEmployeeInput = z.input<typeof createEmployeeSchema>;
 export type CreateEmployeeData = z.output<typeof createEmployeeSchema>;
 
@@ -102,7 +148,8 @@ export const updateEmployeeSchema = z
     /** Effective date for the employment-history entry (FR-EMP-08.4); defaults to today in the workspace timezone. */
     effectiveDate: isoDateSchema.optional(),
   })
-  .refine(foreignNeedsNationality, nationalityRequired);
+  .refine(foreignNeedsNationality, nationalityRequired)
+  .superRefine(refineEmploymentDates);
 export type UpdateEmployeeInput = z.input<typeof updateEmployeeSchema>;
 export type UpdateEmployeeData = z.output<typeof updateEmployeeSchema>;
 
@@ -121,6 +168,8 @@ export const employeeSummarySchema = z.object({
   employeeCode: z.string(),
   firstName: z.string(),
   lastName: z.string(),
+  firstNameEn: z.string().nullable(),
+  lastNameEn: z.string().nullable(),
   nickname: z.string().nullable(),
   phone: z.string().nullable(),
   email: z.string().nullable(),
@@ -147,7 +196,7 @@ export const employeeDocumentSchema = z.object({
   /** Uploaded scan (FR-EMP-07); download via GET /employees/:id/documents/:documentId/file. */
   file: storedFileSchema.nullable(),
 });
-export type EmployeeDocument =z.infer<typeof employeeDocumentSchema>;
+export type EmployeeDocument = z.infer<typeof employeeDocumentSchema>;
 
 export const emergencyContactSchema = z.object({
   id: z.string(),
@@ -161,14 +210,23 @@ export const employeeDetailSchema = employeeSummarySchema.extend({
   gender: z.enum(GENDERS),
   dateOfBirth: z.string().nullable(),
   address: z.string().nullable(),
+  village: z.string().nullable(),
+  district: z.string().nullable(),
+  /** Province code (LAO_PROVINCES). */
+  province: z.string().nullable(),
   nationality: z.string().nullable(),
   idCardNo: z.string().nullable(),
   /** Masked unless caller has employee.sensitive.read. */
   socialSecurityNo: z.string().nullable(),
+  ssnRegisteredAt: z.string().nullable(),
   familyBookNo: z.string().nullable(),
+  familyBookHolder: z.string().nullable(),
   sensitiveMasked: z.boolean(),
   hireDate: z.string(),
-  employmentType: z.enum(EMPLOYMENT_TYPES),
+  contractType: z.enum(CONTRACT_TYPES),
+  contractEndDate: z.string().nullable(),
+  probationEndDate: z.string().nullable(),
+  payType: z.enum(PAY_TYPES),
   hazardousWork: z.boolean(),
   manager: refSchema,
   documents: z.array(employeeDocumentSchema),
@@ -199,6 +257,11 @@ export const createEmergencyContactSchema = z.object({
 export type CreateEmergencyContactInput = z.input<typeof createEmergencyContactSchema>;
 export type CreateEmergencyContactData = z.output<typeof createEmergencyContactSchema>;
 
+/** PATCH an emergency contact (FR-EMP-01.5): omitted keys stay unchanged. */
+export const updateEmergencyContactSchema = createEmergencyContactSchema.partial();
+export type UpdateEmergencyContactInput = z.input<typeof updateEmergencyContactSchema>;
+export type UpdateEmergencyContactData = z.output<typeof updateEmergencyContactSchema>;
+
 /** Returned once when HR creates a login or resets a PIN — never stored in clear. */
 export const credentialIssuedSchema = z.object({
   userId: z.string(),
@@ -226,5 +289,31 @@ export const employmentHistoryEntrySchema = z.object({
   note: z.string().nullable(),
   createdAt: z.string(),
   createdBy: z.object({ id: z.string(), name: z.string() }).nullable(),
+  /** Display names for the ids in fromValue/toValue (branch, department, position, manager). */
+  labels: z.record(z.string()),
 });
 export type EmploymentHistoryEntry = z.infer<typeof employmentHistoryEntrySchema>;
+
+/** Expiring-documents overview (FR-EMP-06): only documents that are expired or within the alert window. */
+export const EXPIRING_DOCUMENT_STATES = ['EXPIRED', 'EXPIRING'] as const;
+export const expiringDocumentsQuerySchema = paginationQuerySchema.omit({ search: true }).extend({
+  branchId: z.string().optional(),
+  type: z.enum(DOCUMENT_TYPES).optional(),
+  status: z.enum(EXPIRING_DOCUMENT_STATES).optional(),
+});
+export type ExpiringDocumentsQuery = z.infer<typeof expiringDocumentsQuerySchema>;
+
+export const expiringDocumentSchema = employeeDocumentSchema
+  .pick({ id: true, type: true, number: true, expiresAt: true, expiryStatus: true, daysUntilExpiry: true, expiryThresholdDays: true })
+  .extend({
+    employee: employeeSummarySchema.pick({
+      id: true,
+      employeeCode: true,
+      firstName: true,
+      lastName: true,
+      firstNameEn: true,
+      lastNameEn: true,
+      branch: true,
+    }),
+  });
+export type ExpiringDocument = z.infer<typeof expiringDocumentSchema>;

@@ -1,4 +1,4 @@
-import type { EmployeeListQuery } from '@hrm/shared';
+import type { EmployeeListQuery, ExpiringDocumentsQuery } from '@hrm/shared';
 import type { EmploymentStatus, Prisma } from '@prisma/client';
 import type { Tx } from '../../db/client';
 
@@ -21,6 +21,25 @@ export const employeeDetailInclude = {
 
 export type EmployeeWithSummary = Prisma.EmployeeGetPayload<{ include: typeof employeeSummaryInclude }>;
 export type EmployeeWithDetail = Prisma.EmployeeGetPayload<{ include: typeof employeeDetailInclude }>;
+
+const expiringDocumentSelect = {
+  id: true,
+  type: true,
+  number: true,
+  expiresAt: true,
+  employee: {
+    select: {
+      id: true,
+      employeeCode: true,
+      firstName: true,
+      lastName: true,
+      firstNameEn: true,
+      lastNameEn: true,
+      branch: { select: { id: true, name: true } },
+    },
+  },
+} satisfies Prisma.EmployeeDocumentSelect;
+export type ExpiringDocumentRow = Prisma.EmployeeDocumentGetPayload<{ select: typeof expiringDocumentSelect }>;
 
 /** Statuses that occupy a paid seat and may hold an active login. */
 export const ACTIVE_STATUSES = ['PROBATION', 'ACTIVE', 'ON_LEAVE'] as const satisfies readonly EmploymentStatus[];
@@ -45,6 +64,8 @@ export const employeesRepository = {
               { employeeCode: { contains: search, mode: 'insensitive' } },
               { firstName: { contains: search, mode: 'insensitive' } },
               { lastName: { contains: search, mode: 'insensitive' } },
+              { firstNameEn: { contains: search, mode: 'insensitive' } },
+              { lastNameEn: { contains: search, mode: 'insensitive' } },
               { nickname: { contains: search, mode: 'insensitive' } },
               { phone: { contains: search } },
             ],
@@ -159,11 +180,65 @@ export const employeesRepository = {
   userNames: (tx: Tx, workspaceId: string, ids: string[]) =>
     tx.user.findMany({ where: { workspaceId, id: { in: ids } }, select: { id: true, displayName: true } }),
 
+  /** Current names of the org entities / managers referenced by history entries (id → name). */
+  refNames: async (tx: Tx, workspaceId: string, ids: string[]): Promise<Map<string, string>> => {
+    if (!ids.length) return new Map();
+    const where = { workspaceId, id: { in: ids } };
+    const [branches, departments, positions, employees] = await Promise.all([
+      tx.branch.findMany({ where, select: { id: true, name: true } }),
+      tx.department.findMany({ where, select: { id: true, name: true } }),
+      tx.position.findMany({ where, select: { id: true, name: true } }),
+      tx.employee.findMany({ where, select: { id: true, firstName: true, lastName: true } }),
+    ]);
+    return new Map([
+      ...[...branches, ...departments, ...positions].map((r) => [r.id, r.name] as const),
+      ...employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`] as const),
+    ]);
+  },
+
+  /**
+   * Documents that are expired or expire on/before `horizon` (FR-EMP-06), soonest first, for employees
+   * who have not left. `onlyIds` restricts to a data scope (null = whole workspace).
+   */
+  listExpiringDocuments: async (
+    tx: Tx,
+    workspaceId: string,
+    q: ExpiringDocumentsQuery,
+    window: { today: Date; horizon: Date },
+    onlyIds: string[] | null,
+  ) => {
+    const expiresAt: Prisma.DateTimeNullableFilter =
+      q.status === 'EXPIRED' ? { lt: window.today } : q.status === 'EXPIRING' ? { gte: window.today, lte: window.horizon } : { not: null, lte: window.horizon };
+    const where: Prisma.EmployeeDocumentWhereInput = {
+      workspaceId,
+      expiresAt,
+      ...(q.type ? { type: q.type } : {}),
+      employee: {
+        status: { in: [...ACTIVE_STATUSES] },
+        ...(q.branchId ? { branchId: q.branchId } : {}),
+        ...(onlyIds ? { id: { in: onlyIds } } : {}),
+      },
+    };
+    const [items, total] = await Promise.all([
+      tx.employeeDocument.findMany({
+        where,
+        select: expiringDocumentSelect,
+        orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+        skip: (q.page - 1) * q.pageSize,
+        take: q.pageSize,
+      }),
+      tx.employeeDocument.count({ where }),
+    ]);
+    return { items, total };
+  },
+
   createDocument: (tx: Tx, data: Prisma.EmployeeDocumentUncheckedCreateInput) => tx.employeeDocument.create({ data }),
   deleteDocument: (tx: Tx, workspaceId: string, employeeId: string, id: string) =>
     tx.employeeDocument.deleteMany({ where: { id, employeeId, workspaceId } }),
 
   createContact: (tx: Tx, data: Prisma.EmergencyContactUncheckedCreateInput) => tx.emergencyContact.create({ data }),
+  updateContact: (tx: Tx, workspaceId: string, employeeId: string, id: string, data: Prisma.EmergencyContactUncheckedUpdateManyInput) =>
+    tx.emergencyContact.updateMany({ where: { id, employeeId, workspaceId }, data }),
   deleteContact: (tx: Tx, workspaceId: string, employeeId: string, id: string) =>
     tx.emergencyContact.deleteMany({ where: { id, employeeId, workspaceId } }),
 

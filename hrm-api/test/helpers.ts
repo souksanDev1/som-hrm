@@ -81,6 +81,6 @@ export const employeePayload = (overrides: Record<string, unknown> = {}) => ({
   lastName: 'ດວງດີ',
   gender: 'FEMALE',
   hireDate: '2024-01-15',
-  employmentType: 'FULL_TIME',
+  contractType: 'INDEFINITE', payType: 'MONTHLY',
   ...overrides,
 });
