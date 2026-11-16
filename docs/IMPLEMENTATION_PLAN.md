@@ -61,10 +61,30 @@ Onboarding/Offboarding, ຜັງອົງກອນ, ແຈ້ງເຕືອນ
 ທຸກໜ້າ Responsive; ພາສາລາວ/ອັງກິດ
 
 ## Milestones
-- M1: Monorepo + shared + Prisma schema + RLS + Auth (email/ລະຫັດ+PIN, JWT refresh) + RBAC + Audit log + Employees + Org chart
-- M2: Attendance (app + offline + anti-fake-GPS + selfie) + Shift/6 ມື້ + ຄຳນວນມາຊ້າ/ກັບກ່ອນ/ຂາດ + OT + Scan import (ZKTeco/HIP/CSV) + ຄຳຂໍແກ້ເວລາ
-- M3: Leave (ກົດລາວ, ເຕັມ/ເຄິ່ງມື້, ແນບເອກະສານ) + ອະນຸມັດ 1–2 ຂັ້ນ + ຜູ້ອະນຸມັດແທນ + Push/ແຈ້ງເຕືອນ + ປະຕິທິນ
-- M4: Onboarding/Offboarding (ປິດສິດອັດຕະໂນມັດ, ເກັບ OT/ວັນລາຕອນອອກ) + ແຈ້ງເຕືອນເອກະສານຕ່າງປະເທດ + ລາຍງານ Excel + Dashboard
+
+> ປັບປຸງ 2026-11-16 ຫຼັງວິເຄາະ TOR v1.0 (ເບິ່ງ [TECHNICAL_ANALYSIS.md](TECHNICAL_ANALYSIS.md) ແລະ
+> [REQUIREMENT_TRACKING.md](REQUIREMENT_TRACKING.md)). ແຕ່ລະ milestone ເຮັດ **MUST ກ່ອນ SHOULD**; ທຸກ feature ຄົບ
+> Backend + Web + Mobile (+ Kiosk ຖ້າກ່ຽວຂ້ອງ) ແລະ test ກ່ອນຍ້າຍໄປ milestone ຖັດໄປ. ລຳດັບທົດສອບອຸປະກອນ: **Web + Android ກ່ອນ, iOS ພາຍຫຼັງ**.
+
+- **M1 (ສຳເລັດ, commit b778f88)**: Monorepo + shared + Prisma schema + RLS + Auth (password/PIN, JWT refresh) + RBAC + Audit log + Employees + Org chart
+- **M2 Foundation hardening**: ແກ້ B1–B12 · SOM Super Admin (`/platform`, PlatformUser, ສ້າງ workspace — FR-WS-01.1) ·
+  Business parameter store effective-dated (FR-WS-08) · Auth: ID/ເບີໂທ + password ບໍ່ຕ້ອງ email, OTP + SMS adapter,
+  force change ທີ່ API, ປິດ login ຕອນອອກວຽກ (FR-AUTH-01..03, 06) · ປ່ຽນພາສາຕໍ່ user (FR-WS-07) · File storage adapter ·
+  pg-boss job runner · Notification outbox + in-app center ·
+  OpenAPI · RLS system role ແຍກ · audit log append-only
+- **M3 Workspace config + Employees**: working days ມາດຕະຖານ/ລາຍຄົນ/bulk/restore + effective date (FR-WS-03) · Holiday CRUD
+  (8 ມີນາ, ທົດແທນ, ປະເພນີ, ຕ່າງປະເທດ — FR-WS-04/05) · ຂໍ້ມູນພະນັກງານຄົບ (FR-EMP-01..04, ແຍກ contract/pay type) · upload ເອກະສານ ·
+  alert ໝົດອາຍຸ 90/60/30/7 (job) + overview · employment history + effective date · bulk import Excel/CSV + preview · ກັນຊ້ຳ SSN/ບັດ (blind index)
+- **M4 Approval engine + Notification events**: chain ຈາກ reporting line, delegate + ຊ່ວງວັນ, auto-route ເມື່ອ manager ລາ,
+  escalate ຫຼັງ N ວັນເຮັດວຽກ, ບັນທຶກ capacity (FR-ORG-02..06) · push (Expo) + web notification center (FR-NOTI-01, 04)
+- **M5 Attendance + OT** (ຄວາມສຳຄັນສູງສຸດ): attendance mode ຕໍ່ branch · mobile check-in/out GPS + geofence + selfie + offline queue
+  (SQLite) + ກວດເວລາເຄື່ອງ + mock GPS + device binding · off-site · suspicious queue · HR ບັນທຶກແທນ · shift (ກະກາງຄືນຂ້າມມື້, ໝຸນວຽນ) ·
+  ຄິດໄລ່ ມາຊ້າ/ກັບກ່ອນ/ຂາດ/ລືມກົດ + grace · ຄຳຂໍແກ້ເວລາ · OT ກ່ອນ/ຫຼັງ + 4 ປະເພດ + cap · scanner import ZKTeco/HIP/CSV · Kiosk variant ·
+  load test 1,000 check-in
+- **M6 Leave**: ປະເພດລາ + entitlement ≥ ກົດໝາຍ · ເຕັມ/ເຄິ່ງມື້ · ນັບຕາມ schedule (ລາເກີດລູກ = ວັນປະຕິທິນ) · ໃບແພດ · eligibility ·
+  ledger · carry-over · ຍື່ນ web/mobile/ແທນ · ອະນຸມັດ 1–2 ຂັ້ນ · ຍົກເລີກ · ປະຕິທິນ (today/week/month + ສິດການເບິ່ງ)
+- **M7 On/Offboarding + Payroll data + Reports + Go-live**: checklist template + tasks + overdue · separation + exit snapshot (lock) ·
+  ປິດສິດອັດຕະໂນມັດວັນສຸດທ້າຍ · payroll period close/reopen + export · ລາຍງານ FR-RPT + Excel · backup/restore · deployment · ຄູ່ມື lo/en
 
 ## Definition of Done (ແຕ່ລະ Milestone)
 pnpm lint · pnpm typecheck · pnpm build · pnpm test (Vitest, API ໃຊ້ Postgres ຈິງ) · pnpm e2e (Playwright web; Maestro mobile)
