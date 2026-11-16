@@ -139,3 +139,13 @@ export const FilePurpose = {
 } as const;
 export type FilePurpose = (typeof FilePurpose)[keyof typeof FilePurpose];
 export const FILE_PURPOSES = values(FilePurpose);
+
+/** Holiday calendar entry kinds (FR-WS-04/05). */
+export const HolidayKind = {
+  PUBLIC: 'PUBLIC',
+  TRADITIONAL: 'TRADITIONAL',
+  SUBSTITUTE: 'SUBSTITUTE',
+  NATIONAL_DAY: 'NATIONAL_DAY',
+} as const;
+export type HolidayKind = (typeof HolidayKind)[keyof typeof HolidayKind];
+export const HOLIDAY_KINDS = values(HolidayKind);

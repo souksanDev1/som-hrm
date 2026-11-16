@@ -21,6 +21,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings', labelKey: 'nav.settings', icon: 'settings', permission: PERMISSIONS.ORG_WRITE, mobile: true },
   // Readable by HR (org.write) and company admins; editing needs settings.manage (checked on the page + API).
   { href: '/settings/parameters', labelKey: 'param.title', icon: 'tune', permission: PERMISSIONS.ORG_WRITE },
+  // Holiday calendar (FR-WS-04/05); also linked from /settings for the mobile layout.
+  { href: '/settings/holidays', labelKey: 'holiday.title', icon: 'event', permission: PERMISSIONS.ORG_WRITE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
 ];

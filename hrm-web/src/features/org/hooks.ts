@@ -10,9 +10,20 @@ export const orgKeys = {
 };
 
 export const useOrgChart = () => useQuery({ queryKey: orgKeys.chart, queryFn: orgApi.chart });
-export const useBranches = () => useQuery({ queryKey: orgKeys.branches, queryFn: orgApi.branches, staleTime: 5 * 60_000 });
-export const useDepartments = () => useQuery({ queryKey: orgKeys.departments, queryFn: orgApi.departments, staleTime: 5 * 60_000 });
-export const usePositions = () => useQuery({ queryKey: orgKeys.positions, queryFn: orgApi.positions, staleTime: 5 * 60_000 });
+/**
+ * Org lists. Pickers use the default (open items only); settings pass `includeClosed` to also see closed ones.
+ * Both variants live under the same key prefix, so one invalidation refreshes them.
+ */
+export const useBranches = (includeClosed = false) =>
+  useQuery({ queryKey: includeClosed ? [...orgKeys.branches, 'all'] : orgKeys.branches, queryFn: () => orgApi.branches({ includeClosed }), staleTime: 5 * 60_000 });
+export const useDepartments = (includeClosed = false) =>
+  useQuery({
+    queryKey: includeClosed ? [...orgKeys.departments, 'all'] : orgKeys.departments,
+    queryFn: () => orgApi.departments({ includeClosed }),
+    staleTime: 5 * 60_000,
+  });
+export const usePositions = (includeClosed = false) =>
+  useQuery({ queryKey: includeClosed ? [...orgKeys.positions, 'all'] : orgKeys.positions, queryFn: () => orgApi.positions({ includeClosed }), staleTime: 5 * 60_000 });
 
 /** Generic create/delete mutation pair that refreshes the related list. */
 export const useOrgMutation = <TArgs,>(key: readonly unknown[], fn: (args: TArgs) => Promise<unknown>) => {

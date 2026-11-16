@@ -19,6 +19,8 @@ import { auditRoutes } from './modules/audit/audit.routes';
 import { protectedAuthRoutes, publicAuthRoutes } from './modules/auth/auth.routes';
 import { createAuthService, type AuthService } from './modules/auth/auth.service';
 import { employeesRoutes } from './modules/employees/employees.routes';
+import { holidaysRoutes } from './modules/holidays/holidays.routes';
+import { createHolidaysService, type HolidaysService } from './modules/holidays/holidays.service';
 import { createEmployeesService, type EmployeesService } from './modules/employees/employees.service';
 import { orgRoutes } from './modules/org/org.routes';
 import { createOrgService, type OrgService } from './modules/org/org.service';
@@ -33,6 +35,7 @@ export interface Services {
   auth: AuthService;
   employees: EmployeesService;
   org: OrgService;
+  holidays: HolidaysService;
   audit: AuditService;
   platform: PlatformService;
   parameters: ParameterAdminService;
@@ -92,6 +95,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
     auth: createAuthService(db, env, { sign: (p) => app.jwt.sign(p), accessTtlSeconds }, app.sms),
     employees: createEmployeesService(db, cipher, { storage: fileStorage }),
     org: createOrgService(db),
+    holidays: createHolidaysService(db),
     audit: createAuditService(db),
     platform: createPlatformService(db, env, { sign: (p) => app.jwt.sign(p), accessTtlSeconds }),
     parameters: createParameterAdminService(db),
@@ -118,6 +122,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
         await secured.register(protectedAuthRoutes);
         await secured.register(employeesRoutes);
         await secured.register(orgRoutes);
+        await secured.register(holidaysRoutes);
         await secured.register(auditRoutes);
         await secured.register(parametersRoutes);
         await secured.register(filesRoutes);

@@ -2,16 +2,28 @@ import type { Prisma } from '@prisma/client';
 import type { Tx } from '../../db/client';
 
 export const orgRepository = {
-  listBranches: (tx: Tx, workspaceId: string) =>
-    tx.branch.findMany({ where: { workspaceId, isActive: true }, orderBy: { name: 'asc' }, include: { _count: { select: { employees: true } } } }),
+  /** Open items only unless `includeClosed` (closed ones stay for history but are hidden from pickers). */
+  listBranches: (tx: Tx, workspaceId: string, includeClosed = false) =>
+    tx.branch.findMany({
+      where: { workspaceId, ...(includeClosed ? {} : { isActive: true }) },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      include: { _count: { select: { employees: true } } },
+    }),
+  findBranch: (tx: Tx, workspaceId: string, id: string) => tx.branch.findFirst({ where: { id, workspaceId } }),
   createBranch: (tx: Tx, data: Prisma.BranchUncheckedCreateInput) => tx.branch.create({ data, include: { _count: { select: { employees: true } } } }),
-  updateBranch: (tx: Tx, workspaceId: string, id: string, data: Prisma.BranchUpdateInput) =>
+  updateBranch: (tx: Tx, workspaceId: string, id: string, data: Prisma.BranchUncheckedUpdateInput) =>
     tx.branch.update({ where: { id, workspaceId }, data, include: { _count: { select: { employees: true } } } }),
   deleteBranch: (tx: Tx, workspaceId: string, id: string) => tx.branch.deleteMany({ where: { id, workspaceId } }),
   branchInUse: (tx: Tx, workspaceId: string, id: string) => tx.employee.count({ where: { workspaceId, branchId: id } }),
 
-  listDepartments: (tx: Tx, workspaceId: string) =>
-    tx.department.findMany({ where: { workspaceId }, orderBy: { name: 'asc' }, include: { _count: { select: { employees: true } } } }),
+  listDepartments: (tx: Tx, workspaceId: string, includeClosed = false) =>
+    tx.department.findMany({
+      where: { workspaceId, ...(includeClosed ? {} : { isActive: true }) },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+      include: { _count: { select: { employees: true } } },
+    }),
+  findDepartment: (tx: Tx, workspaceId: string, id: string) => tx.department.findFirst({ where: { id, workspaceId } }),
+  openChildDepartments: (tx: Tx, workspaceId: string, id: string) => tx.department.count({ where: { workspaceId, parentId: id, isActive: true } }),
   createDepartment: (tx: Tx, data: Prisma.DepartmentUncheckedCreateInput) =>
     tx.department.create({ data, include: { _count: { select: { employees: true } } } }),
   updateDepartment: (tx: Tx, workspaceId: string, id: string, data: Prisma.DepartmentUncheckedUpdateInput) =>
@@ -20,7 +32,8 @@ export const orgRepository = {
   departmentInUse: async (tx: Tx, workspaceId: string, id: string) =>
     (await tx.employee.count({ where: { workspaceId, departmentId: id } })) +
     (await tx.department.count({ where: { workspaceId, parentId: id } })),
-  departmentExists: (tx: Tx, workspaceId: string, id: string) => tx.department.count({ where: { workspaceId, id } }),
+  /** A new parent must be open; closed departments only stay as history. */
+  openDepartmentExists: (tx: Tx, workspaceId: string, id: string) => tx.department.count({ where: { workspaceId, id, isActive: true } }),
   /** Ids of `startId` and all its ancestors (one recursive query; UNION stops on corrupt cycles). */
   departmentParentChain: async (tx: Tx, workspaceId: string, startId: string): Promise<string[]> => {
     const rows = await tx.$queryRaw<{ id: string }[]>`
@@ -34,7 +47,12 @@ export const orgRepository = {
   },
   employeeExists: (tx: Tx, workspaceId: string, id: string) => tx.employee.count({ where: { workspaceId, id } }),
 
-  listPositions: (tx: Tx, workspaceId: string) => tx.position.findMany({ where: { workspaceId }, orderBy: [{ level: 'desc' }, { name: 'asc' }] }),
+  listPositions: (tx: Tx, workspaceId: string, includeClosed = false) =>
+    tx.position.findMany({
+      where: { workspaceId, ...(includeClosed ? {} : { isActive: true }) },
+      orderBy: [{ isActive: 'desc' }, { level: 'desc' }, { name: 'asc' }],
+    }),
+  findPosition: (tx: Tx, workspaceId: string, id: string) => tx.position.findFirst({ where: { id, workspaceId } }),
   createPosition: (tx: Tx, data: Prisma.PositionUncheckedCreateInput) => tx.position.create({ data }),
   updatePosition: (tx: Tx, workspaceId: string, id: string, data: Prisma.PositionUpdateInput) =>
     tx.position.update({ where: { id, workspaceId }, data }),

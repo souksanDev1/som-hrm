@@ -350,6 +350,8 @@ model Department {
   name           String
   parentId       String?
   headEmployeeId String?
+  /// false = closed (FR-WS-02.2): hidden from pickers, kept for history.
+  isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -366,6 +368,8 @@ model Position {
   workspaceId String
   name        String
   level       Int      @default(0)
+  /// false = closed (FR-WS-02.3): hidden from pickers, kept for history.
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -528,13 +532,28 @@ model WorkSchedule {
   @@unique([workspaceId, name])
 }
 
+enum HolidayKind {
+  PUBLIC
+  TRADITIONAL
+  SUBSTITUTE
+  NATIONAL_DAY
+}
+
+/// Workspace holiday calendar (FR-WS-04/05). One entry per date; apply it per employee with `holidaysFor()` (@hrm/shared).
 model Holiday {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   workspaceId String
-  date        DateTime @db.Date
+  date        DateTime    @db.Date
   nameLo      String
   nameEn      String
-  womenOnly   Boolean  @default(false)
+  kind        HolidayKind @default(PUBLIC)
+  /// Only female employees get the day off (8 March).
+  womenOnly   Boolean     @default(false)
+  /// When set, only employees of this nationality get the day (foreign national day, FR-WS-05).
+  nationality String?
+  /// Created from the statutory defaults (`ensureYear`); a year with any default row counts as seeded.
+  isDefault   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
 
   @@unique([workspaceId, date])
 }

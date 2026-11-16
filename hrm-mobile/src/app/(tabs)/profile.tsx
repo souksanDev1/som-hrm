@@ -49,7 +49,8 @@ export default function ProfileScreen() {
       </QueryView>
       <Card>
         <View className="gap-2">
-          {method === 'PIN' && <Button title={t('auth.changePin')} variant="secondary" onPress={() => router.push('/change-pin')} testID="open-change-pin" />}
+          <Button title={t('holiday.thisYear')} variant="secondary" onPress={() => router.push('/holidays')} testID="open-holidays" />
+          {method === 'PIN' &&<Button title={t('auth.changePin')} variant="secondary" onPress={() => router.push('/change-pin')} testID="open-change-pin" />}
           <Button title={locale === 'lo' ? 'English' : 'ພາສາລາວ'} variant="secondary" onPress={() => changeLocale(locale === 'lo' ? 'en' : 'lo')} testID="toggle-locale" />
           <Button
             title={t('auth.logout')}

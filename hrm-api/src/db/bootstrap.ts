@@ -2,11 +2,11 @@ import {
   ALL_PERMISSIONS,
   DEFAULT_LEAVE_TYPES,
   DEFAULT_ROLE_PERMISSIONS,
-  LAO_FIXED_HOLIDAYS,
   SystemRole,
   WORK_WEEK,
 } from '@hrm/shared';
 import { hashSecret } from '../lib/password';
+import { ensureHolidayYear } from '../modules/holidays/holidays.repository';
 import type { Tx } from './client';
 
 const ROLE_NAMES: Record<SystemRole, string> = {
@@ -111,16 +111,8 @@ export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput)
     data: { workspaceId: ws.id, name: '6 ມື້/ອາທິດ', workingDays: [...WORK_WEEK.workingDays], shiftId: shift.id, isDefault: true },
   });
 
-  const year = input.holidayYear ?? new Date().getUTCFullYear();
-  await tx.holiday.createMany({
-    data: LAO_FIXED_HOLIDAYS.map((h) => ({
-      workspaceId: ws.id,
-      date: new Date(Date.UTC(year, h.month - 1, h.day)),
-      nameLo: h.nameLo,
-      nameEn: h.nameEn,
-      womenOnly: !!h.womenOnly,
-    })),
-  });
+  // Statutory holidays for the first year; later years come from the yearly `holiday-defaults` job.
+  await ensureHolidayYear(tx, ws.id, input.holidayYear ?? new Date().getUTCFullYear());
 
   return { workspace: ws, owner, roles };
 };

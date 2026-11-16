@@ -35,10 +35,10 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS-01.1 | MUST | SOM Development creates a new Workspace for a customer company (**SOM super-admin function**) | Super Admin | Yes | Yes | M2 | Implemented | Completed | M2: /platform (PlatformUser, separate JWT scope) creates/suspends workspaces; API tests + e2e/platform.spec. |
 | FR-WS-01.2 | MUST | Every table is segregated by `workspace_id` | Super Admin | Yes | Yes | M2 | Implemented | Partial | RLS on all tenant models incl. M2 tables (FORCE RLS); cross-tenant tests. 29 models still lack FK to Workspace. |
 | **FR-WS-02** | | **Org structure and locations** (TOR p.2) | | | | | | | |
-| FR-WS-02.1 | MUST | Add/edit/close branches | Web | Yes | Yes | M3 | In Progress | Partial | CRUD API exists; web has create/delete only (no rename/close). |
-| FR-WS-02.2 | MUST | Add/edit/close departments | Web | Yes | Yes | M3 | In Progress | Partial | CRUD API + cycle check; web has create/delete only. |
-| FR-WS-02.3 | MUST | Add/edit/close positions | Web | Yes | Yes | M3 | In Progress | Partial | CRUD API; web has create/delete only. |
-| FR-WS-02.4 | MUST | GPS geofence per branch (coordinates + radius) | Web | Yes | Yes | M3 | In Progress | Pending | lat/lng/radius stored; not enforced (no attendance yet). |
+| FR-WS-02.1 | MUST | Add/edit/close branches | Web | Yes | Yes | M3 | Implemented | Partial | M3: edit (name/address/geofence) + close/reopen (POST /branches/:id/close|reopen); closed hidden from pickers (`?includeClosed=true` for settings), delete only when unused; audit with field changes. API + web unit tests; e2e/org-settings.spec written, not yet run. |
+| FR-WS-02.2 | MUST | Add/edit/close departments | Web | Yes | Yes | M3 | Implemented | Partial | M3: edit name/parent (parent may be cleared) + close/reopen; closing blocked while open sub-departments exist; closed dept cannot become a parent. API + web unit tests; e2e pending run. |
+| FR-WS-02.3 | MUST | Add/edit/close positions | Web | Yes | Yes | M3 | Implemented | Partial | M3: edit name/level + close/reopen, audited. API tests + e2e/org-settings.spec (close/reopen) written, not yet run. |
+| FR-WS-02.4 | MUST | GPS geofence per branch (coordinates + radius) | Web | Yes | Yes | M3 | Implemented | Partial | M3: lat/lng/radius validated server-side (-90..90, -180..180, 20-5000 m int, both coordinates or none, also on partial PATCH); web numeric editor; shared `isWithinGeofence()` (haversine) unit-tested. Enforcement at check-in comes with attendance (M5). |
 | **FR-WS-03** | | **Working days** (TOR p.2) | | | | | | | |
 | FR-WS-03.1 | MUST | Workspace standard applies to all employees. Default is 6 days/week (Mon–Sat), 8 h/day, max 48 h/week | Web | Yes | Yes | M3 | In Progress | Pending | Default WorkSchedule seeded Mon–Sat; no API/UI. |
 | FR-WS-03.2 | MUST | Per-employee working-day override (for example 5 days, Saturday half-day, rest day not Sunday) | Web | Yes | Yes | M3 | Not Started | Pending |  |
@@ -48,11 +48,11 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS-03.6 | MUST | Changing the standard does not affect employees who have an override | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | FR-WS-03.7 | MUST | Every change has an effective date and is recorded in the Audit Log | Web | Yes | Yes | M3 | Not Started | Pending |  |
 | **FR-WS-04** | | **Holiday calendar** (TOR p.3) | | | | | | | |
-| FR-WS-04.1 | MUST | Default public holidays: 1 Jan, 14–16 Apr, 1 May, 2 Dec | Web | Yes | Yes | M3 | In Progress | Pending | Seeded for one year only; no CRUD. |
-| FR-WS-04.2 | MUST | 8 Mar is a holiday for female employees only | Web | Yes | Yes | M3 | In Progress | Partial | womenOnly flag + isFixedHoliday(); unused by engines. |
-| FR-WS-04.3 | MUST | HR adds traditional festival days | Web | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-WS-04.4 | MUST | HR adds substitute (compensatory) holidays | Web | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-WS-05 | SHOULD | Foreign employees get +1 day for their own national day, configured by nationality | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-WS-04.1 | MUST | Default public holidays: 1 Jan, 14–16 Apr, 1 May, 2 Dec | Web | Yes | Yes | M3 | Implemented | Partial | M3: idempotent `ensureHolidayYear` on workspace creation, monthly `holiday-defaults` pg-boss job (current year + next year from December) and POST /holidays/ensure-year; HR-deleted defaults are not re-added. API + job tests; e2e/holidays.spec written, not yet run. |
+| FR-WS-04.2 | MUST | 8 Mar is a holiday for female employees only | Web | Yes | Yes | M3 | Implemented | Partial | M3: `womenOnly` honoured by shared `holidaysFor()` (unit-tested) and GET /holidays/mine; engines (M5/M6) must call holidaysFor. |
+| FR-WS-04.3 | MUST | HR adds traditional festival days | Web | Yes | Yes | M3 | Implemented | Partial | M3: Holiday.kind TRADITIONAL; CRUD API + web /settings/holidays; one holiday per date per workspace (409 date_taken). API + web unit tests. |
+| FR-WS-04.4 | MUST | HR adds substitute (compensatory) holidays | Web | Yes | Yes | M3 | Implemented | Partial | M3: Holiday.kind SUBSTITUTE via the same CRUD. API tests; e2e pending run. |
+| FR-WS-05 | SHOULD | Foreign employees get +1 day for their own national day, configured by nationality | Web | Yes | Yes | M3 | Implemented | Partial | M3: nullable Holiday.nationality (required for kind NATIONAL_DAY), matched case-insensitively against Employee.nationality by `holidaysFor()`; mobile "Holidays this year" shows the employee's own days. |
 | **FR-WS-06** | | **Attendance mode per **branch**** (TOR p.3) | | | | | | | |
 | FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | Not Started | Pending |  |
