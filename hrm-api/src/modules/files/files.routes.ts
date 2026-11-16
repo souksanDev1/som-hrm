@@ -1,27 +1,11 @@
 import multipart from '@fastify/multipart';
 import { errorResponseSchema, PERMISSIONS, storedFileSchema } from '@hrm/shared';
-import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { AppInstance } from '../../app';
-import { badRequest } from '../../lib/errors';
 import { contentDisposition } from './file-type';
-import { fileTooLarge, type UploadedFile } from './files.service';
+import { readSingleFile } from './multipart';
 
 const documentFileParams = z.object({ id: z.string(), documentId: z.string() });
-
-/** Read the single `file` part of a multipart request into memory (bounded by FILE_MAX_BYTES). */
-const readSingleFile = async (req: FastifyRequest): Promise<UploadedFile> => {
-  try {
-    const part = await req.file();
-    if (!part) throw badRequest('file_required');
-    return { fileName: part.filename, data: await part.toBuffer() };
-  } catch (err) {
-    const code = (err as { code?: string }).code;
-    if (code === 'FST_REQ_FILE_TOO_LARGE') throw fileTooLarge();
-    if (code === 'FST_INVALID_MULTIPART_CONTENT_TYPE') throw badRequest('file_required');
-    throw err;
-  }
-};
 
 /** Employee document files (FR-EMP-07). Multipart parsing is scoped to this plugin only. */
 export const filesRoutes = async (app: AppInstance) => {

@@ -89,6 +89,11 @@ export const PARAMETERS = {
     type: 'boolean', scope: 'workspace', labelKey: 'param.notification.smsEnabled', defaultValue: false,
     source: 'TOR FR-NOTI-02.3',
   },
+  /** Most data rows one employee import file may hold (FR-EMP-09); bounds parsing and the all-or-nothing import transaction. */
+  'employee.importMaxRows': {
+    type: 'int', scope: 'workspace', labelKey: 'param.employee.importMaxRows', defaultValue: 1000, min: 1, max: 2000, unit: 'count',
+    source: 'provisional (FRD §15 pending)',
+  },
   /** Length of a full working day; also the most any scheduled day may have (FR-WS-03.1). */
   'schedule.standardHoursPerDay': {
     type: 'int', scope: 'workspace', labelKey: 'param.schedule.standardHoursPerDay', defaultValue: 8, min: 1, max: 24, legalMax: 8,

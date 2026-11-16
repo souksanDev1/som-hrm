@@ -5,6 +5,8 @@ import { usePrefsStore } from '@/lib/i18n';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
 jest.mock('@/features/auth/hooks', () => ({ useChangeLocale: () => jest.fn(), useLogout: () => jest.fn() }));
+// The schedule card fetches its own data (covered by its own tests); not part of these profile fields.
+jest.mock('@/features/schedule/MyWorkScheduleCard', () => ({ MyWorkScheduleCard: () => null }));
 const mockProfile: { data: Partial<EmployeeDetail> } = { data: {} };
 jest.mock('@/features/profile/api', () => ({
   useMyProfile: () => ({ data: mockProfile.data, isPending: false, error: null, refetch: jest.fn(), isRefetching: false }),

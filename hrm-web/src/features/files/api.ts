@@ -6,7 +6,7 @@ import { API_URL, ApiError, apiFetch } from '@/lib/api-client';
  * Binary requests (multipart upload, file download) that the JSON api client cannot send.
  * On 401 the session is refreshed through the shared client (GET /auth/me) and the call retried once.
  */
-const authorizedFetch = async (path: string, init: RequestInit = {}, retried = false): Promise<Response> => {
+export const authorizedFetch = async (path: string, init: RequestInit = {}, retried = false): Promise<Response> => {
   const token = useAuthStore.getState().accessToken;
   let res: Response;
   try {
@@ -19,8 +19,8 @@ const authorizedFetch = async (path: string, init: RequestInit = {}, retried = f
     return authorizedFetch(path, init, true);
   }
   if (!res.ok) {
-    const data = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
-    throw new ApiError(res.status, data?.error?.code ?? 'unknown', data?.error?.message ?? res.statusText);
+    const data = (await res.json().catch(() => null)) as { error?: { code: string; message: string; details?: unknown } } | null;
+    throw new ApiError(res.status, data?.error?.code ?? 'unknown', data?.error?.message ?? res.statusText, data?.error?.details);
   }
   return res;
 };
@@ -35,6 +35,19 @@ const dispositionName = (header: string | null): string | null => {
   return /filename="([^"]+)"/i.exec(header)?.[1] ?? null;
 };
 
+/** Hand a downloaded response to the browser as a file save. */
+export const saveResponseAsFile = async (res: Response, fallbackName: string): Promise<void> => {
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = dispositionName(res.headers.get('content-disposition')) ?? fallbackName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 export const filesApi = {
   uploadDocumentFile: async (employeeId: string, documentId: string, file: File): Promise<StoredFileRef> => {
     const body = new FormData();
@@ -45,15 +58,6 @@ export const filesApi = {
 
   /** Download through the authorised API and hand the bytes to the browser as a file save. */
   downloadDocumentFile: async (employeeId: string, documentId: string, fallbackName: string): Promise<void> => {
-    const res = await authorizedFetch(documentFilePath(employeeId, documentId));
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = dispositionName(res.headers.get('content-disposition')) ?? fallbackName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    await saveResponseAsFile(await authorizedFetch(documentFilePath(employeeId, documentId)), fallbackName);
   },
 };
