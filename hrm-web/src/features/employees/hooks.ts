@@ -3,6 +3,7 @@ import type {
   CreateDocumentInput,
   CreateEmergencyContactInput,
   CreateEmployeeInput,
+  EmployeeImportFormat,
   UpdateEmergencyContactInput,
   UpdateEmployeeInput,
 } from '@hrm/shared';
@@ -75,6 +76,19 @@ export const useEmergencyContacts = (id: string) => {
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: (cId: string) => employeesApi.removeContact(id, cId), onSuccess: invalidate }),
+  };
+};
+
+/** Bulk import (FR-EMP-09): preview writes nothing; confirm creates every row or none. */
+export const useEmployeeImport = () => {
+  const invalidate = useInvalidate();
+  return {
+    preview: useMutation({ mutationFn: (file: File) => employeesApi.previewImport(file) }),
+    confirm: useMutation({
+      mutationFn: ({ file, importToken }: { file: File; importToken: string }) => employeesApi.confirmImport(file, importToken),
+      onSuccess: invalidate,
+    }),
+    template: useMutation({ mutationFn: (format: EmployeeImportFormat) => employeesApi.downloadImportTemplate(format) }),
   };
 };
 

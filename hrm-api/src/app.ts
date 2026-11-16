@@ -18,6 +18,8 @@ import { createAuditService, type AuditService } from './modules/audit/audit.ser
 import { auditRoutes } from './modules/audit/audit.routes';
 import { protectedAuthRoutes, publicAuthRoutes } from './modules/auth/auth.routes';
 import { createAuthService, type AuthService } from './modules/auth/auth.service';
+import { employeeImportRoutes } from './modules/employees/employee-import.routes';
+import { createEmployeeImportService, type EmployeeImportService } from './modules/employees/employee-import.service';
 import { employeesRoutes } from './modules/employees/employees.routes';
 import { holidaysRoutes } from './modules/holidays/holidays.routes';
 import { createHolidaysService, type HolidaysService } from './modules/holidays/holidays.service';
@@ -36,6 +38,7 @@ import { registerErrorHandler } from './plugins/error-handler';
 export interface Services {
   auth: AuthService;
   employees: EmployeesService;
+  employeeImport: EmployeeImportService;
   org: OrgService;
   holidays: HolidaysService;
   audit: AuditService;
@@ -94,9 +97,11 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
   const fileStorage = storage ?? createLocalFileStorage(env.FILE_STORAGE_DIR);
   app.decorate('config', env);
   app.decorate('sms', sms ?? createConsoleSmsSender((msg) => app.log.info(msg)));
+  const employees = createEmployeesService(db, cipher, { storage: fileStorage });
   app.decorate('services', {
     auth: createAuthService(db, env, { sign: (p) => app.jwt.sign(p), accessTtlSeconds }, app.sms),
-    employees: createEmployeesService(db, cipher, { storage: fileStorage }),
+    employees,
+    employeeImport: createEmployeeImportService(db, employees, { secret: env.JWT_SECRET }),
     org: createOrgService(db),
     holidays: createHolidaysService(db),
     audit: createAuditService(db),
@@ -125,6 +130,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
         secured.addHook('onRequest', secured.authenticate);
         await secured.register(protectedAuthRoutes);
         await secured.register(employeesRoutes);
+        await secured.register(employeeImportRoutes);
         await secured.register(orgRoutes);
         await secured.register(holidaysRoutes);
         await secured.register(auditRoutes);

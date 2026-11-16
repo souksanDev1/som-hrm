@@ -22,6 +22,24 @@ export const detectDocumentFileType = (data: Buffer): Pick<Signature, 'mimeType'
   return match ? { mimeType: match.mimeType, extension: match.extension } : null;
 };
 
+export type ImportFileType = 'xlsx' | 'csv';
+const ZIP_LOCAL_HEADER = [0x50, 0x4b, 0x03, 0x04]; // PK\x03\x04 (an .xlsx is a ZIP package)
+
+/**
+ * Detect a spreadsheet import file (FR-EMP-09) from its bytes: a ZIP package is treated as .xlsx
+ * (the parser rejects other ZIPs), and NUL-free valid UTF-8 text as CSV. Anything else is null.
+ */
+export const detectImportFileType = (data: Buffer): ImportFileType | null => {
+  if (data.length >= ZIP_LOCAL_HEADER.length && ZIP_LOCAL_HEADER.every((b, i) => data[i] === b)) return 'xlsx';
+  if (data.length === 0 || data.includes(0)) return null;
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(data);
+    return 'csv';
+  } catch {
+    return null;
+  }
+};
+
 /** Keep a display-safe file name: strip paths and control characters, cap the length. */
 export const sanitizeFileName = (name: string | undefined, fallbackExtension: string): string => {
   const base = (name ?? '').split(/[\\/]/).pop() ?? '';

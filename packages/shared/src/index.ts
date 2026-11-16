@@ -10,6 +10,7 @@ export * from './domain/work-schedule';
 export * from './schemas/common';
 export * from './schemas/auth';
 export * from './schemas/employee';
+export * from './schemas/employee-import';
 export * from './schemas/org';
 export * from './schemas/holiday';
 export * from './schemas/user';

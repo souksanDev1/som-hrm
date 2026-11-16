@@ -10,9 +10,14 @@ export type Tx = Prisma.TransactionClient;
  * cross-tenant operations such as sign-in and seeding, inside `system()`.
  * Queries outside these helpers see no tenant rows (fail-closed).
  */
+export interface TxOptions {
+  /** Overrides the default transaction timeout for known long-running work (e.g. a bulk import). */
+  timeoutMs?: number;
+}
+
 export interface Db {
   readonly client: PrismaClient;
-  tenant<T>(workspaceId: string, fn: (tx: Tx) => Promise<T>): Promise<T>;
+  tenant<T>(workspaceId: string, fn: (tx: Tx) => Promise<T>, opts?: TxOptions): Promise<T>;
   system<T>(fn: (tx: Tx) => Promise<T>): Promise<T>;
   disconnect(): Promise<void>;
 }
@@ -25,11 +30,14 @@ export const createDb = (url: string): Db => {
   const client = new PrismaClient({ datasources: { db: { url } } });
   return {
     client,
-    tenant: (workspaceId, fn) =>
-      client.$transaction(async (tx) => {
-        await tx.$executeRaw`SELECT set_config('app.workspace_id', ${workspaceId}, true)`;
-        return fn(tx);
-      }, TENANT_TX),
+    tenant: (workspaceId, fn, opts) =>
+      client.$transaction(
+        async (tx) => {
+          await tx.$executeRaw`SELECT set_config('app.workspace_id', ${workspaceId}, true)`;
+          return fn(tx);
+        },
+        { ...TENANT_TX, ...(opts?.timeoutMs ? { timeout: opts.timeoutMs } : {}) },
+      ),
     system: (fn) =>
       client.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT set_config('app.bypass_rls', 'on', true)`;

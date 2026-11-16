@@ -131,8 +131,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-EMP-08.3 | MUST | Record manager changes | Web | Yes | Yes | M3 | Implemented | Partial | M3: manager changes recorded; web form now has a manager picker. Playwright/Maestro added, run pending. |
 | FR-EMP-08.4 | MUST | Each entry has an effective date | Web | Yes | Yes | M3 | Implemented | Partial | M3: HR-chosen effective date (default today in workspace TZ) per entry. Playwright/Maestro added, run pending. |
 | **FR-EMP-09** | | **Bulk import** (TOR p.6) | | | | | | | |
-| FR-EMP-09.1 | MUST | Import via Excel/CSV | Web | Yes | Yes | M3 | Not Started | Pending |  |
-| FR-EMP-09.2 | MUST | Report error rows before the import is confirmed | Web | Yes | Yes | M3 | Not Started | Pending |  |
+| FR-EMP-09.1 | MUST | Import via Excel/CSV | Web | Yes | Yes | M3 | Implemented | Partial | M3: .xlsx/CSV upload (magic bytes, zip-bomb + row limit `employee.importMaxRows`), Lao+English template, rows created via the single-create path in one all-or-nothing transaction with per-employee + summary audit. API + web unit tests; Playwright added, run pending. |
+| FR-EMP-09.2 | MUST | Report error rows before the import is confirmed | Web | Yes | Yes | M3 | Implemented | Partial | M3: preview (rolled-back dry run) lists row/column/translated reason incl. in-file and existing duplicates, unknown/closed org units, seat limit, formulas; confirm needs a signed token bound to the file hash and re-validates. Playwright added, run pending. |
 | **FR-EMP-10** | | **Duplicate checks within a Workspace** (TOR p.6) | | | | | | | |
 | FR-EMP-10.1 | MUST | Employee code | Web | Yes | Yes | M3 | Implemented | Completed | Unique (workspaceId, employeeCode). |
 | FR-EMP-10.2 | MUST | Social security number | Web | Yes | Yes | M3 | Implemented | Partial | M3: 409 duplicate_social_security_no, also for the race (P2002 -> savepoint re-check). |

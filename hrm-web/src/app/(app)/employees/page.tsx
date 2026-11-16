@@ -49,7 +49,14 @@ function EmployeesView() {
     <>
       <PageHeader
         title={t('nav.employees')}
-        actions={canWrite && <Link href="/employees/new"><Button icon="person_add" data-testid="new-employee">{t('employee.add')}</Button></Link>}
+        actions={
+          canWrite && (
+            <>
+              <Link href="/employees/import"><Button variant="secondary" icon="upload_file" data-testid="import-employees">{t('empx.import.open')}</Button></Link>
+              <Link href="/employees/new"><Button icon="person_add" data-testid="new-employee">{t('employee.add')}</Button></Link>
+            </>
+          )
+        }
       />
       <Card>
         <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
