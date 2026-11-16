@@ -2,10 +2,15 @@ import {
   ALL_PERMISSIONS,
   DEFAULT_LEAVE_TYPES,
   DEFAULT_ROLE_PERMISSIONS,
+  hoursToMinutes,
+  isoDateInTimeZone,
   LAO_FIXED_HOLIDAYS,
+  PARAMETERS,
+  patternFromWorkingDays,
   SystemRole,
   WORK_WEEK,
 } from '@hrm/shared';
+import { parseIsoDate } from '../lib/dates';
 import { hashSecret } from '../lib/password';
 import type { Tx } from './client';
 
@@ -107,8 +112,18 @@ export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput)
   const shift = await tx.shift.create({
     data: { workspaceId: ws.id, name: 'ກະປົກກະຕິ 08:00–17:00', startTime: '08:00', endTime: '17:00', breakMinutes: 60 },
   });
+  // First version of the standard schedule (FR-WS-03.1): Mon–Sat at the default standard day length
+  // (a new workspace has no parameter rows yet), in force from today in the workspace time zone.
+  const standardDay = PARAMETERS['schedule.standardHoursPerDay'].defaultValue;
   await tx.workSchedule.create({
-    data: { workspaceId: ws.id, name: '6 ມື້/ອາທິດ', workingDays: [...WORK_WEEK.workingDays], shiftId: shift.id, isDefault: true },
+    data: {
+      workspaceId: ws.id,
+      name: '6 ມື້/ອາທິດ',
+      dayMinutes: hoursToMinutes(patternFromWorkingDays(WORK_WEEK.workingDays, standardDay)),
+      shiftId: shift.id,
+      isDefault: true,
+      effectiveFrom: parseIsoDate(isoDateInTimeZone(ws.timezone)),
+    },
   });
 
   const year = input.holidayYear ?? new Date().getUTCFullYear();

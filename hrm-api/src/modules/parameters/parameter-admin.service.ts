@@ -69,6 +69,7 @@ const buildView = (
     min: def.type === 'boolean' ? null : def.min,
     max: def.type === 'boolean' ? null : def.max,
     legalMin: def.type === 'int' ? (def.legalMin ?? null) : null,
+    legalMax: def.type === 'int' ? (def.legalMax ?? null) : null,
     maxItems: def.type === 'intList' ? def.maxItems : null,
     defaultValue: plain(def.defaultValue),
     currentValue: current ? (current.value as ParameterValueInput) : plain(def.defaultValue),

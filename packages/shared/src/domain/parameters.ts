@@ -27,6 +27,8 @@ export interface IntParameterDef extends BaseDef<number> {
   max: number;
   /** Legal minimum (Lao labour law); values below are rejected with `below_legal_minimum`. */
   legalMin?: number;
+  /** Legal maximum (Lao labour law); values above are rejected with `above_legal_maximum`. */
+  legalMax?: number;
   unit?: 'days' | 'minutes' | 'hours' | 'seconds' | 'count' | 'digits';
 }
 
@@ -87,6 +89,16 @@ export const PARAMETERS = {
     type: 'boolean', scope: 'workspace', labelKey: 'param.notification.smsEnabled', defaultValue: false,
     source: 'TOR FR-NOTI-02.3',
   },
+  /** Length of a full working day; also the most any scheduled day may have (FR-WS-03.1). */
+  'schedule.standardHoursPerDay': {
+    type: 'int', scope: 'workspace', labelKey: 'param.schedule.standardHoursPerDay', defaultValue: 8, min: 1, max: 24, legalMax: 8,
+    unit: 'hours', source: 'TOR FR-WS-03.1; Lao Labour Law: normal hours at most 8 h/day',
+  },
+  /** Most scheduled hours a week pattern may total (FR-WS-03.1). */
+  'schedule.maxHoursPerWeek': {
+    type: 'int', scope: 'workspace', labelKey: 'param.schedule.maxHoursPerWeek', defaultValue: 48, min: 1, max: 168, legalMax: 48,
+    unit: 'hours', source: 'TOR FR-WS-03.1; Lao Labour Law: normal hours at most 48 h/week',
+  },
 } as const satisfies Record<string, ParameterDef>;
 
 export type ParameterKey = keyof typeof PARAMETERS;
@@ -108,6 +120,7 @@ export type ParameterValidationError =
   | 'invalid_type'
   | 'out_of_range'
   | 'below_legal_minimum'
+  | 'above_legal_maximum'
   | 'too_many_items';
 
 /**
@@ -123,6 +136,7 @@ export const validateParameterValue = (key: string, value: unknown): ParameterVa
     case 'int': {
       if (typeof value !== 'number' || !Number.isInteger(value)) return 'invalid_type';
       if (def.legalMin !== undefined && value < def.legalMin) return 'below_legal_minimum';
+      if (def.legalMax !== undefined && value > def.legalMax) return 'above_legal_maximum';
       return value < def.min || value > def.max ? 'out_of_range' : null;
     }
     case 'intList': {

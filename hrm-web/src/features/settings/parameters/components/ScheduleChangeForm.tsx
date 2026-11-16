@@ -57,7 +57,11 @@ export function ScheduleChangeForm({ parameter, dateMode = 'date', defaultEffect
     parameter.type === 'intList'
       ? fill(t('param.listHint'), { max: parameter.maxItems ?? '' })
       : parameter.type === 'int'
-        ? [fill(t('param.range'), { min: parameter.min ?? '', max: parameter.max ?? '' }), parameter.legalMin !== null ? fill(t('param.legalMin'), { min: parameter.legalMin }) : null]
+        ? [
+            fill(t('param.range'), { min: parameter.min ?? '', max: parameter.max ?? '' }),
+            parameter.legalMin !== null ? fill(t('param.legalMin'), { min: parameter.legalMin }) : null,
+            parameter.legalMax !== null ? fill(t('param.legalMax'), { max: parameter.legalMax }) : null,
+          ]
             .filter(Boolean)
             .join(' · ')
         : undefined;

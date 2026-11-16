@@ -16,6 +16,8 @@ export const PERMISSIONS = {
   LEAVE_APPROVE: 'leave.approve',
   LEAVE_MANAGE: 'leave.manage',
   SETTINGS_MANAGE: 'settings.manage',
+  /** Workspace standard working schedule and per-employee overrides (FR-WS-03). */
+  SCHEDULE_MANAGE: 'schedule.manage',
 } as const;
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS) as Permission[];
