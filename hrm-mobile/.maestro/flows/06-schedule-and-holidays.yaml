@@ -1,0 +1,50 @@
+appId: la.som.hrm
+name: Field worker sees own working schedule and this year's holidays (FR-WS-03.5, FR-WS-04)
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-profile"
+# Seeded E003 follows the workspace standard schedule (Mon–Sat).
+- scrollUntilVisible:
+    element:
+      id: "my-schedule-source"
+    direction: DOWN
+- assertVisible:
+    id: "my-schedule-summary"
+- scrollUntilVisible:
+    element:
+      id: "open-holidays"
+    direction: DOWN
+- tapOn:
+    id: "open-holidays"
+- assertVisible:
+    id: "holidays-screen"
+- assertVisible:
+    id: "holiday-year-list"
+- assertVisible:
+    text: "ວັນປີໃໝ່ສາກົນ"
+- tapOn:
+    id: "holidays-back"
+- assertVisible:
+    id: "profile-screen"
