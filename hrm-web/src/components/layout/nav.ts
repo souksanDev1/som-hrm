@@ -23,6 +23,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings/parameters', labelKey: 'param.title', icon: 'tune', permission: PERMISSIONS.ORG_WRITE },
   // Holiday calendar (FR-WS-04/05); also linked from /settings for the mobile layout.
   { href: '/settings/holidays', labelKey: 'holiday.title', icon: 'event', permission: PERMISSIONS.ORG_WRITE },
+  // Standard working schedule + individual schedules (FR-WS-03); OWNER and HR_ADMIN by default.
+  { href: '/settings/work-schedule', labelKey: 'schedule.title', icon: 'calendar_month', permission: PERMISSIONS.SCHEDULE_MANAGE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
 ];

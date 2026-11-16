@@ -26,6 +26,7 @@ export const parameterViewSchema = z.object({
   min: z.number().nullable(),
   max: z.number().nullable(),
   legalMin: z.number().nullable(),
+  legalMax: z.number().nullable(),
   maxItems: z.number().nullable(),
   defaultValue: parameterValueSchema,
   /** Value effective now (system) / today in the workspace time zone (workspace). */

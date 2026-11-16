@@ -5,6 +5,7 @@ import { useChangeLocale, useLogout } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { useMyProfile } from '@/features/profile/api';
 import { ExpiryBadge } from '@/features/profile/ExpiryBadge';
+import { MyWorkScheduleCard } from '@/features/schedule/MyWorkScheduleCard';
 import { usePrefsStore, useT } from '@/lib/i18n';
 
 export default function ProfileScreen() {
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
           </>
         )}
       </QueryView>
+      <MyWorkScheduleCard />
       <Card>
         <View className="gap-2">
           <Button title={t('holiday.thisYear')} variant="secondary" onPress={() => router.push('/holidays')} testID="open-holidays" />

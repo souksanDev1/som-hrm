@@ -7,6 +7,7 @@
  *   Field worker : employee code E003 (or phone 02055550003) / PIN 482913
  *   SOM platform : superadmin@som.la / SomAdmin1234  (console at /platform/login)
  */
+import { hoursToMinutes } from '@hrm/shared';
 import { loadEnv } from '../src/config/env';
 import { bootstrapWorkspace } from '../src/db/bootstrap';
 import { createDb } from '../src/db/client';
@@ -107,6 +108,18 @@ const main = async () => {
       ],
     });
     await tx.emergencyContact.create({ data: { workspaceId: ws, employeeId: field.id, name: 'ນາງ ແສງ', relationship: 'ພັນລະຍາ', phone: '02099990003' } });
+    // Individual working schedule (FR-WS-03.2): the site supervisor works Mon–Fri 8 h + Saturday 4 h.
+    // Everyone else follows the workspace standard created by bootstrapWorkspace (Mon–Sat 8 h).
+    const standard = await tx.workSchedule.findFirstOrThrow({ where: { workspaceId: ws, isDefault: true } });
+    const halfSaturday = await tx.workSchedule.create({
+      data: {
+        workspaceId: ws, name: 'ຈັນ–ສຸກ + ເສົາເຄິ່ງມື້', dayMinutes: hoursToMinutes([0, 8, 8, 8, 8, 8, 4]),
+        shiftId: standard.shiftId, isDefault: false, reason: 'Demo seed',
+      },
+    });
+    await tx.scheduleAssignment.create({
+      data: { workspaceId: ws, employeeId: lead.id, scheduleId: halfSaturday.id, effectiveFrom: lead.hireDate, reason: 'Demo seed' },
+    });
     // Sample in-app notification for the HR demo user (notification center / E2E).
     await notify(tx, {
       workspaceId: ws,

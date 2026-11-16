@@ -28,6 +28,8 @@ import { createParameterAdminService, type ParameterAdminService } from './modul
 import { parametersRoutes } from './modules/parameters/parameters.routes';
 import { platformRoutes } from './modules/platform/platform.routes';
 import { createPlatformService, type PlatformService } from './modules/platform/platform.service';
+import { schedulesRoutes } from './modules/schedules/schedules.routes';
+import { createSchedulesService, type SchedulesService } from './modules/schedules/schedules.service';
 import { authPlugin, ttlToSeconds } from './plugins/auth';
 import { registerErrorHandler } from './plugins/error-handler';
 
@@ -41,6 +43,7 @@ export interface Services {
   parameters: ParameterAdminService;
   files: FilesService;
   notifications: NotificationsService;
+  schedules: SchedulesService;
 }
 
 declare module 'fastify' {
@@ -101,6 +104,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
     parameters: createParameterAdminService(db),
     files: createFilesService(db, fileStorage, { maxBytes: env.FILE_MAX_BYTES }),
     notifications: createNotificationsService(db),
+    schedules: createSchedulesService(db),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -127,6 +131,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
         await secured.register(parametersRoutes);
         await secured.register(filesRoutes);
         await secured.register(notificationsRoutes);
+        await secured.register(schedulesRoutes);
       });
     },
     { prefix: API_PREFIX },

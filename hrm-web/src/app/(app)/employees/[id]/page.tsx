@@ -8,6 +8,7 @@ import { RequirePermission } from '@/features/auth/RequirePermission';
 import { useHasPermission } from '@/features/auth/store';
 import { EmployeeProfile } from '@/features/employees/components/EmployeeProfile';
 import { useEmployee } from '@/features/employees/hooks';
+import { WorkScheduleCard } from '@/features/schedules/components/WorkScheduleCard';
 import { useT } from '@/lib/i18n';
 
 export default function EmployeeDetailPage() {
@@ -31,6 +32,7 @@ export default function EmployeeDetailPage() {
               }
             />
             <EmployeeProfile employee={e} />
+            <WorkScheduleCard employeeId={e.id} className="mt-4" />
           </>
         )}
       </QueryState>

@@ -436,6 +436,7 @@ model Employee {
   overtime          OvertimeRecord[]
   onboardingTasks   OnboardingTask[]
   offboarding       Offboarding?
+  scheduleHistory   ScheduleAssignment[]
 
   @@unique([workspaceId, employeeCode])
   @@unique([workspaceId, idCardNoHash])
@@ -516,20 +517,53 @@ model Shift {
   @@unique([workspaceId, name])
 }
 
+/// A working-day pattern (FR-WS-03). Rows are never deleted, so the history stays readable:
+/// - `isDefault = true`: one version of the workspace standard, in force from `effectiveFrom`
+///   (the earliest version also covers earlier dates);
+/// - `isDefault = false`: an individual (override) pattern, applied to employees through
+///   ScheduleAssignment. Resolution rules: packages/shared/src/domain/work-schedule.ts.
 model WorkSchedule {
-  id          String   @id @default(cuid())
-  workspaceId String
-  name        String
-  /// 0=Sun..6=Sat. Default 6-day week (Mon–Sat).
-  workingDays Int[]    @default([1, 2, 3, 4, 5, 6])
-  shiftId     String
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id            String    @id @default(cuid())
+  workspaceId   String
+  name          String
+  /// Scheduled minutes per weekday, index 0=Sun..6=Sat; 0 = rest day.
+  dayMinutes    Int[]
+  shiftId       String
+  isDefault     Boolean   @default(false)
+  /// Standard versions only: first day (workspace time zone) the version applies.
+  effectiveFrom DateTime? @db.Date
+  reason        String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
 
-  shift     Shift      @relation(fields: [shiftId], references: [id], onDelete: Restrict)
-  employees Employee[]
+  shift       Shift                @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  /// Legacy pointer (Employee.workScheduleId), superseded by ScheduleAssignment and backfilled in M3. Not read or written.
+  employees   Employee[]
+  assignments ScheduleAssignment[]
 
-  @@unique([workspaceId, name])
+  @@unique([workspaceId, isDefault, effectiveFrom])
+  @@index([workspaceId])
+}
+
+/// Effective-dated working schedule of one employee (FR-WS-03.2/03.4). The latest row with
+/// `effectiveFrom <= date` applies; `scheduleId = null` means "back to the workspace standard".
+/// Employees without any row work the standard.
+model ScheduleAssignment {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  employeeId    String
+  /// Override pattern (WorkSchedule with isDefault = false); null = workspace standard.
+  scheduleId    String?
+  effectiveFrom DateTime @db.Date
+  reason        String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schedule WorkSchedule? @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, effectiveFrom])
+  @@index([workspaceId, employeeId])
 }
 
 enum HolidayKind {

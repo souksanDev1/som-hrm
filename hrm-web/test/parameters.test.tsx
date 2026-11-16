@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api-client';
 
 const escalation: ParameterView = {
   key: 'approval.escalationWorkingDays', labelKey: 'param.approval.escalationWorkingDays', type: 'int', unit: 'days',
-  min: 1, max: 30, legalMin: null, maxItems: null, defaultValue: 2, currentValue: 2, source: 'default', scheduled: [], history: [],
+  min: 1, max: 30, legalMin: null, legalMax: null, maxItems: null, defaultValue: 2, currentValue: 2, source: 'default', scheduled: [], history: [],
 };
 
 describe('parameter formatting', () => {
