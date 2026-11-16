@@ -6,14 +6,8 @@ import { emptyToNull, isoDateSchema } from './common';
 export const HOLIDAY_YEAR = { min: 2000, max: 2100 } as const;
 const yearSchema = z.coerce.number().int().min(HOLIDAY_YEAR.min, 'invalid_year').max(HOLIDAY_YEAR.max, 'invalid_year');
 
-/** YYYY-MM-DD that is also a real calendar day (isoDateSchema alone accepts 2030-13-40). */
-const calendarDateSchema = isoDateSchema.refine((v) => {
-  const d = new Date(`${v}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v);
-}, 'invalid_date');
-
 const holidayFields = z.object({
-  date: calendarDateSchema,
+  date: isoDateSchema,
   nameLo: z.string().trim().min(1, 'required').max(120),
   nameEn: z.string().trim().min(1, 'required').max(120),
   kind: z.enum(HOLIDAY_KINDS).default(HolidayKind.PUBLIC),

@@ -121,6 +121,19 @@ describe('closed org units and impossible dates', () => {
     expect((await req('PATCH', token, `/employees/${e.id}`, { branchId: open.id })).statusCode).toBe(200);
   });
 
+  it('also rejects a closed department or position', async () => {
+    const ws = await createWorkspace(t.db);
+    const token = await ownerSession(ws);
+    const dept = (await req('POST', token, '/departments', { name: 'Closed dept' })).json<{ id: string }>();
+    const pos = (await req('POST', token, '/positions', { name: 'Closed pos' })).json<{ id: string }>();
+    expect((await req('POST', token, `/departments/${dept.id}/close`)).statusCode).toBe(200);
+    expect((await req('POST', token, `/positions/${pos.id}/close`)).statusCode).toBe(200);
+
+    const res = await req('POST', token, '/employees', employeePayload({ departmentId: dept.id, positionId: pos.id }));
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatchObject({ code: 'org_unit_closed', details: { fields: ['departmentId', 'positionId'] } });
+  });
+
   it('answers impossible calendar dates with 400 invalid_date instead of a database error', async () => {
     const ws = await createWorkspace(t.db);
     const token = await ownerSession(ws);
