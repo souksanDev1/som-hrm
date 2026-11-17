@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { REQUEST_STATUSES } from '../enums';
 import { idSchema, isoDateSchema, paginationQuerySchema } from './common';
 import { storedFileSchema } from './file';
+import { timeOfDaySchema } from './overtime';
 
 /**
  * HR attendance tools and employee attendance requests (M5 agent D): suspicious-punch review (FR-ATT-14),
@@ -14,9 +15,6 @@ import { storedFileSchema } from './file';
 
 const reasonSchema = z.string().trim().min(1, 'required').max(500);
 const noteSchema = z.string().trim().max(500);
-
-/** "HH:mm", 00:00–23:59. */
-export const timeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'invalid_time');
 
 /** Workspace-local date and time "YYYY-MM-DDTHH:mm" (no zone; the API applies the workspace time zone). */
 export const localDateTimeSchema = z
