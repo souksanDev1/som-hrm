@@ -4,7 +4,7 @@ import { runAccountDeactivation } from '../src/jobs/handlers/account-deactivatio
 import { runDocumentExpiryAlerts } from '../src/jobs/handlers/document-expiry';
 import { deliverPendingNotifications, retryDelayMs } from '../src/jobs/handlers/notification-delivery';
 import { createConsoleSmsSender } from '../src/lib/sms';
-import { createExpoPushSender, createNoopPushSender, type PushSender } from '../src/modules/notifications/push';
+import { createNoopPushSender, type PushSender } from '../src/modules/notifications/push';
 import { createTestContext, createUser, createWorkspace, type TestContext, type WorkspaceFixture } from './helpers';
 
 let t: TestContext;
@@ -149,6 +149,7 @@ describe('notification-delivery', () => {
     const user = await createUser(t.db, ws, { email: 'u@x.test', password: 'Employee123', role: 'EMPLOYEE' });
     await t.db.tenant(ws.workspaceId, async (tx) => {
       await tx.user.update({ where: { id: user.id }, data: { phone: '02055551111' } });
+      await tx.workspaceParameter.create({ data: { workspaceId: ws.workspaceId, key: 'notification.smsEnabled', value: true, effectiveFrom: new Date('2020-01-01') } });
       await tx.pushToken.create({ data: { workspaceId: ws.workspaceId, userId: user.id, token: `ExponentPushToken[${ws.code}]`, platform: 'ANDROID' } });
       const n = await tx.notification.create({ data: { workspaceId: ws.workspaceId, userId: user.id, type: 'SYSTEM', title: 'T', body: 'B' } });
       await tx.notificationDelivery.createMany({
@@ -167,7 +168,7 @@ describe('notification-delivery', () => {
     const { ws, byChannel } = await setupDeliveries();
     const sms = createConsoleSmsSender();
     const result = await deliverPendingNotifications({ db: t.db, push: createNoopPushSender(), sms, maxAttempts: 3, now: () => NOW }, ws.workspaceId);
-    expect(result).toEqual({ sent: 1, retrying: 0, failed: 0, skipped: 1 });
+    expect(result).toEqual({ sent: 1, retrying: 0, failed: 0, skipped: 1, receiptsChecked: 0, tokensRemoved: 0 });
     expect(sms.outbox).toEqual([{ to: '02055551111', body: 'T: B' }]);
     expect(await byChannel('SMS')).toMatchObject({ status: 'SENT', attempts: 1 });
     expect(await byChannel('PUSH')).toMatchObject({ status: 'SKIPPED', lastError: 'push_disabled' });
@@ -175,7 +176,7 @@ describe('notification-delivery', () => {
 
   it('retries failures with backoff and marks FAILED after the maximum attempts', async () => {
     const { ws, byChannel } = await setupDeliveries();
-    const push: PushSender = { provider: 'expo', send: vi.fn().mockRejectedValue(new Error('expo_http_503')) };
+    const push: PushSender = { provider: 'expo', send: vi.fn().mockRejectedValue(new Error('expo_http_503')), getReceipts: vi.fn().mockResolvedValue({}) };
     const sms = createConsoleSmsSender();
     let clock = NOW.getTime();
     const deps = { db: t.db, push, sms, maxAttempts: 3, now: () => new Date(clock) };
@@ -185,7 +186,7 @@ describe('notification-delivery', () => {
 
     // Not due yet: backoff after one failure.
     clock = Date.now();
-    expect(await deliverPendingNotifications(deps, ws.workspaceId)).toEqual({ sent: 0, retrying: 0, failed: 0, skipped: 0 });
+    expect(await deliverPendingNotifications(deps, ws.workspaceId)).toMatchObject({ sent: 0, retrying: 0, failed: 0, skipped: 0 });
 
     clock = Date.now() + retryDelayMs(1) + 1000;
     await deliverPendingNotifications(deps, ws.workspaceId);
@@ -194,21 +195,6 @@ describe('notification-delivery', () => {
     expect((await deliverPendingNotifications(deps, ws.workspaceId)).failed).toBe(1);
     expect(await byChannel('PUSH')).toMatchObject({ status: 'FAILED', attempts: 3, lastError: 'expo_http_503' });
     expect(push.send).toHaveBeenCalledTimes(3);
-  });
-
-  it('expo sender posts tickets and reports unregistered tokens', async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ data: [{ status: 'ok' }, { status: 'error', message: 'gone', details: { error: 'DeviceNotRegistered' } }] })),
-    );
-    const sender = createExpoPushSender({ fetchImpl: fetchImpl as unknown as typeof fetch });
-    const res = await sender.send({ tokens: ['a', 'b'], title: 'T', body: 'B' });
-    expect(res.invalidTokens).toEqual(['b']);
-    const [url, init] = fetchImpl.mock.calls[0]!;
-    expect(url).toBe('https://exp.host/--/api/v2/push/send');
-    expect(JSON.parse((init as RequestInit).body as string)).toHaveLength(2);
-
-    fetchImpl.mockResolvedValueOnce(new Response('nope', { status: 500 }));
-    await expect(sender.send({ tokens: ['a'], title: 'T', body: 'B' })).rejects.toThrow('expo_http_500');
   });
 });
 

@@ -3,7 +3,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { FileUpload } from '@/components/ui';
-import { resolveWebLink } from '@/features/notifications/links';
 
 const pdf = (size = 10) => new File([new Uint8Array(size)], 'contract.pdf', { type: 'application/pdf' });
 
@@ -43,15 +42,5 @@ describe('FileUpload', () => {
     expect(screen.getByText('PDF only')).toBeInTheDocument();
     rerender(<FileUpload label="Upload" error="Bad file" />);
     expect(screen.getByRole('alert')).toHaveTextContent('Bad file');
-  });
-});
-
-describe('resolveWebLink', () => {
-  it('only allows known in-app routes', () => {
-    expect(resolveWebLink('/employees/abc')).toBe('/employees/abc');
-    expect(resolveWebLink('/profile')).toBeNull();
-    expect(resolveWebLink('//evil.example')).toBeNull();
-    expect(resolveWebLink('https://evil.example')).toBeNull();
-    expect(resolveWebLink(null)).toBeNull();
   });
 });

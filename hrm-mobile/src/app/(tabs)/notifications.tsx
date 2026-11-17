@@ -3,7 +3,7 @@ import { Screen } from '@/components/ui';
 import { NotificationList } from '@/features/notifications/NotificationList';
 import { useT } from '@/lib/i18n';
 
-/** Notification inbox (FR-NOTI-04). Push registration waits for FCM/APNs credentials. */
+/** Notification inbox (FR-NOTI-01.2/04): unread badge on the tab, mark read, pull to refresh, tap to open the linked screen. */
 export default function NotificationsScreen() {
   const t = useT();
   return (

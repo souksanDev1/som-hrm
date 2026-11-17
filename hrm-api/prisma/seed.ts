@@ -86,7 +86,7 @@ const main = async () => {
         socialSecurityNoEnc: cipher.encrypt('SS1000003'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000003'),
       },
     });
-    await tx.user.create({
+    const fieldUser = await tx.user.create({
       data: {
         workspaceId: ws, employeeId: field.id, displayName: 'ຄຳແພງ ແກ້ວມະນີ', phone: DEMO.fieldWorker.phone,
         // Demo phone is pre-verified so sign-in skips the SMS OTP step (FR-AUTH-02.1).
@@ -133,6 +133,22 @@ const main = async () => {
       params: { document: { t: 'document.WORK_PERMIT' }, employee: 'Nguyen Van An', days: 25, date: daysFromNow(25).toISOString().slice(0, 10) },
       link: `/employees/${foreign.id}`,
       dedupeKey: 'seed:doc-expiry:work-permit',
+    });
+    // The field worker's own ID card expires soon: an in-app notification linking to the own profile
+    // (mobile deep link, FR-NOTI-04.2). Same dedupe key as the document-expiry job, so the job never repeats it.
+    const idCard = await tx.employeeDocument.create({
+      data: { workspaceId: ws, employeeId: field.id, type: 'ID_CARD', number: '01-0098765', issuedAt: daysFromNow(-3630), expiresAt: daysFromNow(20) },
+    });
+    await notify(tx, {
+      workspaceId: ws,
+      userIds: [fieldUser.id],
+      type: 'DOCUMENT_EXPIRY',
+      titleKey: 'notif.docExpiring.title',
+      bodyKey: 'notif.docExpiring.body',
+      params: { document: { t: 'document.ID_CARD' }, employee: 'ຄຳແພງ ແກ້ວມະນີ', days: 20, date: daysFromNow(20).toISOString().slice(0, 10) },
+      link: '/profile',
+      dedupeKey: `doc-expiry:${idCard.id}:30`,
+      data: { documentId: idCard.id, employeeId: field.id },
     });
     return true;
   });

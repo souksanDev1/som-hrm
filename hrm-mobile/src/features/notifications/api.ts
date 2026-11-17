@@ -21,8 +21,8 @@ export const useNotificationList = (unread: boolean) =>
     getNextPageParam: (last) => (last.page * last.pageSize < last.total ? last.page + 1 : undefined),
   });
 
-export const useUnreadCount = () =>
-  useQuery({ queryKey: [...notificationKeys.all, 'unread-count'], queryFn: notificationsApi.unreadCount, refetchInterval: 60_000 });
+export const useUnreadCount = (enabled = true) =>
+  useQuery({ queryKey: [...notificationKeys.all, 'unread-count'], queryFn: notificationsApi.unreadCount, refetchInterval: 60_000, enabled });
 
 const useInvalidate = () => {
   const qc = useQueryClient();
@@ -39,7 +39,3 @@ export const useMarkAllRead = () => {
   return useMutation({ mutationFn: notificationsApi.markAllRead, onSuccess: invalidate });
 };
 
-/** App routes a notification link may open; anything else (e.g. web-only `/employees/...`) is not navigable. */
-const MOBILE_ROUTES = ['/home', '/org', '/profile', '/notifications'] as const;
-export const resolveMobileLink = (link: string | null | undefined): (typeof MOBILE_ROUTES)[number] | null =>
-  MOBILE_ROUTES.find((r) => r === link) ?? null;

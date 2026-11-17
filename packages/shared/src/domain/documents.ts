@@ -22,6 +22,13 @@ const isoDayNumber = (iso: string): number => Date.parse(`${iso.slice(0, 10)}T00
 export const daysBetweenIsoDates = (from: string, to: string): number => Math.round(isoDayNumber(to) - isoDayNumber(from));
 
 /**
+ * Smallest alert threshold (days) that `remainingDays` falls within, or null when it is beyond every
+ * threshold or already past. Shared by date-driven alerts (document expiry, probation end).
+ */
+export const alertThreshold = (remainingDays: number, alertDays: readonly number[]): number | null =>
+  remainingDays < 0 ? null : ([...alertDays].sort((a, b) => a - b).find((d) => remainingDays <= d) ?? null);
+
+/**
  * Classify a document expiry date.
  * @param expiresAt ISO date (YYYY-MM-DD) or null
  * @param today ISO date of "today" in the workspace timezone
@@ -31,8 +38,8 @@ export const documentExpiry = (expiresAt: string | null | undefined, today: stri
   if (!expiresAt) return { status: 'NO_EXPIRY', daysUntilExpiry: null, thresholdDays: null };
   const remaining = daysBetweenIsoDates(today, expiresAt);
   if (remaining < 0) return { status: 'EXPIRED', daysUntilExpiry: remaining, thresholdDays: null };
-  const threshold = [...alertDays].sort((a, b) => a - b).find((d) => remaining <= d);
-  return threshold === undefined
+  const threshold = alertThreshold(remaining, alertDays);
+  return threshold === null
     ? { status: 'VALID', daysUntilExpiry: remaining, thresholdDays: null }
     : { status: 'EXPIRING', daysUntilExpiry: remaining, thresholdDays: threshold };
 };

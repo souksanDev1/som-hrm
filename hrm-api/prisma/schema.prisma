@@ -923,16 +923,22 @@ model Notification {
 
 /// Outbound delivery attempts per channel (push/SMS); retried by the job worker (FR-NOTI-04.5).
 model NotificationDelivery {
-  id             String              @id @default(cuid())
-  workspaceId    String
-  notificationId String
-  channel        NotificationChannel
-  status         DeliveryStatus      @default(PENDING)
-  attempts       Int                 @default(0)
-  lastError      String?
-  sentAt         DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id                String              @id @default(cuid())
+  workspaceId       String
+  notificationId    String
+  channel           NotificationChannel
+  status            DeliveryStatus      @default(PENDING)
+  attempts          Int                 @default(0)
+  lastError         String?
+  sentAt            DateTime?
+  /// SMS text rendered in the recipient's language when queued (FR-NOTI-02.3); null for push.
+  message           String?
+  /// Expo push tickets of the last send, `[{ id, token }]`, checked for receipts later (FR-NOTI-01.1).
+  pushTickets       Json?
+  /// When the push receipts of `pushTickets` were processed; null = still to check.
+  receiptsCheckedAt DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
 

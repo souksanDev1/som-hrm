@@ -1,0 +1,45 @@
+appId: la.som.hrm
+name: Field worker opens a notification from the tab and lands on the linked screen (FR-NOTI-01.2, FR-NOTI-04.2)
+---
+# Debug build without push credentials: no permission prompt appears (push is gated on an EAS projectId).
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-notifications"
+- assertVisible:
+    id: "notifications-screen"
+# Seed: E003's own ID card expires in 20 days; the notification links to `/profile`.
+- assertVisible:
+    text: ".*ບັດປະຈຳຕົວ.*"
+- tapOn:
+    text: ".*ບັດປະຈຳຕົວ.*"
+- assertVisible:
+    id: "profile-screen"
+- assertVisible:
+    id: "profile-code"
+    text: "E003"
+# Back on the tab the list still loads (pull to refresh / mark read keep working).
+- tapOn:
+    id: "tab-notifications"
+- assertVisible:
+    id: "notification-list"

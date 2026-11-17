@@ -10,6 +10,21 @@ jest.mock('expo-secure-store', () => {
   };
 });
 jest.mock('@react-native-community/netinfo', () => require('@react-native-community/netinfo/jest/netinfo-mock.js'));
+// Native push module: inert by default (no permission, no token); push tests drive these mocks.
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { HIGH: 4 },
+  setNotificationChannelAsync: jest.fn(async () => null),
+  getPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: true, status: 'undetermined' })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: false, status: 'denied' })),
+  getExpoPushTokenAsync: jest.fn(async () => {
+    throw new Error('not available in tests');
+  }),
+  setNotificationHandler: jest.fn(),
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
 // Icon fonts load asynchronously; render plain placeholders in tests.
 jest.mock('@expo/vector-icons', () => {
   const { Text } = require('react-native');

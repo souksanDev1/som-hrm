@@ -1,12 +1,11 @@
 'use client';
-import type { NotificationItem } from '@hrm/shared';
+import { resolveNotificationLink, type NotificationItem } from '@hrm/shared';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button, Card, Icon, Pagination, QueryState, StateView } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { usePrefsStore, useT } from '@/lib/i18n';
 import { useMarkAllRead, useMarkRead, useNotifications } from './hooks';
-import { resolveWebLink } from './links';
 
 const PAGE_SIZE = 20;
 
@@ -23,7 +22,8 @@ export function NotificationCenter() {
 
   const open = async (n: NotificationItem) => {
     if (!n.readAt) await markRead.mutateAsync(n.id).catch(() => undefined);
-    const href = resolveWebLink(n.link);
+    // Shared link mapping (FR-NOTI-04.2): links without a web screen keep the user on this list.
+    const href = resolveNotificationLink(n.link, 'web');
     if (href) router.push(href);
   };
   const setFilter = (value: boolean) => {

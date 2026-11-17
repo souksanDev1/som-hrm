@@ -1,10 +1,10 @@
-import type { NotificationItem } from '@hrm/shared';
+import { NOTIFICATIONS_ROUTE, resolveNotificationLink, type NotificationItem } from '@hrm/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { Button, QueryView, Segmented, StateScreen } from '@/components/ui';
 import { useT, usePrefsStore } from '@/lib/i18n';
-import { resolveMobileLink, useMarkAllRead, useMarkRead, useNotificationList } from './api';
+import { useMarkAllRead, useMarkRead, useNotificationList } from './api';
 
 type Filter = 'all' | 'unread';
 
@@ -20,8 +20,9 @@ export function NotificationList() {
 
   const open = (n: NotificationItem) => {
     if (!n.readAt) markRead.mutate(n.id);
-    const route = resolveMobileLink(n.link);
-    if (route) router.push(route);
+    // Shared link mapping (FR-NOTI-04.2); links without a mobile screen keep the user on this list.
+    const route = resolveNotificationLink(n.link, 'mobile');
+    if (route && route !== NOTIFICATIONS_ROUTE) router.push(route);
   };
   const formatTime = (iso: string) => new Date(iso).toLocaleString(locale === 'lo' ? 'lo-LA' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
 

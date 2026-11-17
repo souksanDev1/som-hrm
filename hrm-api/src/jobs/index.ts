@@ -5,9 +5,10 @@ import { runAccountDeactivation } from './handlers/account-deactivation';
 import { runDocumentExpiryAlerts } from './handlers/document-expiry';
 import { runHolidayDefaults } from './handlers/holiday-defaults';
 import { deliverPendingNotifications } from './handlers/notification-delivery';
+import { runProbationEndingAlerts } from './handlers/probation-ending';
 import type { JobRunner } from './runner';
 
-export { runAccountDeactivation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults };
+export { runAccountDeactivation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults, runProbationEndingAlerts };
 
 /** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
 export interface WorkspaceJob {
@@ -17,6 +18,7 @@ export interface WorkspaceJob {
 export const JOBS = {
   notificationDelivery: 'notification-delivery',
   documentExpiry: 'document-expiry-alerts',
+  probationEnding: 'probation-ending-alerts',
   accountDeactivation: 'account-deactivation',
   holidayDefaults: 'holiday-defaults',
 } as const;
@@ -67,6 +69,7 @@ export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts,
     deliverPendingNotifications({ db, push, sms, maxAttempts: deliveryMaxAttempts }, ws),
   );
   await perWorkspace(JOBS.documentExpiry, '0 7 * * *', (ws) => runDocumentExpiryAlerts(db, ws));
+  await perWorkspace(JOBS.probationEnding, '5 7 * * *', (ws) => runProbationEndingAlerts(db, ws));
   await perWorkspace(JOBS.accountDeactivation, '30 0 * * *', (ws) => runAccountDeactivation(db, ws));
   // 1st of every month: current year's statutory holidays, plus next year's from December (FR-WS-04.1).
   await perWorkspace(JOBS.holidayDefaults, '15 1 1 * *', (ws) => runHolidayDefaults(db, ws));

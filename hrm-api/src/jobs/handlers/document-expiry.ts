@@ -1,6 +1,7 @@
 import { documentExpiry, PERMISSIONS } from '@hrm/shared';
 import type { Db } from '../../db/client';
 import { DEFAULT_TIME_ZONE, parseIsoDate, todayInTimeZone, toIsoDate } from '../../lib/dates';
+import { notificationsRepository } from '../../modules/notifications/notifications.repository';
 import { notify } from '../../modules/notifications/notifications.service';
 import { parameterReader } from '../../modules/parameters/parameters.service';
 
@@ -38,15 +39,7 @@ export const runDocumentExpiryAlerts = (db: Db, workspaceId: string, now: Date =
     });
     if (documents.length === 0) return { documents: 0, notifications: 0 };
 
-    const hrUsers = await tx.user.findMany({
-      where: {
-        workspaceId,
-        isActive: true,
-        roles: { some: { role: { permissions: { some: { permission: { key: PERMISSIONS.EMPLOYEE_WRITE } } } } } },
-      },
-      select: { id: true },
-    });
-    const hrUserIds = hrUsers.map((u) => u.id);
+    const hrUserIds = await notificationsRepository.findUserIdsWithPermission(tx, workspaceId, PERMISSIONS.EMPLOYEE_WRITE);
 
     let notifications = 0;
     let alerted = 0;

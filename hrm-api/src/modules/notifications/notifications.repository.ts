@@ -27,6 +27,15 @@ export const notificationsRepository = {
       select: { id: true, locale: true, phone: true, _count: { select: { pushTokens: true } } },
     }),
 
+  /** Active users holding a permission through any of their roles (e.g. HR = `employee.write`), to address alerts. */
+  findUserIdsWithPermission: async (tx: Tx, workspaceId: string, permission: string): Promise<string[]> =>
+    (
+      await tx.user.findMany({
+        where: { workspaceId, isActive: true, roles: { some: { role: { permissions: { some: { permission: { key: permission } } } } } } },
+        select: { id: true },
+      })
+    ).map((u) => u.id),
+
   /** Inserts notifications, silently skipping (workspaceId, userId, dedupeKey) duplicates; returns only new rows. */
   createMany: (tx: Tx, data: Prisma.NotificationCreateManyInput[]) =>
     tx.notification.createManyAndReturn({ data, skipDuplicates: true, select: { id: true, userId: true } }),

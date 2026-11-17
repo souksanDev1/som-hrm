@@ -3,6 +3,8 @@ import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { homeRouteFor, useMe } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
+import { useUnreadCount } from '@/features/notifications/api';
+import { PushNotifications } from '@/features/notifications/PushNotifications';
 import { useT } from '@/lib/i18n';
 import { useHydration } from '@/lib/use-hydration';
 
@@ -16,6 +18,8 @@ export default function TabsLayout() {
   const { width } = useWindowDimensions();
   const hydrated = useHydration();
   const me = useMe();
+  // Unread badge on the notifications tab (FR-NOTI-01.2), polled only inside the app.
+  const unread = useUnreadCount(hydrated && !!token && !!user && homeRouteFor(user) === '/home').data?.count ?? 0;
   // Wait for SecureStore before deciding (a cold start briefly has no token in memory).
   if (!hydrated || (token && !user && me.isPending)) {
     return (
@@ -29,20 +33,32 @@ export default function TabsLayout() {
   const target = homeRouteFor(user);
   if (target !== '/home') return <Redirect href={target} />;
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#1F5FD6',
-        tabBarInactiveTintColor: '#667085',
-        // Tablets/landscape: label beside icon to use the extra width.
-        tabBarLabelPosition: width >= 768 ? 'beside-icon' : 'below-icon',
-        tabBarLabelStyle: { fontSize: 12 },
-      }}
-    >
-      <Tabs.Screen name="home" options={{ title: t('nav.dashboard'), tabBarIcon: icon('home'), tabBarButtonTestID: 'tab-home' }} />
-      <Tabs.Screen name="org" options={{ title: t('nav.org'), tabBarIcon: icon('account-tree'), tabBarButtonTestID: 'tab-org' }} />
-      <Tabs.Screen name="notifications" options={{ title: t('nav.notifications'), tabBarIcon: icon('notifications-none'), tabBarButtonTestID: 'tab-notifications' }} />
-      <Tabs.Screen name="profile" options={{ title: t('nav.profile'), tabBarIcon: icon('person-outline'), tabBarButtonTestID: 'tab-profile' }} />
-    </Tabs>
+    <>
+      {/* Signed in and past account setup: the moment to ask for push permission. */}
+      <PushNotifications />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: '#1F5FD6',
+          tabBarInactiveTintColor: '#667085',
+          // Tablets/landscape: label beside icon to use the extra width.
+          tabBarLabelPosition: width >= 768 ? 'beside-icon' : 'below-icon',
+          tabBarLabelStyle: { fontSize: 12 },
+        }}
+      >
+        <Tabs.Screen name="home" options={{ title: t('nav.dashboard'), tabBarIcon: icon('home'), tabBarButtonTestID: 'tab-home' }} />
+        <Tabs.Screen name="org" options={{ title: t('nav.org'), tabBarIcon: icon('account-tree'), tabBarButtonTestID: 'tab-org' }} />
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            title: t('nav.notifications'),
+            tabBarIcon: icon('notifications-none'),
+            tabBarButtonTestID: 'tab-notifications',
+            tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+          }}
+        />
+        <Tabs.Screen name="profile" options={{ title: t('nav.profile'), tabBarIcon: icon('person-outline'), tabBarButtonTestID: 'tab-profile' }} />
+      </Tabs>
+    </>
   );
 }

@@ -51,6 +51,23 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm e2e
 
 ຖານຂໍ້ມູນທົດສອບຈະຖືກລ້າງສະເພາະຊື່ທີ່ລົງທ້າຍດ້ວຍ `_test` / `_e2e` ເທົ່ານັ້ນ.
 
+## Push notifications (FR-NOTI-01.1) — credentials ທີ່ຕ້ອງມີ
+
+ໂຄດພ້ອມແລ້ວ ແຕ່ push ຈິງຈະເຮັດວຽກເມື່ອມີ credentials ລຸ່ມນີ້ເທົ່ານັ້ນ (ຢ່າ commit ໄຟລ໌ secret ເຂົ້າ repo).
+ຖ້າບໍ່ມີ, app ບໍ່ຂໍສິດແຈ້ງເຕືອນ, ບໍ່ crash ແລະ ບໍ່ສະແດງ error (log ເຕືອນຄັ້ງດຽວ) — Maestro/Jest ແລ່ນໄດ້ປົກກະຕິ.
+
+1. **EAS project** (expo.dev): `npx eas init` → ເອົາ project ID ມາຕັ້ງ env `EAS_PROJECT_ID` ຕອນ build
+   (`app.config.js` ໃສ່ໃຫ້ເປັນ `extra.eas.projectId`; app ເປີດ push ສະເພາະເມື່ອມີຄ່ານີ້).
+2. **Android — FCM V1 service account**: Firebase project ທີ່ມີ Android app `la.som.hrm` →
+   (a) `google-services.json` → ຕັ້ງ env `GOOGLE_SERVICES_FILE=<path>` ຕອນ build;
+   (b) service account key JSON (role *Firebase Cloud Messaging API Admin*) → ອັບໂຫຼດດ້ວຍ `eas credentials` (Android → FCM V1).
+3. **iOS — APNs key** (Apple Developer → Keys → Apple Push Notifications service, ໄຟລ໌ `.p8` + Key ID + Team ID)
+   ສຳລັບ bundle `la.som.hrm` → ອັບໂຫຼດດ້ວຍ `eas credentials` (iOS → Push Notifications).
+4. **API worker**: `PUSH_PROVIDER=expo`; ແນະນຳເປີດ *Enhanced push security* ໃນ EAS ແລ້ວຕັ້ງ `EXPO_ACCESS_TOKEN`.
+
+Worker ສົ່ງເປັນ batch (100/request), ກວດ receipts ຫຼັງ 15 ນາທີ, ລຶບ token ທີ່ `DeviceNotRegistered` ແລະ retry ແບບ backoff
+ຜ່ານ outbox (`NotificationDelivery`). SMS (FR-NOTI-02) ຍັງມີແຕ່ provider `console` ຈົນກວ່າລູກຄ້າເລືອກ gateway.
+
 ## ສະຖາປັດຕະຍະກຳ
 
 - API: `routes` (HTTP + schema) → `service` (business logic) → `repository` (Prisma). ທຸກ query ແລ່ນຜ່ານ

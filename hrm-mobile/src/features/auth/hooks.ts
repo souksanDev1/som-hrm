@@ -13,6 +13,7 @@ import {
 } from '@hrm/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { unregisterPushToken } from '@/features/notifications/push';
 import { usePrefsStore } from '@/lib/i18n';
 import { authApi } from './api';
 import { useAuthStore } from './store';
@@ -44,9 +45,12 @@ export const useLogout = () => {
   const qc = useQueryClient();
   return async () => {
     const { refreshToken, clear } = useAuthStore.getState();
+    // Started before the session is cleared so the request still carries it; best effort.
+    const pushRemoved = unregisterPushToken();
     clear();
     qc.clear();
     if (refreshToken) await authApi.logout(refreshToken).catch(() => undefined);
+    await pushRemoved;
   };
 };
 

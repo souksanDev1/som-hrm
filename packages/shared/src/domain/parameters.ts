@@ -89,6 +89,11 @@ export const PARAMETERS = {
     type: 'boolean', scope: 'workspace', labelKey: 'param.notification.smsEnabled', defaultValue: false,
     source: 'TOR FR-NOTI-02.3',
   },
+  /** Days before `Employee.probationEndDate` on which HR and the manager are alerted (FR-NOTI-03.5, FR-OB-03). */
+  'probation.alertDays': {
+    type: 'intList', scope: 'workspace', labelKey: 'param.probation.alertDays', defaultValue: [14, 7],
+    min: 1, max: 90, maxItems: 4, unit: 'days', source: 'TOR FR-NOTI-03.5 / FR-OB-03 (7 days); 14 provisional',
+  },
   /** Most data rows one employee import file may hold (FR-EMP-09); bounds parsing and the all-or-nothing import transaction. */
   'employee.importMaxRows': {
     type: 'int', scope: 'workspace', labelKey: 'param.employee.importMaxRows', defaultValue: 1000, min: 1, max: 2000, unit: 'count',

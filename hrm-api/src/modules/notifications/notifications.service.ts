@@ -1,5 +1,8 @@
 import {
+  fitSmsText,
   interpolate,
+  isSmsNotificationType,
+  smsTemplateKey,
   translate,
   type Locale,
   type MessageParam,
@@ -56,8 +59,10 @@ export const renderMessage = (locale: Locale, key: string, params: Readonly<Reco
  *
  * - Title/body are rendered in each recipient's `User.locale` (FR-WS-07).
  * - Duplicates of (workspace, user, dedupeKey) are skipped, never an error (FR-NOTI-04.4).
- * - A PUSH delivery is queued only for users with a registered push token; an SMS delivery only when
- *   the workspace enabled `notification.smsEnabled` and the user has a phone (FR-NOTI-02.3).
+ * - A PUSH delivery is queued only for users with a registered push token.
+ * - An SMS delivery is queued only for key events (`SMS_NOTIFICATION_TYPES`) when the workspace enabled
+ *   `notification.smsEnabled`, for users who have a phone but no registered app device (FR-NOTI-02.2/02.3).
+ *   Its text is the type's `notif.sms.<TYPE>` template in the user's language, cut to `SMS_MAX_LENGTH`.
  * Inactive users are not notified. Deliveries are sent by the notification-delivery job.
  */
 export const notify = async (tx: Tx, input: NotifyInput): Promise<NotifyResult> => {
@@ -67,31 +72,42 @@ export const notify = async (tx: Tx, input: NotifyInput): Promise<NotifyResult> 
   const recipients = await repo.findRecipients(tx, input.workspaceId, userIds);
   if (recipients.length === 0) return { created: 0, deliveries: 0 };
 
-  const smsEnabled = channels.includes('SMS') && (await parameterReader.workspace(tx, input.workspaceId, 'notification.smsEnabled'));
+  const smsAllowed =
+    channels.includes('SMS') &&
+    isSmsNotificationType(input.type) &&
+    (await parameterReader.workspace(tx, input.workspaceId, 'notification.smsEnabled'));
   const params = input.params ?? {};
-  const created = await repo.createMany(
-    tx,
+  const rendered = new Map(
     recipients.map((r) => {
       const locale = toLocale(r.locale);
-      return {
-        workspaceId: input.workspaceId,
-        userId: r.id,
-        type: input.type,
-        title: renderMessage(locale, input.titleKey, params),
-        body: renderMessage(locale, input.bodyKey, params),
-        link: input.link ?? null,
-        dedupeKey: input.dedupeKey ?? null,
-        data: input.data,
-      };
+      return [r.id, { locale, title: renderMessage(locale, input.titleKey, params), body: renderMessage(locale, input.bodyKey, params) }];
     }),
+  );
+  const created = await repo.createMany(
+    tx,
+    recipients.map((r) => ({
+      workspaceId: input.workspaceId,
+      userId: r.id,
+      type: input.type,
+      title: rendered.get(r.id)!.title,
+      body: rendered.get(r.id)!.body,
+      link: input.link ?? null,
+      dedupeKey: input.dedupeKey ?? null,
+      data: input.data,
+    })),
   );
 
   const byUser = new Map(recipients.map((r) => [r.id, r]));
   const deliveries: Prisma.NotificationDeliveryCreateManyInput[] = created.flatMap(({ id, userId }) => {
     const r = byUser.get(userId)!;
+    const hasDevice = r._count.pushTokens > 0;
     const rows: Prisma.NotificationDeliveryCreateManyInput[] = [];
-    if (channels.includes('PUSH') && r._count.pushTokens > 0) rows.push({ workspaceId: input.workspaceId, notificationId: id, channel: 'PUSH' });
-    if (smsEnabled && r.phone) rows.push({ workspaceId: input.workspaceId, notificationId: id, channel: 'SMS' });
+    if (channels.includes('PUSH') && hasDevice) rows.push({ workspaceId: input.workspaceId, notificationId: id, channel: 'PUSH' });
+    if (smsAllowed && !hasDevice && r.phone) {
+      const { locale, title, body } = rendered.get(userId)!;
+      const message = fitSmsText(renderMessage(locale, smsTemplateKey(input.type), { ...params, title, body }));
+      rows.push({ workspaceId: input.workspaceId, notificationId: id, channel: 'SMS', message });
+    }
     return rows;
   });
   await repo.createDeliveries(tx, deliveries);

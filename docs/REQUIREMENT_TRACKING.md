@@ -324,24 +324,24 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-NOTI-01** | | **Channels** (TOR p.15) | | | | | | | |
-| FR-NOTI-01.1 | MUST | Mobile push notifications | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M2: push-token API + delivery outbox; needs FCM/APNs credentials. |
-| FR-NOTI-01.2 | MUST | In-app notification centre | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M2: mobile notifications tab. |
+| FR-NOTI-01.1 | MUST | Mobile push notifications | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M4: Expo push provider (HTTP, 100/request), receipts after 15 min, DeviceNotRegistered → token removed, retry/backoff via outbox; mobile asks permission after sign-in, registers/unregisters the Expo token; gated on EAS projectId. Blocked on EAS project + FCM V1 + APNs credentials (README). API + Jest tests; no real-device test yet. |
+| FR-NOTI-01.2 | MUST | In-app notification centre | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M2 tab; M4: unread badge on the tab, tap marks read + opens link, pull to refresh. Jest tests; Maestro 07-notification-deep-link written, not yet run. |
 | FR-NOTI-01.3 | MUST | Web notification centre | Web/Mobile | Yes | Yes | M4 | Implemented | Completed | M2: web NotificationCenter + /notifications. |
 | **FR-NOTI-02** | | **SMS** (TOR p.15) | | | | | | | |
-| FR-NOTI-02.1 | SHOULD | Send OTP via SMS | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-02.2 | SHOULD | SMS key events to employees without the app | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-02.3 | SHOULD | Enable/disable SMS per Workspace | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-02.1 | SHOULD | Send OTP via SMS | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M2 OTP (FR-AUTH-02) already sends via SmsSender (console provider only; real gateway TBD by customer). API tests (auth-otp). |
+| FR-NOTI-02.2 | SHOULD | SMS key events to employees without the app | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: key events (APPROVAL_DECISION, DOCUMENT_EXPIRY, PROBATION_ENDING) queue an SMS for users with a phone and no registered app device; per-type lo/en template rendered at queue time, ≤160 chars. Console provider only. API tests. Employees with no login at all are not reachable (Notification needs a user). |
+| FR-NOTI-02.3 | SHOULD | Enable/disable SMS per Workspace | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: `notification.smsEnabled` editable on /settings/parameters (effective-dated) and re-checked by the delivery job (pending SMS SKIPPED when off). API tests; Playwright written, not yet run. |
 | **FR-NOTI-03** | | **Notified events** (TOR p.15) | | | | | | | |
 | FR-NOTI-03.1 | MUST | Request pending approval | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
 | FR-NOTI-03.2 | MUST | Approval result | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type MISSING_PUNCH + lo/en templates (notif.missingPunch.*, SMS) ready for M5 to call notify(); trigger is M5. |
 | FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: document-expiry job notifies HR + employee (dedupe). |
-| FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-03.7 | MUST | Offline data not yet synced | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily job probation-ending-alerts (07:05 Asia/Vientiane) notifies HR (employee.write) + manager at `probation.alertDays` (default 14/7), workspace timezone, dedupe per end date + stage; no end date → skipped. API tests. |
+| FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type SUSPICIOUS_ATTENDANCE + lo/en templates (notif.suspicious.*) ready for M5; trigger is M5. |
+| FR-NOTI-03.7 | MUST | Offline data not yet synced | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type OFFLINE_UNSYNCED + lo/en templates (notif.offlineUnsynced.*) ready for M5; trigger is M5. |
 | **FR-NOTI-04** | | **Notification management** (TOR p.15) | | | | | | | |
 | FR-NOTI-04.1 | SHOULD | Mark as read | Web/Mobile | Yes | Yes | M4 | Implemented | Completed | M2: read / read-all. |
-| FR-NOTI-04.2 | SHOULD | Deep-link to the related screen | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: Notification.link stored; web follows it. |
+| FR-NOTI-04.2 | SHOULD | Deep-link to the related screen | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: one shared mapping `resolveNotificationLink` (packages/shared) used by web, the mobile list and push taps; unknown/unsafe links stay on the list. Shared/web/Jest tests; Playwright + Maestro written, not yet run. |
 ## FR-PAYDATA
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
