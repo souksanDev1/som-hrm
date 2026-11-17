@@ -44,6 +44,11 @@ describe('resolveNotificationLink (FR-NOTI-04.2)', () => {
     expect(resolveNotificationLink('/holidays', 'web')).toBeNull();
   });
 
+  it('opens attendance report links on the web (missing-punch alerts, FR-NOTI-03.3)', () => {
+    expect(resolveNotificationLink('/attendance/employees/emp_1', 'web')).toBe('/attendance/employees/emp_1');
+    expect(resolveNotificationLink('/attendance/employees/emp_1', 'mobile')).toBeNull();
+  });
+
   it('falls back to null for unknown, empty or unsafe links on both surfaces', () => {
     const unsafe = [
       null, undefined, '', 'employees/abc', '//evil.example', 'https://evil.example', 'javascript:alert(1)', '/\\evil.example',

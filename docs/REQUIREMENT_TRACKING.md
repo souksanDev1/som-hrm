@@ -211,15 +211,15 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-17** | | **Shifts** (TOR p.10) | | | | | | | |
-| FR-ATT-17.1 | MUST | Define normal shifts | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-17.2 | MUST | Define night shifts crossing midnight | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-17.3 | MUST | Rotating shift roster | Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-17.1 | MUST | Define normal shifts | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: Shift CRUD `/shifts` (shift.manage) + web `/settings/shifts`; shared `validateShift`; a shift in use is deactivated, not deleted; per-shift grace override. API + Vitest; Playwright `attendance-shifts.spec.ts` written (lead runs). |
+| FR-ATT-17.2 | MUST | Define night shifts crossing midnight | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: end <= start = night shift (`crossesMidnight`, badge); work date = start day; reports show local "06:00 +1". API test (rostered night shift). |
+| FR-ATT-17.3 | MUST | Rotating shift roster | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: `GET/PUT/DELETE /roster` (data scope, week grid, bulk range fill, clear = back to schedule), recomputes dates <= today, audit `roster.set`/`roster.clear`; web `/attendance/roster`. |
 | **FR-ATT-18** | | **Attendance calculation** (TOR p.10) | | | | | | | |
-| FR-ATT-18.1 | MUST | Late arrival | Backend | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-18.2 | MUST | Early leave | Backend | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-18.3 | MUST | Absence | Backend | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-18.4 | MUST | Detect missing check-in/out | Backend | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-18.5 | MUST | Configurable grace period | Backend | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-18.1 | MUST | Late arrival | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: base engine `recomputeAttendanceDays` run on roster changes + job `attendance-daily` (every 15 min); read API `/attendance/days` + `/attendance/days/summary` (scope HR/manager/self); web `/attendance` + `/attendance/employees/[id]`. |
+| FR-ATT-18.2 | MUST | Early leave | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: early-leave minutes in reports (API + web); grace = parameter or shift override. |
+| FR-ATT-18.3 | MUST | Absence | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: job recomputes yesterday + today for every employed employee → ABSENT after shift end + cutoff. API test. |
+| FR-ATT-18.4 | MUST | Detect missing check-in/out | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: MISSING_IN / MISSING_OUT in reports; job alerts once (FR-NOTI-03.3). API test. |
+| FR-ATT-18.5 | MUST | Configurable grace period | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: parameters `attendance.lateGraceMinutes` / `earlyGraceMinutes`, per-shift override (empty = parameter) in `/settings/shifts`. |
 | **FR-ATT-19** | | **Time-correction requests** (TOR p.10) | | | | | | | |
 | FR-ATT-19.1 | MUST | Employee submits a correction (forgot / wrong time) with reason + attachment | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
@@ -334,7 +334,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | **FR-NOTI-03** | | **Notified events** (TOR p.15) | | | | | | | |
 | FR-NOTI-03.1 | MUST | Request pending approval | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: APPROVAL_PENDING to the approver + delegate (or HR) with link /approvals/:id. |
 | FR-NOTI-03.2 | MUST | Approval result | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: APPROVAL_DECISION to the requester on the final approve/reject. |
-| FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type MISSING_PUNCH + lo/en templates (notif.missingPunch.*, SMS) ready for M5 to call notify(); trigger is M5. |
+| FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: type MISSING_PUNCH + lo/en templates (notif.missingPunch.*, SMS) ready for M5 to call notify(); trigger is M5. M5-B: job `attendance-daily` notifies the employee once per MISSING_IN/OUT day (`missingNotifiedAt` + dedupe key), link `/attendance/employees/:id`; API test. |
 | FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: document-expiry job notifies HR + employee (dedupe). |
 | FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily job probation-ending-alerts (07:05 Asia/Vientiane) notifies HR (employee.write) + manager at `probation.alertDays` (default 14/7), workspace timezone, dedupe per end date + stage; no end date → skipped. API tests. |
 | FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type SUSPICIOUS_ATTENDANCE + lo/en templates (notif.suspicious.*) ready for M5; trigger is M5. |
