@@ -18,6 +18,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // FR-EMP-06: expired / expiring documents within the user's data scope.
   { href: '/documents/expiring', labelKey: 'empx.expiring.title', icon: 'event_busy', permission: PERMISSIONS.EMPLOYEE_READ },
   { href: '/org', labelKey: 'nav.org', icon: 'account_tree', permission: PERMISSIONS.ORG_READ, mobile: true },
+  // Approval inbox (FR-ORG-02): every user may be an approver or a delegate.
+  { href: '/approvals', labelKey: 'nav.approvals', icon: 'approval', mobile: true },
   { href: '/notifications', labelKey: 'nav.notifications', icon: 'notifications', mobile: true, badge: 'unreadNotifications' },
   // Same permission as the page (RequirePermission ORG_WRITE); also a mobile tab so it is reachable below 1024px.
   { href: '/settings', labelKey: 'nav.settings', icon: 'settings', permission: PERMISSIONS.ORG_WRITE, mobile: true },

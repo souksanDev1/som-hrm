@@ -5,6 +5,7 @@
  *   Company code : som-demo
  *   HR owner     : admin@som.la / Admin1234
  *   Field worker : employee code E003 (or phone 02055550003) / PIN 482913
+ *   Site manager : manager@som.la / Manager1234, or phone 02055550002 / PIN 731594 (E002, approves E003)
  *   SOM platform : superadmin@som.la / SomAdmin1234  (console at /platform/login)
  */
 import { hoursToMinutes } from '@hrm/shared';
@@ -13,12 +14,21 @@ import { bootstrapWorkspace } from '../src/db/bootstrap';
 import { createDb } from '../src/db/client';
 import { createFieldCipher } from '../src/lib/crypto';
 import { hashSecret } from '../src/lib/password';
+import { submitApproval } from '../src/modules/approvals/approvals.service';
+import { defaultApprovalRegistry } from '../src/modules/approvals/registry';
 import { notify } from '../src/modules/notifications/notifications.service';
 
 export const DEMO = {
   workspaceCode: 'som-demo',
   owner: { email: 'admin@som.la', password: 'Admin1234' },
   fieldWorker: { code: 'E003', phone: '02055550003', pin: '482913' },
+  manager: { email: 'manager@som.la', password: 'Manager1234', phone: '02055550002', pin: '731594' },
+  /**
+   * Pending LEAVE requests of E003 waiting for E002 (approvals inbox demo, FR-ORG-02). Reasons are
+   * unique so E2E projects each act on their own request: [0] stays for manual demos / Maestro,
+   * [1..6] are taken two per Playwright project (desktop, tablet, mobile).
+   */
+  leaveReasons: ['Family event', 'Medical check-up', 'Moving house', 'Village festival', 'Bank errands', 'School meeting', 'Visa renewal'],
 } as const;
 
 /** SOM super admin for the platform console (development / E2E only; production uses `platform:create-admin`). */
@@ -123,6 +133,25 @@ const main = async () => {
     await tx.scheduleAssignment.create({
       data: { workspaceId: ws, employeeId: lead.id, scheduleId: halfSaturday.id, effectiveFrom: lead.hireDate, reason: 'Demo seed' },
     });
+    // Login for the site supervisor E002, the manager of E003 (approvals inbox, delegations).
+    await tx.user.create({
+      data: {
+        workspaceId: ws, employeeId: lead.id, displayName: 'ບົວພັນ ສີສຸວັນ', email: DEMO.manager.email, phone: DEMO.manager.phone,
+        phoneVerifiedAt: new Date(), passwordHash: await hashSecret(DEMO.manager.password), pinHash: await hashSecret(DEMO.manager.pin),
+        roles: { create: { workspaceId: ws, roleId: roles.MANAGER! } },
+      },
+    });
+    // Pending leave requests of E003 routed to E002 by the approval engine (M6 adds leave filing).
+    const annual = await tx.leaveType.findFirstOrThrow({ where: { workspaceId: ws, code: 'ANNUAL' } });
+    for (const [i, reason] of DEMO.leaveReasons.entries()) {
+      const start = daysFromNow(14 + i * 7);
+      const leave = await tx.leaveRequest.create({
+        data: { workspaceId: ws, employeeId: field.id, leaveTypeId: annual.id, startDate: start, endDate: start, days: 1, reason },
+      });
+      await submitApproval(tx, defaultApprovalRegistry, {
+        workspaceId: ws, subjectType: 'LEAVE', subjectId: leave.id, requesterEmployeeId: field.id, submittedByUserId: null,
+      });
+    }
     // Sample in-app notification for the HR demo user (notification center / E2E).
     await notify(tx, {
       workspaceId: ws,

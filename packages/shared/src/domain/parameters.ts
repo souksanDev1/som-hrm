@@ -85,6 +85,11 @@ export const PARAMETERS = {
     type: 'int', scope: 'workspace', labelKey: 'param.approval.escalationWorkingDays', defaultValue: 2, min: 1, max: 30, unit: 'days',
     source: 'TOR FR-ORG-05.1',
   },
+  /** How many levels of the chain of command must approve a request; 1 = the direct manager only (FR-ORG-02). */
+  'approval.levels': {
+    type: 'int', scope: 'workspace', labelKey: 'param.approval.levels', defaultValue: 1, min: 1, max: 5, unit: 'count',
+    source: 'TOR FR-ORG-02; depth provisional (FRD §15 pending)',
+  },
   'notification.smsEnabled': {
     type: 'boolean', scope: 'workspace', labelKey: 'param.notification.smsEnabled', defaultValue: false,
     source: 'TOR FR-NOTI-02.3',

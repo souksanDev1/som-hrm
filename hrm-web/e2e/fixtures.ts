@@ -5,6 +5,10 @@ export const DEMO = {
   workspaceCode: 'som-demo',
   admin: { identifier: 'admin@som.la', password: 'Admin1234' },
   fieldWorker: { identifier: 'E003', phone: '020 5555 0003', pin: '482913' },
+  /** E002, manager of E003 (approval inbox). */
+  manager: { identifier: 'manager@som.la', password: 'Manager1234' },
+  /** Reasons of E003's seeded pending leave requests: [0] manual/Maestro, [1..6] two per Playwright project. */
+  leaveReasons: ['Family event', 'Medical check-up', 'Moving house', 'Village festival', 'Bank errands', 'School meeting', 'Visa renewal'],
 } as const;
 
 export const loginWithPassword = async (page: Page, identifier: string = DEMO.admin.identifier, password: string = DEMO.admin.password) => {

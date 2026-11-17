@@ -462,6 +462,7 @@ model Employee {
   onboardingTasks   OnboardingTask[]
   offboarding       Offboarding?
   scheduleHistory   ScheduleAssignment[]
+  approvalRequests  ApprovalRequest[]
 
   @@unique([workspaceId, employeeCode])
   @@unique([workspaceId, idCardNoHash])
@@ -787,41 +788,103 @@ model LeaveRequest {
   days              Decimal       @db.Decimal(6, 2)
   reason            String?
   attachmentUrl     String?
+  /// Mirrors the decision of its ApprovalRequest (subjectType LEAVE); the approval steps live there.
   status            RequestStatus @default(PENDING)
-  currentStep       Int           @default(1)
   /// Set when HR files the request on behalf of an employee without a smartphone.
   submittedByUserId String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  employee  Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveType LeaveType       @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
-  approvals LeaveApproval[]
+  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId, status])
   @@index([workspaceId, employeeId])
 }
 
-model LeaveApproval {
-  id              String        @id @default(cuid())
-  workspaceId     String
-  leaveRequestId  String
-  step            Int
-  approverUserId  String
-  /// When a delegate acts, the original approver they act for.
-  actingForUserId String?
-  decision        RequestStatus @default(PENDING)
-  comment         String?
-  decidedAt       DateTime?
-  createdAt       DateTime      @default(now())
+// ─────────────────────────── Approvals ───────────────────────────
+// Generic approval engine (FR-ORG-02..06, src/modules/approvals). Replaces the schema-only
+// LeaveApproval / LeaveRequest.currentStep: every subject (leave, overtime, attendance correction)
+// shares one request + step history, and its module reacts through a handler.
 
-  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
-
-  @@unique([leaveRequestId, step])
-  @@index([workspaceId, approverUserId, decision])
+enum ApprovalSubjectType {
+  LEAVE
+  OVERTIME
+  ATTENDANCE_CORRECTION
 }
 
-/// A manager on leave can delegate approvals for a date range.
+/// FR-ORG-06 — capacity in which a step is decided.
+enum ApprovalCapacity {
+  MANAGER
+  DELEGATE
+  UPPER_LEVEL
+  HR
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+}
+
+/// One request for approval of a subject row (e.g. a LeaveRequest), routed along the requester's
+/// chain of command. Exactly one step is PENDING while the request is PENDING.
+model ApprovalRequest {
+  id                  String              @id @default(cuid())
+  workspaceId         String
+  subjectType         ApprovalSubjectType
+  /// Id of the subject row in its own table.
+  subjectId           String
+  requesterEmployeeId String
+  status              RequestStatus       @default(PENDING)
+  /// Level currently waiting for a decision (1 = direct manager).
+  currentStep         Int                 @default(1)
+  /// Workspace parameter `approval.levels` when the request was submitted.
+  requiredLevels      Int                 @default(1)
+  submittedByUserId   String?
+  decidedAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  requester Employee       @relation(fields: [requesterEmployeeId], references: [id], onDelete: Cascade)
+  steps     ApprovalStep[]
+
+  @@unique([workspaceId, subjectType, subjectId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, requesterEmployeeId])
+}
+
+/// One routing of a request level to an approver (FR-ORG-06 history). An escalated step stays as
+/// ESCALATED and a new step for the same level follows it.
+model ApprovalStep {
+  id              String           @id @default(cuid())
+  workspaceId     String
+  requestId       String
+  level           Int
+  /// Position of the approver in the requester's chain (0 = direct manager); null = HR fallback.
+  chainIndex      Int?
+  /// Manager owning the step; null = HR fallback (any user holding `approval.hr_fallback`).
+  approverUserId  String?
+  /// The manager's active delegate when the step was routed (FR-ORG-03).
+  delegateUserId  String?
+  /// Routed capacity while pending; the capacity actually used once decided.
+  actingAs        ApprovalCapacity
+  decision        ApprovalDecision @default(PENDING)
+  decidedByUserId String?
+  decidedAt       DateTime?
+  note            String?
+  createdAt       DateTime         @default(now())
+
+  request ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([workspaceId, decision, approverUserId])
+  @@index([workspaceId, decision, delegateUserId])
+}
+
+/// A manager lets another user approve on their behalf for a date range (FR-ORG-03).
+/// `isActive = false` means cancelled; rows are kept for the audit trail.
 model ApprovalDelegation {
   id              String   @id @default(cuid())
   workspaceId     String
@@ -831,9 +894,12 @@ model ApprovalDelegation {
   endDate         DateTime @db.Date
   reason          String?
   isActive        Boolean  @default(true)
+  createdById     String?
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 
   @@index([workspaceId, delegatorUserId])
+  @@index([workspaceId, delegateUserId])
 }
 
 // ───────────────────── Onboarding / offboarding ─────────────────────
