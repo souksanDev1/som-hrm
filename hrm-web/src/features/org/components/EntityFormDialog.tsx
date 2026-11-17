@@ -8,7 +8,7 @@ export interface EntityFormField {
   name: string;
   label: string;
   /** `checkbox` values are 'true' / '' (form values are strings). */
-  type?: 'text' | 'number' | 'date' | 'select' | 'checkbox';
+  type?: 'text' | 'number' | 'date' | 'time' | 'select' | 'checkbox';
   /** For `select`; an empty first option is added with `placeholder`. */
   options?: readonly SelectOption[];
   placeholder?: string;
@@ -90,7 +90,7 @@ function EntityForm<T>({ testId, fields, initial, saving, parse, onSubmit, onClo
               ) : (
                 <Input
                   id={id(f.name)}
-                  type={f.type === 'number' || f.type === 'date' ? f.type : 'text'}
+                  type={f.type === 'number' || f.type === 'date' || f.type === 'time' ? f.type : 'text'}
                   inputMode={f.type === 'number' ? 'decimal' : undefined}
                   step={f.step}
                   invalid={!!errors[f.name]}

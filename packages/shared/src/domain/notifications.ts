@@ -46,6 +46,8 @@ const LINK_RULES: readonly LinkRule[] = [
   // The signed-in user's own profile (e.g. own document expiring) and the holiday calendar are mobile screens.
   { pattern: /^\/profile$/, web: null, mobile: '/profile' },
   { pattern: /^\/holidays$/, web: null, mobile: '/holidays' },
+  // Attendance report screens (FR-ATT-18; missing-punch alerts link to the employee's month).
+  { pattern: section('/attendance'), web: KEEP, mobile: null },
 ];
 
 /** Only same-app absolute paths: no scheme, no protocol-relative `//host`, no backslashes or dot segments. */

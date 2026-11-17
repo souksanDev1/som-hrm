@@ -31,6 +31,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings/work-schedule', labelKey: 'schedule.title', icon: 'calendar_month', permission: PERMISSIONS.SCHEDULE_MANAGE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
+  // Daily attendance report (FR-ATT-18): HR sees the workspace, managers their reporting tree.
+  { href: '/attendance', labelKey: 'nav.attendance', icon: 'schedule', permission: PERMISSIONS.ATTENDANCE_READ_ALL },
+  // Rotating roster (FR-ATT-17.3) and shift definitions (FR-ATT-17.1/17.2).
+  { href: '/attendance/roster', labelKey: 'roster.title', icon: 'calendar_view_week', permission: PERMISSIONS.SHIFT_MANAGE },
+  { href: '/settings/shifts', labelKey: 'shifts.title', icon: 'more_time', permission: PERMISSIONS.SHIFT_MANAGE },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */

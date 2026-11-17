@@ -24,5 +24,6 @@ export * from './schemas/file';
 export * from './schemas/notification';
 export * from './schemas/schedule';
 export * from './schemas/approval';
+export * from './schemas/shift';
 export * from './i18n';
 export * from './api/client';
