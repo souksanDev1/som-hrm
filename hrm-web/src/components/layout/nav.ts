@@ -40,6 +40,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/overtime', labelKey: 'otx.mine.title', icon: 'more_time' },
   // Monthly OT by category (payroll input) for HR and managers within their data scope (FR-ATT-21).
   { href: '/overtime/report', labelKey: 'otx.report.title', icon: 'timer', permission: PERMISSIONS.ATTENDANCE_READ_ALL },
+  // Scanner-file import (FR-ATT-02): HR uploads ZKTeco/HIP/CSV/Excel scan files.
+  { href: '/attendance/scan-import', labelKey: 'scan.title', icon: 'fingerprint', permission: PERMISSIONS.SCAN_IMPORT },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */

@@ -39,6 +39,8 @@ import { schedulesRoutes } from './modules/schedules/schedules.routes';
 import { createSchedulesService, type SchedulesService } from './modules/schedules/schedules.service';
 import { overtimeRoutes } from './modules/overtime/overtime.routes';
 import { createOvertimeService, type OvertimeService } from './modules/overtime/overtime.service';
+import { scanImportRoutes } from './modules/attendance/scan-import.routes';
+import { createScanImportService, type ScanImportService } from './modules/attendance/scan-import.service';
 import { authPlugin, ttlToSeconds } from './plugins/auth';
 import { createAttendanceReportService, type AttendanceReportService } from './modules/shifts/attendance-report.service';
 import { shiftsRoutes } from './modules/shifts/shifts.routes';
@@ -62,6 +64,7 @@ export interface Services {
   shifts: ShiftsService;
   attendanceReport: AttendanceReportService;
   overtime: OvertimeService;
+  scanImport: ScanImportService;
 }
 
 declare module 'fastify' {
@@ -132,6 +135,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     shifts: createShiftsService(db),
     attendanceReport: createAttendanceReportService(db),
     overtime: createOvertimeService(db, approvalRegistry ?? defaultApprovalRegistry),
+    scanImport: createScanImportService(db, { secret: env.JWT_SECRET }),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -163,6 +167,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(approvalsRoutes);
         await secured.register(shiftsRoutes);
         await secured.register(overtimeRoutes);
+        await secured.register(scanImportRoutes);
       });
     },
     { prefix: API_PREFIX },
