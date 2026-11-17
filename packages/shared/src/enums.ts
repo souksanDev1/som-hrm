@@ -66,19 +66,50 @@ export const SystemRole = {
 } as const;
 export type SystemRole = (typeof SystemRole)[keyof typeof SystemRole];
 
+/** Result of one employee's work date (AttendanceDay, FR-ATT-18). */
 export const AttendanceStatus = {
-  ON_TIME: 'ON_TIME',
+  PRESENT: 'PRESENT',
   LATE: 'LATE',
-  EARLY_LEAVE: 'EARLY_LEAVE',
+  EARLY: 'EARLY',
   ABSENT: 'ABSENT',
-  ON_LEAVE: 'ON_LEAVE',
+  MISSING_IN: 'MISSING_IN',
+  MISSING_OUT: 'MISSING_OUT',
   HOLIDAY: 'HOLIDAY',
-  DAY_OFF: 'DAY_OFF',
+  REST: 'REST',
+  LEAVE: 'LEAVE',
 } as const;
 export type AttendanceStatus = (typeof AttendanceStatus)[keyof typeof AttendanceStatus];
 
-export const AttendanceSource = { MOBILE: 'MOBILE', KIOSK: 'KIOSK', SCANNER: 'SCANNER', MANUAL: 'MANUAL' } as const;
+/** How a punch reached the system (A13). */
+export const AttendanceSource = {
+  MOBILE: 'MOBILE',
+  KIOSK: 'KIOSK',
+  SCANNER: 'SCANNER',
+  HR_ON_BEHALF: 'HR_ON_BEHALF',
+  CORRECTION: 'CORRECTION',
+} as const;
 export type AttendanceSource = (typeof AttendanceSource)[keyof typeof AttendanceSource];
+
+export const PunchKind = { IN: 'IN', OUT: 'OUT' } as const;
+export type PunchKind = (typeof PunchKind)[keyof typeof PunchKind];
+
+/** Review of a suspicious or off-site punch (FR-ATT-14, FR-ATT-16.3). */
+export const PunchReviewStatus = { NONE: 'NONE', PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED' } as const;
+export type PunchReviewStatus = (typeof PunchReviewStatus)[keyof typeof PunchReviewStatus];
+
+/** Attendance modes a branch can enable, several at once (FR-WS-06). */
+export const AttendanceMode = { MOBILE: 'MOBILE', SCANNER: 'SCANNER', KIOSK: 'KIOSK' } as const;
+export type AttendanceMode = (typeof AttendanceMode)[keyof typeof AttendanceMode];
+export const ATTENDANCE_MODES = values(AttendanceMode);
+
+export const OvertimeKind = { PRE: 'PRE', POST: 'POST' } as const;
+export type OvertimeKind = (typeof OvertimeKind)[keyof typeof OvertimeKind];
+
+export const ScanFormat = { ZKTECO: 'ZKTECO', HIP: 'HIP', GENERIC: 'GENERIC' } as const;
+export type ScanFormat = (typeof ScanFormat)[keyof typeof ScanFormat];
+
+export const ScanRowStatus = { OK: 'OK', UNMATCHED: 'UNMATCHED', DUPLICATE: 'DUPLICATE', INVALID: 'INVALID' } as const;
+export type ScanRowStatus = (typeof ScanRowStatus)[keyof typeof ScanRowStatus];
 
 export const LeaveCategory = {
   ANNUAL: 'ANNUAL',
@@ -107,6 +138,10 @@ export const ApprovalSubjectType = {
   LEAVE: 'LEAVE',
   OVERTIME: 'OVERTIME',
   ATTENDANCE_CORRECTION: 'ATTENDANCE_CORRECTION',
+  /** Out-of-zone check-in under an off-site permission (FR-ATT-16.3). */
+  OFFSITE_CHECKIN: 'OFFSITE_CHECKIN',
+  /** Move the device binding to a new phone (FR-ATT-11.3). */
+  DEVICE_CHANGE: 'DEVICE_CHANGE',
 } as const;
 export type ApprovalSubjectType = (typeof ApprovalSubjectType)[keyof typeof ApprovalSubjectType];
 export const APPROVAL_SUBJECT_TYPES = values(ApprovalSubjectType);

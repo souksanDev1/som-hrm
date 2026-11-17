@@ -1,4 +1,5 @@
 import {
+  ATTENDANCE_MODES,
   isGeofenceComplete,
   updateBranchSchema,
   updateDepartmentSchema,
@@ -38,6 +39,7 @@ export const branchFormValues = (b: Branch): FormValues => ({
   latitude: b.latitude === null ? '' : String(b.latitude),
   longitude: b.longitude === null ? '' : String(b.longitude),
   geofenceRadius: String(b.geofenceRadius),
+  ...Object.fromEntries(ATTENDANCE_MODES.map((m) => [`mode_${m}`, b.attendanceModes.includes(m) ? 'true' : ''])),
 });
 
 /** Branch edit incl. the GPS geofence (FR-WS-02.4); mirrors the API checks so errors show before submitting. */
@@ -55,10 +57,16 @@ export const parseBranchForm = (v: FormValues): ParseResult<UpdateBranchInput> =
     latitude,
     longitude,
     geofenceRadius: radius === '' ? Number.NaN : Number(radius),
+    attendanceModes: ATTENDANCE_MODES.filter((m) => v[`mode_${m}`] === 'true'),
   });
   if (!parsed.success) {
     const e = zodErrors(parsed.error);
     if (e.geofenceRadius) e.geofenceRadius = 'invalid_radius';
+    // Checkbox group: show the error under the first mode.
+    if (e.attendanceModes) {
+      e[`mode_${ATTENDANCE_MODES[0]}`] = e.attendanceModes;
+      delete e.attendanceModes;
+    }
     return { ok: false, errors: e };
   }
   if (!isGeofenceComplete(parsed.data)) return { ok: false, errors: { latitude: 'geofence_incomplete', longitude: 'geofence_incomplete' } };

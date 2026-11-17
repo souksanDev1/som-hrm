@@ -58,21 +58,60 @@ enum DocumentType {
   OTHER
 }
 
+/// Result of one employee's work date (AttendanceDay, FR-ATT-18). Late + early leave on the same day
+/// is LATE; the minute columns keep both.
 enum AttendanceStatus {
-  ON_TIME
+  PRESENT
   LATE
-  EARLY_LEAVE
+  EARLY
   ABSENT
-  ON_LEAVE
+  MISSING_IN
+  MISSING_OUT
   HOLIDAY
-  DAY_OFF
+  REST
+  LEAVE
 }
 
+/// How a punch reached the system (A13).
 enum AttendanceSource {
   MOBILE
   KIOSK
   SCANNER
-  MANUAL
+  HR_ON_BEHALF
+  CORRECTION
+}
+
+enum PunchKind {
+  IN
+  OUT
+}
+
+/// Review of a suspicious or off-site punch (FR-ATT-14, FR-ATT-16.3). NONE = nothing to review.
+enum PunchReviewStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Ways a branch records attendance; several can be enabled at once (FR-WS-06).
+enum AttendanceMode {
+  MOBILE
+  SCANNER
+  KIOSK
+}
+
+/// FR-ATT-20.1/20.2 — requested before the work (PRE) or after it (POST).
+enum OvertimeKind {
+  PRE
+  POST
+}
+
+/// Scanner export layouts (FR-ATT-02.1–02.3).
+enum ScanFormat {
+  ZKTECO
+  HIP
+  GENERIC
 }
 
 enum RequestStatus {
@@ -104,6 +143,14 @@ enum ScanImportStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+/// Outcome of one scanner row at preview/confirm (FR-ATT-02.4/02.5).
+enum ScanRowStatus {
+  OK
+  UNMATCHED
+  DUPLICATE
+  INVALID
 }
 
 enum TaskKind {
@@ -314,15 +361,20 @@ model AuditLog {
   @@index([workspaceId, entity, entityId])
 }
 
+/// The phone an employee punches from (FR-ATT-11.1). At most one active row per user (partial unique
+/// index in the M5 migration); a change goes through DeviceChangeRequest and keeps the old row inactive.
 model DeviceBinding {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   userId      String
   deviceId    String
   platform    Platform
   model       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  isActive    Boolean   @default(true)
+  lastSeenAt  DateTime?
+  revokedAt   DateTime?
+  revokedById String?
+  createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -330,23 +382,65 @@ model DeviceBinding {
   @@index([workspaceId])
 }
 
+/// Employee asks to move their binding to a new phone (FR-ATT-11.2); approved through the approval
+/// engine (subject DEVICE_CHANGE, FR-ATT-11.3).
+model DeviceChangeRequest {
+  id          String        @id @default(cuid())
+  workspaceId String
+  employeeId  String
+  userId      String
+  deviceId    String
+  platform    Platform
+  model       String?
+  reason      String
+  status      RequestStatus @default(PENDING)
+  decidedAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, employeeId])
+}
+
+/// Shared on-site tablet of a branch (FR-ATT-03, A2). Not an employee device binding: HR enrols it and
+/// it authenticates with its own token (only the hash is stored).
+model KioskDevice {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  branchId     String
+  name         String
+  tokenHash    String    @unique
+  enrolledById String?
+  lastSeenAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, branchId])
+}
+
 // ───────────────────────── Organisation ─────────────────────────
 
 model Branch {
-  id             String   @id @default(cuid())
-  workspaceId    String
-  name           String
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  geofenceRadius Int      @default(150)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String           @id @default(cuid())
+  workspaceId     String
+  name            String
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  geofenceRadius  Int              @default(150)
+  /// FR-WS-06: enabled attendance modes; several at once are allowed (06.4).
+  attendanceModes AttendanceMode[] @default([MOBILE])
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  employees  Employee[]
-  attendance AttendanceRecord[]
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  punches   AttendancePunch[]
+  kiosks    KioskDevice[]
 
   @@unique([workspaceId, name])
 }
@@ -454,11 +548,15 @@ model Employee {
   documents         EmployeeDocument[]
   emergencyContacts EmergencyContact[]
   history           EmploymentHistory[]
-  attendance        AttendanceRecord[]
+  punches           AttendancePunch[]
+  attendanceDays    AttendanceDay[]
   corrections       AttendanceCorrection[]
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]
-  overtime          OvertimeRecord[]
+  overtime          OvertimeRequest[]
+  roster            ShiftRoster[]
+  offsitePermits    OffsitePermission[]
+  deviceRequests    DeviceChangeRequest[]
   onboardingTasks   OnboardingTask[]
   offboarding       Offboarding?
   scheduleHistory   ScheduleAssignment[]
@@ -526,21 +624,51 @@ model EmploymentHistory {
 
 // ─────────────────────── Time & attendance ───────────────────────
 
+/// A working shift (FR-ATT-17). Times are local "HH:mm" in the workspace time zone; `endTime <= startTime`
+/// means the shift crosses midnight (FR-ATT-17.2) and its work date is the day it starts.
 model Shift {
   id                String   @id @default(cuid())
   workspaceId       String
   name              String
+  /// Short label shown in the roster grid (e.g. "N").
+  code              String?
+  /// Roster colour "#RRGGBB".
+  color             String?
   /// Local time "HH:mm"
   startTime         String
   endTime           String
   breakMinutes      Int      @default(60)
-  lateGraceMinutes  Int      @default(5)
-  earlyGraceMinutes Int      @default(0)
+  /// Per-shift override; null = parameter `attendance.lateGraceMinutes` (FR-ATT-18.5).
+  lateGraceMinutes  Int?
+  /// Per-shift override; null = parameter `attendance.earlyGraceMinutes`.
+  earlyGraceMinutes Int?
+  isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
 
   schedules WorkSchedule[]
+  roster    ShiftRoster[]
 
   @@unique([workspaceId, name])
+}
+
+/// Rotating roster (FR-ATT-17.3): the shift an employee works on one date, overriding the shift of their
+/// work schedule. `shiftId = null` rosters a rest day.
+model ShiftRoster {
+  id          String   @id @default(cuid())
+  workspaceId String
+  employeeId  String
+  date        DateTime @db.Date
+  shiftId     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shift    Shift?   @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, date])
+  @@index([workspaceId, date])
 }
 
 /// A working-day pattern (FR-WS-03). Rows are never deleted, so the history stays readable:
@@ -618,85 +746,178 @@ model Holiday {
   @@unique([workspaceId, date])
 }
 
-model AttendanceRecord {
+/// One raw punch (A13): every check-in/out from any source, kept as recorded. Corrections never edit a
+/// punch — they add a CORRECTION punch and point the original at it (`supersededById`, FR-ATT-19.3).
+/// A punch counts for the day unless superseded or its review was REJECTED (see `punchCounts`, @hrm/shared).
+model AttendancePunch {
   id                String            @id @default(cuid())
   workspaceId       String
   employeeId        String
   branchId          String?
+  kind              PunchKind
+  /// Work date (workspace time zone) the punch belongs to; a night shift's punches belong to its start day.
   workDate          DateTime          @db.Date
-  checkInAt         DateTime?
-  checkOutAt        DateTime?
-  checkInLat        Float?
-  checkInLng        Float?
-  checkInAccuracy   Float?
-  checkOutLat       Float?
-  checkOutLng       Float?
-  status            AttendanceStatus?
-  lateMinutes       Int               @default(0)
-  earlyLeaveMinutes Int               @default(0)
-  workedMinutes     Int               @default(0)
-  source            AttendanceSource  @default(MOBILE)
-  /// Device clock at capture (offline sync); server time is createdAt/updatedAt.
-  deviceCapturedAt  DateTime?
-  /// Idempotency key generated on the device for offline queue replay.
+  /// Instant of the punch: the device clock for MOBILE/KIOSK (offline capture), the file time for SCANNER.
+  capturedAt        DateTime
+  /// Server time the punch arrived (FR-ATT-06.2, FR-ATT-07.1).
+  receivedAt        DateTime          @default(now())
+  latitude          Float?
+  longitude         Float?
+  accuracyMetres    Float?
+  /// Distance from the branch geofence centre at capture (FR-ATT-15.2).
+  distanceMetres    Float?
+  source            AttendanceSource
+  /// Idempotency key generated on the device for offline queue replay (FR-ATT-05.2).
   clientRef         String?
   deviceId          String?
-  selfieUrl         String?
+  kioskDeviceId     String?
+  selfieFileId      String?
+  /// Captured while the device was offline and synced later (FR-ATT-06.1).
+  offline           Boolean           @default(false)
+  /// Out-of-zone punch under an off-site permission (FR-ATT-16.2); needs manager approval (16.3).
+  offsite           Boolean           @default(false)
+  offsiteReason     String?
   suspicious        Boolean           @default(false)
+  /// e.g. DEVICE_TIME_SKEW, ROOTED (see SuspicionReason in @hrm/shared).
   suspiciousReasons String[]          @default([])
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-
-  employee    Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  branch      Branch?                @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  corrections AttendanceCorrection[]
-
-  @@unique([employeeId, workDate])
-  @@unique([workspaceId, clientRef])
-  @@index([workspaceId, workDate])
-}
-
-model AttendanceCorrection {
-  id                String        @id @default(cuid())
-  workspaceId       String
-  employeeId        String
-  attendanceId      String?
-  workDate          DateTime      @db.Date
-  requestedCheckIn  DateTime?
-  requestedCheckOut DateTime?
-  reason            String
-  status            RequestStatus @default(PENDING)
-  reviewerUserId    String?
+  reviewStatus      PunchReviewStatus @default(NONE)
+  reviewedById      String?
   reviewedAt        DateTime?
   reviewNote        String?
-  createdAt         DateTime      @default(now())
+  /// HR on behalf (FR-ATT-04): who recorded it and why.
+  createdById       String?
+  reason            String?
+  scanImportId      String?
+  /// Set when a correction replaced this punch (FR-ATT-19.3); the replacement punch's id, or null when the
+  /// correction removed it (then `supersededAt` alone is set).
+  supersededById    String?
+  supersededAt      DateTime?
+  createdAt         DateTime          @default(now())
 
-  employee   Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  attendance AttendanceRecord? @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branch   Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
+  @@unique([workspaceId, clientRef])
+  @@index([workspaceId, employeeId, workDate])
+  @@index([workspaceId, workDate])
+  @@index([workspaceId, reviewStatus])
+}
+
+/// Computed result of one employee's work date (A13, FR-ATT-18). Rebuilt from punches, schedule, roster,
+/// holidays and approved leave by the attendance calculation; never edited by hand.
+model AttendanceDay {
+  id                String           @id @default(cuid())
+  workspaceId       String
+  employeeId        String
+  workDate          DateTime         @db.Date
+  /// Shift worked that day (roster or schedule); null on rest days/holidays without a shift.
+  shiftId           String?
+  scheduledStart    DateTime?
+  scheduledEnd      DateTime?
+  scheduledMinutes  Int              @default(0)
+  firstInPunchId    String?
+  lastOutPunchId    String?
+  firstInAt         DateTime?
+  lastOutAt         DateTime?
+  lateMinutes       Int              @default(0)
+  earlyLeaveMinutes Int              @default(0)
+  workedMinutes     Int              @default(0)
+  status            AttendanceStatus
+  /// Set once the missing-punch alert went out, so the job notifies once (FR-NOTI-03.3).
+  missingNotifiedAt DateTime?
+  computedAt        DateTime         @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  /// One row per employee and work date: a roster gives at most one shift a day, and a night shift
+  /// belongs to the day it starts.
+  @@unique([employeeId, workDate])
+  @@index([workspaceId, workDate])
   @@index([workspaceId, status])
 }
 
-model OvertimeRecord {
-  id          String        @id @default(cuid())
+/// HR-granted permission to check in outside the branch zone (FR-ATT-16.1), for a date range.
+model OffsitePermission {
+  id          String    @id @default(cuid())
   workspaceId String
   employeeId  String
-  workDate    DateTime      @db.Date
-  minutes     Int
-  status      RequestStatus @default(PENDING)
+  fromDate    DateTime  @db.Date
+  toDate      DateTime  @db.Date
   note        String?
-  createdAt   DateTime      @default(now())
+  grantedById String?
+  revokedAt   DateTime?
+  revokedById String?
+  createdAt   DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, employeeId])
+}
+
+/// Time-correction request (FR-ATT-19), decided through the approval engine (ATTENDANCE_CORRECTION).
+/// Approval adds CORRECTION punches and supersedes the originals, keeping both (19.3).
+model AttendanceCorrection {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  employeeId         String
+  workDate           DateTime      @db.Date
+  /// Punches being replaced (null = the punch was missing).
+  originalInPunchId  String?
+  originalOutPunchId String?
+  requestedCheckIn   DateTime?
+  requestedCheckOut  DateTime?
+  reason             String
+  attachmentFileId   String?
+  status             RequestStatus @default(PENDING)
+  decidedAt          DateTime?
+  createdById        String?
+  createdAt          DateTime      @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, employeeId, workDate])
+}
+
+/// OT request (FR-ATT-20), decided through the approval engine (OVERTIME). Minutes are split into the four
+/// payroll categories by the backend (FR-ATT-21) from the actual times (POST) or the planned ones (PRE).
+model OvertimeRequest {
+  id                  String        @id @default(cuid())
+  workspaceId         String
+  employeeId          String
+  workDate            DateTime      @db.Date
+  kind                OvertimeKind
+  plannedStart        DateTime
+  plannedEnd          DateTime
+  actualStart         DateTime?
+  actualEnd           DateTime?
+  reason              String
+  minutes             Int
+  workdayDayMinutes   Int           @default(0)
+  workdayNightMinutes Int           @default(0)
+  holidayDayMinutes   Int           @default(0)
+  holidayNightMinutes Int           @default(0)
+  status              RequestStatus @default(PENDING)
+  decidedAt           DateTime?
+  createdById         String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @default(now()) @updatedAt
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, employeeId, workDate])
+  @@index([workspaceId, status])
 }
 
+/// A confirmed scanner-file import (FR-ATT-02). Preview is rolled back; only confirmed files are stored.
 model ScanImport {
   id           String           @id @default(cuid())
   workspaceId  String
   fileName     String
-  format       String
+  format       ScanFormat
+  /// sha256 of the uploaded bytes; the confirm token is bound to it (FR-ATT-02.6).
+  sha256       String
+  branchId     String?
   status       ScanImportStatus @default(PENDING)
   uploadedById String?
   totalRows    Int              @default(0)
@@ -710,14 +931,18 @@ model ScanImport {
 }
 
 model ScanImportRow {
-  id           String    @id @default(cuid())
-  workspaceId  String
-  importId     String
-  rowNumber    Int
-  employeeCode String?
-  timestamp    DateTime?
-  status       String
-  error        String?
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  importId           String
+  rowNumber          Int
+  employeeCode       String?
+  capturedAt         DateTime?
+  matchedEmployeeId  String?
+  status             ScanRowStatus
+  /// Existing punch (or earlier row's punch) this row repeats (FR-ATT-02.5).
+  duplicateOfPunchId String?
+  punchId            String?
+  error              String?
 
   import ScanImport @relation(fields: [importId], references: [id], onDelete: Cascade)
 
@@ -811,6 +1036,10 @@ enum ApprovalSubjectType {
   LEAVE
   OVERTIME
   ATTENDANCE_CORRECTION
+  /// Out-of-zone check-in under an off-site permission (FR-ATT-16.3); subject = AttendancePunch.
+  OFFSITE_CHECKIN
+  /// Move the device binding to a new phone (FR-ATT-11.3); subject = DeviceChangeRequest.
+  DEVICE_CHANGE
 }
 
 /// FR-ORG-06 — capacity in which a step is decided.

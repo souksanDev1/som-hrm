@@ -24,6 +24,20 @@ export const PERMISSIONS = {
   APPROVAL_DELEGATE_MANAGE: 'approval.delegate.manage',
   /** Decide requests nobody in the chain of command can (no manager, or all unavailable); notified on escalation (FR-ORG-02, FR-ORG-05.2). */
   APPROVAL_HR_FALLBACK: 'approval.hr_fallback',
+  /** Suspicious-attendance queue: approve or reject flagged punches (FR-ATT-14). */
+  ATTENDANCE_REVIEW: 'attendance.review',
+  /** Record a punch for an employee, reason mandatory and audit-logged (FR-ATT-04). */
+  ATTENDANCE_PUNCH_ON_BEHALF: 'attendance.punch_on_behalf',
+  /** See and reset employees' bound devices; decide device-change requests as HR (FR-ATT-11). */
+  ATTENDANCE_DEVICE_MANAGE: 'attendance.device.manage',
+  /** Grant and revoke off-site work permissions (FR-ATT-16.1). */
+  ATTENDANCE_OFFSITE_MANAGE: 'attendance.offsite.manage',
+  /** Import scanner attendance files (FR-ATT-02). */
+  SCAN_IMPORT: 'scan.import',
+  /** Enrol and revoke kiosk tablets (FR-ATT-03). */
+  KIOSK_MANAGE: 'kiosk.manage',
+  /** Define shifts and the rotating roster (FR-ATT-17). */
+  SHIFT_MANAGE: 'shift.manage',
 } as const;
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS) as Permission[];

@@ -21,6 +21,10 @@ describe('parameter formatting', () => {
   it('parses form input by type', () => {
     expect(parseParameterInput('int', ' 12 ')).toBe(12);
     expect(parseParameterInput('int', '1.5')).toBeNull();
+    // unit timeOfDay: minutes after midnight shown and typed as HH:mm (ot.nightStart / ot.nightEnd)
+    expect(parseParameterInput('int', '22:00', 'timeOfDay')).toBe(1320);
+    expect(parseParameterInput('int', '1320', 'timeOfDay')).toBeNull();
+    expect(formatParameterValue(t, { type: 'int', unit: 'timeOfDay' }, 300)).toBe('05:00');
     expect(parseParameterInput('intList', '90, 60,30')).toEqual([90, 60, 30]);
     expect(parseParameterInput('intList', '90, x')).toBeNull();
     expect(parseParameterInput('boolean', 'false')).toBe(false);

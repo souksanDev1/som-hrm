@@ -46,7 +46,7 @@ const toInstant = (local: string, defaultLocal: string) => (local === defaultLoc
 /** Value + effective date + reason form used for workspace and system parameters (FR-WS-08.2/08.5). */
 export function ScheduleChangeForm({ parameter, dateMode = 'date', defaultEffectiveFrom, minEffectiveFrom, onSubmit, onCancel }: ScheduleChangeFormProps) {
   const t = useT();
-  const [value, setValue] = useState(valueToInput(parameter.currentValue));
+  const [value, setValue] = useState(valueToInput(parameter.currentValue, parameter.unit));
   const [effectiveFrom, setEffectiveFrom] = useState(defaultEffectiveFrom);
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<Errors>({});
@@ -56,7 +56,9 @@ export function ScheduleChangeForm({ parameter, dateMode = 'date', defaultEffect
   const hint =
     parameter.type === 'intList'
       ? fill(t('param.listHint'), { max: parameter.maxItems ?? '' })
-      : parameter.type === 'int'
+      : parameter.unit === 'timeOfDay'
+        ? 'HH:mm'
+        : parameter.type === 'int'
         ? [
             fill(t('param.range'), { min: parameter.min ?? '', max: parameter.max ?? '' }),
             parameter.legalMin !== null ? fill(t('param.legalMin'), { min: parameter.legalMin }) : null,
@@ -68,7 +70,7 @@ export function ScheduleChangeForm({ parameter, dateMode = 'date', defaultEffect
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const parsed = parseParameterInput(parameter.type, value);
+    const parsed = parseParameterInput(parameter.type, value, parameter.unit);
     const next: Errors = {};
     if (parsed === null) next.value = 'invalid_type';
     else {
@@ -113,7 +115,7 @@ export function ScheduleChangeForm({ parameter, dateMode = 'date', defaultEffect
           <Input
             id={id('value')}
             value={value}
-            inputMode={parameter.type === 'int' ? 'numeric' : 'text'}
+            inputMode={parameter.type === 'int' && parameter.unit !== 'timeOfDay' ? 'numeric' : 'text'}
             invalid={!!errors.value}
             onChange={(e) => setValue(e.target.value)}
           />

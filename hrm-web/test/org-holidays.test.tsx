@@ -22,11 +22,11 @@ beforeEach(() => {
 });
 
 describe('parseBranchForm (geofence)', () => {
-  const base = { name: 'HQ', address: '', latitude: '', longitude: '', geofenceRadius: '150' };
+  const base = { name: 'HQ', address: '', latitude: '', longitude: '', geofenceRadius: '150', mode_MOBILE: 'true', mode_SCANNER: '', mode_KIOSK: '' };
   it('accepts a complete geofence and an empty one', () => {
     expect(parseBranchForm({ ...base, latitude: '17.97', longitude: '102.63' })).toEqual({
       ok: true,
-      data: { name: 'HQ', latitude: 17.97, longitude: 102.63, geofenceRadius: 150 },
+      data: { name: 'HQ', latitude: 17.97, longitude: 102.63, geofenceRadius: 150, attendanceModes: ['MOBILE'] },
     });
     expect(parseBranchForm(base)).toMatchObject({ ok: true, data: { latitude: null, longitude: null } });
   });
@@ -36,6 +36,13 @@ describe('parseBranchForm (geofence)', () => {
     expect(parseBranchForm({ ...base, geofenceRadius: '5' })).toEqual({ ok: false, errors: { geofenceRadius: 'invalid_radius' } });
     expect(parseBranchForm({ ...base, geofenceRadius: '' })).toEqual({ ok: false, errors: { geofenceRadius: 'invalid_radius' } });
     expect(parseBranchForm({ ...base, longitude: 'abc', latitude: '1' })).toEqual({ ok: false, errors: { longitude: 'invalid_longitude' } });
+  });
+  it('collects the attendance mode checkboxes and requires at least one (FR-WS-06)', () => {
+    expect(parseBranchForm({ ...base, mode_SCANNER: 'true', mode_KIOSK: 'true' })).toMatchObject({
+      ok: true,
+      data: { attendanceModes: ['MOBILE', 'SCANNER', 'KIOSK'] },
+    });
+    expect(parseBranchForm({ ...base, mode_MOBILE: '' })).toEqual({ ok: false, errors: { mode_MOBILE: 'attendance_modes_required' } });
   });
   it('parses position levels', () => {
     expect(parsePositionForm({ name: 'Clerk', level: '3' })).toEqual({ ok: true, data: { name: 'Clerk', level: 3 } });
@@ -99,7 +106,7 @@ describe('EntityFormDialog', () => {
           { name: 'longitude', label: 'Lng', type: 'number' },
           { name: 'geofenceRadius', label: 'Radius', type: 'number' },
         ]}
-        initial={{ name: 'HQ', latitude: '', longitude: '', geofenceRadius: '150' }}
+        initial={{ name: 'HQ', latitude: '', longitude: '', geofenceRadius: '150', mode_MOBILE: 'true' }}
         parse={parseBranchForm}
         onSubmit={onSubmit}
         onClose={onClose}
@@ -112,7 +119,7 @@ describe('EntityFormDialog', () => {
 
     await userEvent.type(screen.getByLabelText('Lng'), '102.6');
     await userEvent.click(screen.getByTestId('branch-form-save'));
-    expect(onSubmit).toHaveBeenCalledWith({ name: 'HQ', latitude: 17.5, longitude: 102.6, geofenceRadius: 150 });
+    expect(onSubmit).toHaveBeenCalledWith({ name: 'HQ', latitude: 17.5, longitude: 102.6, geofenceRadius: 150, attendanceModes: ['MOBILE'] });
     expect(onClose).toHaveBeenCalled();
   });
 

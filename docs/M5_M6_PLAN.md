@@ -117,6 +117,21 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm e2e
 | Q14 | ລາເຄິ່ງມື້ ກັບ ຄົນທີ່ schedule ວັນນັ້ນບໍ່ເຖິງ 8 ຊມ — ນັບ 0.5 ມື້ສະເໝີ? | ແມ່ນ |
 | Q15 | ລາປ່ວຍ: ຕ້ອງເຮັດວຽກ > 90 ມື້ ສະເພາະ pay type DAILY/HOURLY (ຕາມ lao-labor.ts)? | ແມ່ນ |
 
+### 3.1 ຄຳຕອບຂອງຜູ້ໃຊ້ (2026-11-17)
+
+| # | ຄຳຕອບ |
+|---|---|
+| Q1 | ຕໍ່ **branch**, ເປີດຫຼາຍ mode ພ້ອມກັນໄດ້ |
+| Q2 | Kiosk = device token ຂອງ branch (HR enrol), **ບໍ່ນັບເປັນ device binding**; Kiosk **ຢູ່ໃນ scope M5** (Agent G ຫຼັງ MUST ຜ່ານ) |
+| Q3 | ກາງຄືນ **22:00–05:00** (`ot.nightStart`/`ot.nightEnd`, HR ປ່ຽນໄດ້) |
+| Q4 | **3 ຊມ/ມື້, 45 ຊມ/ເດືອນ**, ເຕືອນ 80%; ເກີນ cap → **ບລັອກການຍື່ນ** |
+| Q5 | ມາຊ້າ 5 ນາທີ, ກັບກ່ອນ 0 ນາທີ |
+| Q6 | ແມ່ນ — OT ວັນພັກ ສະເພາະຄົນທີ່ວັນນັ້ນເປັນວັນພັກຂອງຕົນ (`holidayAppliesTo`) |
+| Q7 | ຫຼັງໝົດກະ **2 ຊມ** (`attendance.missingPunchAfterMinutes` = 120) |
+| Q8 | Selfie ເປີດ/ປິດ **ຕໍ່ workspace**; liveness (FR-ATT-13) **ເລື່ອນ** (Deferred) |
+| Q9 | 1,000 check-in ພາຍໃນ **60 ວິ, p95 < 500 ms** (local) |
+| Q10–Q15 | ຖາມຕອນເລີ່ມ M6 |
+
 ---
 
 ## 4. M5 — Attendance + Shift + OT + Scanner + Kiosk

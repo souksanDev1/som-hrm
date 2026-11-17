@@ -11,11 +11,6 @@ export const WORK_WEEK = {
   maxHoursPerWeek: 48,
 } as const;
 
-export const OVERTIME_LIMITS = {
-  maxHoursPerDay: 3,
-  maxHoursPerMonth: 45,
-} as const;
-
 export interface LeaveTypeDefault {
   code: string;
   category: LeaveCategory;

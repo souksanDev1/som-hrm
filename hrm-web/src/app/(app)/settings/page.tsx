@@ -1,5 +1,5 @@
 'use client';
-import { GEOFENCE_RADIUS, PERMISSIONS, type Branch, type Department, type Position, type UpdateBranchInput, type UpdateDepartmentInput } from '@hrm/shared';
+import { ATTENDANCE_MODES, GEOFENCE_RADIUS, PERMISSIONS, type Branch, type Department, type Position, type UpdateBranchInput, type UpdateDepartmentInput } from '@hrm/shared';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -140,6 +140,12 @@ export default function SettingsPage() {
             required: true,
             hint: t('orgx.branch.radiusHint').replace('{min}', String(GEOFENCE_RADIUS.min)).replace('{max}', String(GEOFENCE_RADIUS.max)),
           },
+          ...ATTENDANCE_MODES.map((m, i) => ({
+            name: `mode_${m}`,
+            label: t(`attendance.mode.${m}`),
+            type: 'checkbox' as const,
+            ...(i === 0 ? { section: t('attendance.modes'), hint: t('attendance.modesHint') } : {}),
+          })),
         ]}
         parse={parseBranchForm}
         onSubmit={(body) => updateBranch.mutateAsync({ id: editing!.item.id, body })}

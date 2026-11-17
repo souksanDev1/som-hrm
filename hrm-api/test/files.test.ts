@@ -178,4 +178,31 @@ describe('employee document files', () => {
     expect((await download(self, employeeId, docId)).statusCode).toBe(200);
     expect((await download(peer, employeeId, docId)).statusCode).toBe(404);
   });
+
+  it('uploads stand-alone selfies and attachments; only the uploader and attendance readers can download (M5)', async () => {
+    const ws = await createWorkspace(t.db);
+    const owner = await ownerSession(ws);
+    await createUser(t.db, ws, { email: 'emp@x.test', password: 'Employee123', role: 'EMPLOYEE' });
+    await createUser(t.db, ws, { email: 'emp2@x.test', password: 'Employee123', role: 'EMPLOYEE' });
+    const emp = (await loginAs(t.app, ws.code, 'emp@x.test', 'Employee123')).accessToken;
+    const emp2 = (await loginAs(t.app, ws.code, 'emp2@x.test', 'Employee123')).accessToken;
+    const post = (token: string, purpose: string, name: string, content: Buffer) => {
+      const body = multipart(name, content);
+      return t.app.inject({ method: 'POST', url: api(`/files?purpose=${purpose}`), headers: { ...bearer(token), ...body.headers }, payload: body.payload });
+    };
+
+    const selfie = await post(emp, 'SELFIE', 'me.jpg', JPG);
+    expect(selfie.statusCode).toBe(201);
+    expect(selfie.json<StoredFileRef>()).toMatchObject({ mimeType: 'image/jpeg' });
+    expect((await post(emp, 'SELFIE', 'x.pdf', PDF)).statusCode).toBe(415);
+    expect((await post(emp, 'ATTACHMENT', 'x.pdf', PDF)).statusCode).toBe(201);
+    expect((await post(emp, 'OTHER', 'x.pdf', PDF)).statusCode).toBe(400);
+
+    const get = (token: string) => t.app.inject({ method: 'GET', url: api(`/files/${selfie.json<StoredFileRef>().id}`), headers: bearer(token) });
+    expect((await get(emp)).rawPayload.equals(JPG)).toBe(true);
+    expect((await get(owner)).statusCode).toBe(200);
+    expect((await get(emp2)).statusCode).toBe(404);
+    const other = await ownerSession(await createWorkspace(t.db));
+    expect((await get(other)).statusCode).toBe(404);
+  });
 });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AttendanceMode } from '../enums';
 
 /** `?includeClosed=true` also lists closed (deactivated) items; pickers use the default (open only). */
 export const orgListQuerySchema = z.object({
@@ -22,6 +23,12 @@ const branchFields = z.object({
     .min(GEOFENCE_RADIUS.min, 'invalid_radius')
     .max(GEOFENCE_RADIUS.max, 'invalid_radius')
     .default(GEOFENCE_RADIUS.default),
+  /** FR-WS-06: attendance modes enabled at this branch; several at once (06.4), at least one. */
+  attendanceModes: z
+    .array(z.nativeEnum(AttendanceMode))
+    .min(1, 'attendance_modes_required')
+    .transform((m) => [...new Set(m)])
+    .optional(),
 });
 
 /** Latitude and longitude are both set or both empty. */
@@ -42,6 +49,7 @@ export const branchSchema = z.object({
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
   geofenceRadius: z.number(),
+  attendanceModes: z.array(z.nativeEnum(AttendanceMode)),
   isActive: z.boolean(),
   employeeCount: z.number(),
 });

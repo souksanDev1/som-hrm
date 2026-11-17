@@ -35,7 +35,8 @@ export interface IntParameterDef extends BaseDef<number> {
   legalMin?: number;
   /** Legal maximum (Lao labour law); values above are rejected with `above_legal_maximum`. */
   legalMax?: number;
-  unit?: 'days' | 'minutes' | 'hours' | 'seconds' | 'count' | 'digits';
+  /** `timeOfDay` = minutes after local midnight (0–1439), shown as HH:mm. */
+  unit?: 'days' | 'minutes' | 'hours' | 'seconds' | 'count' | 'digits' | 'metres' | 'percent' | 'timeOfDay';
 }
 
 export interface BooleanParameterDef extends BaseDef<boolean> {
@@ -122,6 +123,73 @@ export const PARAMETERS = {
     type: 'int', scope: 'workspace', labelKey: 'param.schedule.maxHoursPerWeek', defaultValue: 48, min: 1, max: 168, legalMax: 48,
     unit: 'hours', source: 'TOR FR-WS-03.1; Lao Labour Law: normal hours at most 48 h/week',
   },
+  // ── Attendance (M5) ──
+  /** Minutes after the shift start before an arrival counts as late (FR-ATT-18.5); a shift may override it. */
+  'attendance.lateGraceMinutes': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.lateGraceMinutes', defaultValue: 5, min: 0, max: 120, unit: 'minutes',
+    source: 'TOR FR-ATT-18.5; 5 min confirmed by the client 2026-11-17 (Q5)',
+  },
+  /** Minutes before the shift end a departure may be without counting as early leave (FR-ATT-18.5). */
+  'attendance.earlyGraceMinutes': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.earlyGraceMinutes', defaultValue: 0, min: 0, max: 120, unit: 'minutes',
+    source: 'TOR FR-ATT-18.5; 0 min confirmed by the client 2026-11-17 (Q5)',
+  },
+  /** Device clock further than this from server time flags the punch suspicious (FR-ATT-07.2: more than 5 minutes). */
+  'attendance.deviceTimeToleranceMinutes': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.deviceTimeToleranceMinutes', defaultValue: 5, min: 1, max: 60, unit: 'minutes',
+    source: 'TOR FR-ATT-07.2',
+  },
+  /** Offline punches left unsent this long alert the employee (FR-ATT-08, FR-NOTI-03.7). */
+  'attendance.offlineAlertHours': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.offlineAlertHours', defaultValue: 72, min: 1, max: 720, unit: 'hours',
+    source: 'TOR FR-ATT-08',
+  },
+  /** Mobile/kiosk punches need a selfie (FR-ATT-01.4: toggle per workspace). */
+  'attendance.selfieRequired': {
+    type: 'boolean', scope: 'workspace', labelKey: 'param.attendance.selfieRequired', defaultValue: false,
+    source: 'TOR FR-ATT-01.4 (per workspace, confirmed 2026-11-17 Q8); default off provisional (FRD §15 pending)',
+  },
+  /** Minutes after the shift end before a missing check-in/out is flagged and notified (FR-ATT-18.4, FR-NOTI-03.3). */
+  'attendance.missingPunchAfterMinutes': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.missingPunchAfterMinutes', defaultValue: 120, min: 15, max: 1440, unit: 'minutes',
+    source: 'shift end + 2 h confirmed by the client 2026-11-17 (Q7)',
+  },
+  /** GPS fixes less accurate than this are refused at check-in (FR-ATT-15). */
+  'attendance.maxAccuracyMetres': {
+    type: 'int', scope: 'workspace', labelKey: 'param.attendance.maxAccuracyMetres', defaultValue: 100, min: 10, max: 1000, unit: 'metres',
+    source: 'provisional (FRD §15 pending)',
+  },
+  // ── Overtime (M5) ──
+  /** Most OT minutes per day (FR-ATT-22.1); requests beyond it are refused (client 2026-11-17, Q4). */
+  'ot.maxMinutesPerDay': {
+    type: 'int', scope: 'workspace', labelKey: 'param.ot.maxMinutesPerDay', defaultValue: 180, min: 0, max: 720, legalMax: 180, unit: 'minutes',
+    source: 'Lao Labour Law 2013: OT at most 3 h/day; confirmed by the client 2026-11-17 (Q4)',
+  },
+  /** Most OT minutes per calendar month (FR-ATT-22.1). */
+  'ot.maxMinutesPerMonth': {
+    type: 'int', scope: 'workspace', labelKey: 'param.ot.maxMinutesPerMonth', defaultValue: 2700, min: 0, max: 10000, legalMax: 2700, unit: 'minutes',
+    source: 'Lao Labour Law 2013: OT at most 45 h/month; confirmed by the client 2026-11-17 (Q4)',
+  },
+  /** Share of a cap at which employees and approvers are warned (FR-ATT-22.2). */
+  'ot.warnPercent': {
+    type: 'int', scope: 'workspace', labelKey: 'param.ot.warnPercent', defaultValue: 80, min: 1, max: 100, unit: 'percent',
+    source: 'confirmed by the client 2026-11-17 (Q4)',
+  },
+  /** OT worked on the employee's weekly rest day is recorded in the holiday categories (FR-ATT-21.3/21.4). */
+  'ot.restDayCountsAsHoliday': {
+    type: 'boolean', scope: 'workspace', labelKey: 'param.ot.restDayCountsAsHoliday', defaultValue: true,
+    source: 'Lao Labour Law 2013: OT on weekly rest days and public holidays share the higher rate',
+  },
+  /** Start of the night OT window, minutes after local midnight (FR-ATT-21.2/21.4). */
+  'ot.nightStart': {
+    type: 'int', scope: 'workspace', labelKey: 'param.ot.nightStart', defaultValue: 22 * 60, min: 0, max: 1439, unit: 'timeOfDay',
+    source: 'Lao Labour Law 2013 night work 22:00–05:00; confirmed by the client 2026-11-17 (Q3)',
+  },
+  /** End of the night OT window (exclusive), minutes after local midnight; before `ot.nightStart` = wraps midnight. */
+  'ot.nightEnd': {
+    type: 'int', scope: 'workspace', labelKey: 'param.ot.nightEnd', defaultValue: 5 * 60, min: 0, max: 1439, unit: 'timeOfDay',
+    source: 'Lao Labour Law 2013 night work 22:00–05:00; confirmed by the client 2026-11-17 (Q3)',
+  },
 } as const satisfies Record<string, ParameterDef>;
 
 export type ParameterKey = keyof typeof PARAMETERS;
@@ -189,6 +257,19 @@ export const isoDateInTimeZone = (timeZone: string, at: Date = new Date()): stri
   new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
 
 /** True when `timeZone` is an IANA zone the runtime understands (e.g. "Asia/Vientiane"). */
+/** "HH:mm" for minutes after midnight (parameters with unit `timeOfDay`). */
+export const formatTimeOfDay = (minutes: number): string =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+/** Minutes after midnight from "HH:mm" / "H:mm"; `null` when malformed or out of range. */
+export const parseTimeOfDay = (text: string): number | null => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h < 24 && min < 60 ? h * 60 + min : null;
+};
+
 export const isValidTimeZone = (timeZone: string): boolean => {
   try {
     new Intl.DateTimeFormat('en-US', { timeZone });

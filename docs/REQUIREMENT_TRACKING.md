@@ -54,10 +54,10 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS-04.4 | MUST | HR adds substitute (compensatory) holidays | Web | Yes | Yes | M3 | Implemented | Partial | M3: Holiday.kind SUBSTITUTE via the same CRUD. API tests; e2e pending run. |
 | FR-WS-05 | SHOULD | Foreign employees get +1 day for their own national day, configured by nationality | Web | Yes | Yes | M3 | Implemented | Partial | M3: nullable Holiday.nationality (required for kind NATIONAL_DAY), matched case-insensitively against Employee.nationality by `holidaysFor()`; mobile "Holidays this year" shows the employee's own days. |
 | **FR-WS-06** | | **Attendance mode per **branch**** (TOR p.3) | | | | | | | |
-| FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-WS-06.3 | SHOULD | Kiosk mode | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-WS-06.4 | MUST | Multiple modes enabled at once in one branch | Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: `Branch.attendanceModes` (default MOBILE), branch form checkboxes; enforced at mobile check-in (M5-C). |
+| FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: mode configurable per branch; enforced by scanner import (M5-F). |
+| FR-WS-06.3 | SHOULD | Kiosk mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: mode configurable per branch; kiosk app M5-G. |
+| FR-WS-06.4 | MUST | Multiple modes enabled at once in one branch | Web | Yes | Yes | M5 | Implemented | Passed | Per branch (client 2026-11-17 Q1); API `test/branch-attendance-modes.test.ts`, web form test. |
 | **FR-WS-07** | | **Language** (TOR p.3) | | | | | | | |
 | FR-WS-07.1 | MUST | System displays in Lao and English | Web/Mobile/Kiosk | Yes | — | M2 | In Progress | Partial | Shared lo/en dictionary; some hardcoded strings remain. |
 | FR-WS-07.2 | MUST | Each user chooses their own language | Web/Mobile/Kiosk | Yes | Yes | M2 | Implemented | Partial | M2: PATCH /auth/me/locale; web account page + mobile profile switch. |

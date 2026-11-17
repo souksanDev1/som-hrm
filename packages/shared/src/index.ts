@@ -9,6 +9,8 @@ export * from './domain/geo';
 export * from './domain/holidays';
 export * from './domain/work-schedule';
 export * from './domain/approvals';
+export * from './domain/attendance';
+export * from './domain/overtime';
 export * from './schemas/common';
 export * from './schemas/auth';
 export * from './schemas/employee';

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { Readable } from 'node:stream';
-import type { StoredFileRef } from '@hrm/shared';
+import { PERMISSIONS, type StoredFileRef } from '@hrm/shared';
 import type { Db } from '../../db/client';
 import { AppError, badRequest, notFound } from '../../lib/errors';
 import { storageKey, type FileStorage } from '../../lib/storage';
@@ -21,6 +21,20 @@ export interface FileDownload {
 }
 
 export const fileTooLarge = () => new AppError(413, 'file_too_large');
+
+/** Purposes of stand-alone uploads referenced later by id (punch selfie, correction / leave attachment). */
+export type StandaloneFilePurpose = 'SELFIE' | 'ATTACHMENT';
+
+/**
+ * Who may download a stand-alone file besides its uploader: attendance reviewers and readers (selfies, correction
+ * attachments) and leave approvers/managers (certificates, M6). Narrow by data scope in the feature that links it.
+ */
+const STANDALONE_READ_PERMISSIONS = [
+  PERMISSIONS.ATTENDANCE_READ_ALL,
+  PERMISSIONS.ATTENDANCE_REVIEW,
+  PERMISSIONS.LEAVE_APPROVE,
+  PERMISSIONS.LEAVE_MANAGE,
+] as const;
 
 const toRef = (f: { id: string; originalName: string; mimeType: string; sizeBytes: number }): StoredFileRef => ({
   id: f.id,
@@ -80,6 +94,55 @@ export const createFilesService = (db: Db, storage: FileStorage, opts: { maxByte
       if (written) await storage.delete(key).catch(() => undefined);
       throw err;
     }
+  },
+
+  /**
+   * Upload a file that a later request references by id (`selfieFileId`, `attachmentFileId`). Selfies must be
+   * JPEG/PNG; attachments PDF/JPEG/PNG (magic bytes). The uploader is recorded and is the only one who may link it.
+   */
+  async uploadStandalone(ctx: AuthContext, purpose: StandaloneFilePurpose, upload: UploadedFile): Promise<StoredFileRef> {
+    if (upload.data.length === 0) throw badRequest('file_required');
+    if (upload.data.length > opts.maxBytes) throw fileTooLarge();
+    const type = detectDocumentFileType(upload.data);
+    if (!type || (purpose === 'SELFIE' && type.mimeType === 'application/pdf')) throw new AppError(415, 'unsupported_file_type');
+
+    const ws = ctx.workspaceId;
+    const id = randomUUID();
+    const key = storageKey(ws, purpose, id);
+    await storage.put(key, upload.data);
+    try {
+      return toRef(
+        await db.tenant(ws, (tx) =>
+          repo.create(tx, {
+            id,
+            workspaceId: ws,
+            storageKey: key,
+            purpose,
+            originalName: sanitizeFileName(upload.fileName, type.extension),
+            mimeType: type.mimeType,
+            sizeBytes: upload.data.length,
+            sha256: createHash('sha256').update(upload.data).digest('hex'),
+            uploadedById: ctx.userId,
+          }),
+        ),
+      );
+    } catch (err) {
+      await storage.delete(key).catch(() => undefined);
+      throw err;
+    }
+  },
+
+  /** Download a stand-alone file: its uploader, or a holder of an attendance/leave reading permission; else 404. */
+  async downloadStandalone(ctx: AuthContext, fileId: string): Promise<FileDownload> {
+    const file = await db.tenant(ctx.workspaceId, (tx) =>
+      tx.storedFile.findFirst({ where: { id: fileId, workspaceId: ctx.workspaceId, purpose: { in: ['SELFIE', 'ATTACHMENT'] } } }),
+    );
+    const allowed = file && (file.uploadedById === ctx.userId || STANDALONE_READ_PERMISSIONS.some((p) => ctx.permissions.includes(p)));
+    if (!file || !allowed) throw notFound();
+    const stream = await storage.get(file.storageKey).catch(() => {
+      throw notFound('file_missing');
+    });
+    return { file: toRef(file), stream };
   },
 
   async downloadEmployeeDocumentFile(ctx: AuthContext, employeeId: string, documentId: string): Promise<FileDownload> {
