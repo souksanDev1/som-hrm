@@ -85,4 +85,6 @@ Worker ສົ່ງເປັນ batch (100/request), ກວດ receipts ຫຼ�
   ປິດ login ຕອນອອກວຽກ, ໄຟລ໌ເອກະສານ (PDF/JPG/PNG), job runner, notification center, OpenAPI, audit log append-only.
 - **M3 (ສຳເລັດ)**: ປິດ/ເປີດ ສາຂາ-ພະແນກ-ຕຳແໜ່ງ + geofence, ປະຕິທິນວັນພັກ (8 ມີນາ, ວັນຊາດຕ່າງປະເທດ), ມື້ເຮັດວຽກ
   ມາດຕະຖານ/ລາຍຄົນ (effective date), ຂໍ້ມູນພະນັກງານຄົບ (ຊື່ລາວ/ອັງກິດ, ທີ່ຢູ່, ສັນຍາ/ການຈ່າຍ), ເອກະສານໃກ້ໝົດອາຍຸ, import Excel/CSV.
-- M4–M7: ເບິ່ງ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
+- **M4 (ສຳເລັດ)**: ລະບົບອະນຸມັດ (ສາຍບັງຄັບບັນຊາ, ຜູ້ອະນຸມັດແທນ, ຂ້າມຫົວໜ້າທີ່ລາພັກ, escalate ຫຼັງ N ວັນເຮັດວຽກ),
+  push (Expo, ລໍ credentials), SMS fallback, ແຈ້ງເຕືອນໝົດທົດລອງວຽກ, deep link ຮ່ວມ web/mobile.
+- M5–M7: ເບິ່ງ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)

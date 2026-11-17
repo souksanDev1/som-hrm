@@ -75,7 +75,7 @@ Onboarding/Offboarding, ຜັງອົງກອນ, ແຈ້ງເຕືອນ
 - **M3 Workspace config + Employees (ສຳເລັດ 2026-11-17)**: working days ມາດຕະຖານ/ລາຍຄົນ/bulk/restore + effective date (FR-WS-03) · Holiday CRUD
   (8 ມີນາ, ທົດແທນ, ປະເພນີ, ຕ່າງປະເທດ — FR-WS-04/05) · ຂໍ້ມູນພະນັກງານຄົບ (FR-EMP-01..04, ແຍກ contract/pay type) · upload ເອກະສານ ·
   alert ໝົດອາຍຸ 90/60/30/7 (job) + overview · employment history + effective date · bulk import Excel/CSV + preview · ກັນຊ້ຳ SSN/ບັດ (blind index)
-- **M4 Approval engine + Notification events**: chain ຈາກ reporting line, delegate + ຊ່ວງວັນ, auto-route ເມື່ອ manager ລາ,
+- **M4 Approval engine + Notification events (ສຳເລັດ 2026-11-17; push ຈິງລໍ EAS/FCM/APNs credentials)**: chain ຈາກ reporting line, delegate + ຊ່ວງວັນ, auto-route ເມື່ອ manager ລາ,
   escalate ຫຼັງ N ວັນເຮັດວຽກ, ບັນທຶກ capacity (FR-ORG-02..06) · push (Expo) + web notification center (FR-NOTI-01, 04)
 - **M5 Attendance + OT** (ຄວາມສຳຄັນສູງສຸດ): attendance mode ຕໍ່ branch · mobile check-in/out GPS + geofence + selfie + offline queue
   (SQLite) + ກວດເວລາເຄື່ອງ + mock GPS + device binding · off-site · suspicious queue · HR ບັນທຶກແທນ · shift (ກະກາງຄືນຂ້າມມື້, ໝຸນວຽນ) ·
