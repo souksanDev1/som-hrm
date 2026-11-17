@@ -13,6 +13,7 @@ import {
 } from '@hrm/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { getDeviceInfo } from '@/features/checkin/device';
 import { unregisterPushToken } from '@/features/notifications/push';
 import { usePrefsStore } from '@/lib/i18n';
 import { authApi } from './api';
@@ -32,7 +33,11 @@ export const useLogin = () => {
   const setSession = useAuthStore((s) => s.setSession);
   const setLocale = usePrefsStore((s) => s.setLocale);
   return useMutation({
-    mutationFn: (input: LoginInput) => (input.method === 'PIN' ? authApi.loginWithPin(input) : authApi.loginWithPassword(input)),
+    mutationFn: async (input: LoginInput) => {
+      // The phone signing in becomes the attendance device on first use (FR-ATT-11.1).
+      const device = (await getDeviceInfo().catch(() => null)) ?? {};
+      return input.method === 'PIN' ? authApi.loginWithPin({ ...input, ...device }) : authApi.loginWithPassword({ ...input, ...device });
+    },
     onSuccess: (res, input) => {
       setSession(res, input.workspaceCode, input.method);
       // The account's saved language wins over the device default (FR-WS-07.2).

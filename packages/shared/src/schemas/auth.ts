@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEVICE_PLATFORMS } from './checkin';
 
 export const workspaceCodeSchema = z
   .string()
@@ -6,11 +7,22 @@ export const workspaceCodeSchema = z
   .toLowerCase()
   .regex(/^[a-z0-9-]{2,40}$/, 'invalid_workspace_code');
 
+/**
+ * Sent only by the mobile app: the phone signing in. The first mobile login binds it as the user's attendance
+ * device (FR-ATT-11.1); ignored unless `deviceId` and `platform` are both present. The web never sends them.
+ */
+const mobileDeviceFields = {
+  deviceId: z.string().trim().min(4).max(200).optional(),
+  platform: z.enum(DEVICE_PLATFORMS).optional(),
+  model: z.string().trim().max(120).optional(),
+};
+
 /** Email/password login (office staff, HR). */
 export const passwordLoginSchema = z.object({
   workspaceCode: workspaceCodeSchema,
   identifier: z.string().trim().min(1, 'required').max(120),
   password: z.string().min(1, 'required').max(200),
+  ...mobileDeviceFields,
 });
 export type PasswordLoginInput = z.infer<typeof passwordLoginSchema>;
 
@@ -22,6 +34,7 @@ export const pinLoginSchema = z.object({
   workspaceCode: workspaceCodeSchema,
   identifier: z.string().trim().min(1, 'required').max(40),
   pin: pinSchema,
+  ...mobileDeviceFields,
 });
 export type PinLoginInput = z.infer<typeof pinLoginSchema>;
 

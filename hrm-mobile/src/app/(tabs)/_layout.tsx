@@ -3,6 +3,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { homeRouteFor, useMe } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
+import { CheckinAutoSync } from '@/features/checkin/CheckinAutoSync';
 import { useUnreadCount } from '@/features/notifications/api';
 import { PushNotifications } from '@/features/notifications/PushNotifications';
 import { useT } from '@/lib/i18n';
@@ -36,6 +37,8 @@ export default function TabsLayout() {
     <>
       {/* Signed in and past account setup: the moment to ask for push permission. */}
       <PushNotifications />
+      {/* Offline check-in queue: sync on reconnect / foreground (FR-ATT-05). */}
+      <CheckinAutoSync />
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -58,6 +61,7 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen name="profile" options={{ title: t('nav.profile'), tabBarIcon: icon('person-outline'), tabBarButtonTestID: 'tab-profile' }} />
+        <Tabs.Screen name="checkin" options={{ title: t('nav.attendance'), tabBarIcon: icon('fingerprint'), tabBarButtonTestID: 'tab-checkin' }} />
       </Tabs>
     </>
   );

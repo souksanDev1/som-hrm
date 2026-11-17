@@ -159,10 +159,10 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-ATT-01** | | **Mobile-app attendance** (TOR p.7) | | | | | | | |
-| FR-ATT-01.1 | MUST | Check-in | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-01.2 | MUST | Check-out | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-01.3 | MUST | Record GPS on every punch | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-01.4 | MUST | Selfie photo (toggle on/off per Workspace) | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-01.1 | MUST | Check-in | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: POST /attendance/punches (batch) + mobile tab ລົງເວລາ IN/OUT button; API test checkin.test.ts, Jest checkin.test.tsx, Maestro 09-checkin (lead runs). |
+| FR-ATT-01.2 | MUST | Check-out | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: same flow; next kind IN→OUT (status.nextKind + unsent queue). |
+| FR-ATT-01.3 | MUST | Record GPS on every punch | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: lat/lng/accuracy/distance stored on every punch; expo-location High + last-known fallback (Huawei). |
+| FR-ATT-01.4 | MUST | Selfie photo (toggle on/off per Workspace) | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: attendance.selfieRequired (workspace) → expo-camera selfie, uploaded as SELFIE at sync; API checks caller-owned SELFIE file. |
 | **FR-ATT-02** | | **Scanner-file upload** (TOR p.8) | | | | | | | |
 | FR-ATT-02.1 | MUST | ZKTeco file template | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-02.2 | MUST | HIP file template | Web | Yes | Yes | M5 | Not Started | Pending |  |
@@ -179,23 +179,23 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-04.3 | MUST | Audit-logged | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-05** | | **Offline check-in** (TOR p.8) | | | | | | | |
-| FR-ATT-05.1 | MUST | Store time, GPS and photo on the device when offline | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-05.2 | MUST | Auto-sync when back online | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-05.1 | MUST | Store time, GPS and photo on the device when offline | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: expo-sqlite queue (clientRef, capturedAt, GPS, selfie path, per user). |
+| FR-ATT-05.2 | MUST | Auto-sync when back online | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: auto-sync on start/reconnect/foreground; idempotent replay by clientRef (API test). |
 | **FR-ATT-06** | | **Offline-record display** (TOR p.8) | | | | | | | |
-| FR-ATT-06.1 | MUST | Label "offline record" | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-06.2 | MUST | Show the actual submission time | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-06.1 | MUST | Label "offline record" | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: offline flag (not delivered on first attempt) + "ບັນທຶກ offline" badge. |
+| FR-ATT-06.2 | MUST | Show the actual submission time | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: receivedAt shown per offline record (GET /attendance/punches/me). |
 | **FR-ATT-07** | | **Device-time check** (TOR p.8) | | | | | | | |
-| FR-ATT-07.1 | MUST | Compare device time with server time at submission | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-07.2 | MUST | Difference **> 5 minutes** is flagged suspicious | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-08 | SHOULD | Alert the employee when offline data has been unsent for **> 72 hours** | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-07.1 | MUST | Compare device time with server time at submission | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: batch carries deviceSentAt; suspicionReasons vs server clock. |
+| FR-ATT-07.2 | MUST | Difference **> 5 minutes** is flagged suspicious | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: > attendance.deviceTimeToleranceMinutes → suspicious, PENDING review, notify(SUSPICIOUS_ATTENDANCE). |
+| FR-ATT-08 | SHOULD | Alert the employee when offline data has been unsent for **> 72 hours** | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: banner + one local notification when the oldest unsent punch ≥ attendance.offlineAlertHours. |
 | **FR-ATT-09** | | **Fake GPS** (TOR p.9) | | | | | | | |
-| FR-ATT-09.1 | MUST | Detect mock-location apps | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-09.2 | MUST | Block check-in when detected | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-09.1 | MUST | Detect mock-location apps | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: expo-location `mocked` flag (Android). Real-device check with a mock-location app still to do (lead). |
+| FR-ATT-09.2 | MUST | Block check-in when detected | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: app blocks; API rejects mocked=true with attendance_mock_location + audit. |
 | **FR-ATT-10** | | **Tampered devices** (TOR p.9) | | | | | | | |
 | FR-ATT-10.1 | SHOULD | Detect rooted/jailbroken devices | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-11** | | **Device binding** (TOR p.9) | | | | | | | |
-| FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: first mobile login/punch binds (DeviceBinding, one active per user); other phone → device_not_bound. Change request = agent D. |
 | FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
@@ -204,12 +204,12 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-14.2 | MUST | HR approves or rejects each item | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-15** | | **Outside geofence** (TOR p.9) | | | | | | | |
-| FR-ATT-15.1 | MUST | Block normal check-in outside the zone | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-15.2 | MUST | Show distance from the branch | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-15.1 | MUST | Block normal check-in outside the zone | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: shared checkPunchLocation in API + app; attendance_outside_zone. |
+| FR-ATT-15.2 | MUST | Show distance from the branch | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: live distance in app; distanceMetres in the rejection and on the punch. |
 | **FR-ATT-16** | | **Off-site work** (TOR p.9) | | | | | | | |
 | FR-ATT-16.1 | MUST | HR grants an individual "off-site work" permission | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: active OffsitePermission → out-of-zone punch with required reason, offsite=true, PENDING. |
+| FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: OFFSITE_CHECKIN approval handler (approve → APPROVED, reject → REJECTED + recompute). |
 | **FR-ATT-17** | | **Shifts** (TOR p.10) | | | | | | | |
 | FR-ATT-17.1 | MUST | Define normal shifts | Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-17.2 | MUST | Define night shifts crossing midnight | Web | Yes | Yes | M5 | Not Started | Pending |  |
@@ -337,8 +337,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type MISSING_PUNCH + lo/en templates (notif.missingPunch.*, SMS) ready for M5 to call notify(); trigger is M5. |
 | FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: document-expiry job notifies HR + employee (dedupe). |
 | FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily job probation-ending-alerts (07:05 Asia/Vientiane) notifies HR (employee.write) + manager at `probation.alertDays` (default 14/7), workspace timezone, dedupe per end date + stage; no end date → skipped. API tests. |
-| FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type SUSPICIOUS_ATTENDANCE + lo/en templates (notif.suspicious.*) ready for M5; trigger is M5. |
-| FR-NOTI-03.7 | MUST | Offline data not yet synced | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type OFFLINE_UNSYNCED + lo/en templates (notif.offlineUnsynced.*) ready for M5; trigger is M5. |
+| FR-NOTI-03.6 | MUST | Suspicious record (to HR) | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M5-C: trigger on suspicious punch → users with attendance.review (dedupe per punch). |
+| FR-NOTI-03.7 | MUST | Offline data not yet synced | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M5-C: raised on the phone (local notification), since unsent data never reached the server. |
 | **FR-NOTI-04** | | **Notification management** (TOR p.15) | | | | | | | |
 | FR-NOTI-04.1 | SHOULD | Mark as read | Web/Mobile | Yes | Yes | M4 | Implemented | Completed | M2: read / read-all. |
 | FR-NOTI-04.2 | SHOULD | Deep-link to the related screen | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: one shared mapping `resolveNotificationLink` (packages/shared) used by web, the mobile list and push taps; unknown/unsafe links stay on the list. Shared/web/Jest tests; Playwright + Maestro written, not yet run. |
@@ -384,8 +384,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | NFR-02 | Single DB, workspace_id on every table, RLS | M1/M2 | Implemented | FORCE RLS on 36 models; add FKs + remove app-controlled bypass in M2. |
 | NFR-03 | No hardcoded business numbers; FRD §15 parameter table | M2 | Not Started | Constants in packages/shared/domain/lao-labor.ts must move to effective-dated params. |
 | NFR-04 | Lao + English on every screen; Noto Sans Lao | All | In Progress |  |
-| NFR-05 | iOS + Android, offline, low-end phones, slow networks | M5 | In Progress | Expo app; offline queue not built. |
-| NFR-06 | HTTPS, PII encryption, RBAC, audit log, fake-GPS detection | M2/M5 | In Progress | National ID plaintext; audit log mutable. |
+| NFR-05 | iOS + Android, offline, low-end phones, slow networks | M5 | In Progress | M5-C: offline check-in queue (expo-sqlite) + auto-sync built; dev-client rebuild/Maestro pending. |
+| NFR-06 | HTTPS, PII encryption, RBAC, audit log, fake-GPS detection | M2/M5 | In Progress | National ID plaintext; audit log mutable. M5-C: fake-GPS (mocked flag) blocked in app and API + audited. |
 | NFR-07 | 1,000 concurrent check-ins/workspace; main page ≤ 3 s | M5/M7 | Not Started | Needs load test (k6) in M5. |
 | NFR-08 | Daily automatic backup + tested restore | M7 | Not Started |  |
 | NFR-09 | OpenAPI documentation for every endpoint | M2 | Not Started |  |

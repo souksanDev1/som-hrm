@@ -40,6 +40,20 @@
         {
           "defaultChannel": "default"
         }
+      ],
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SOM HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "SOM HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

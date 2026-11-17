@@ -26,3 +26,5 @@ export * from './schemas/schedule';
 export * from './schemas/approval';
 export * from './i18n';
 export * from './api/client';
+export * from './domain/checkin';
+export * from './schemas/checkin';
