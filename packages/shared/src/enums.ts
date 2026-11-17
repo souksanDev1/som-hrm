@@ -100,6 +100,40 @@ export const RequestStatus = {
   CANCELLED: 'CANCELLED',
 } as const;
 export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus];
+export const REQUEST_STATUSES = values(RequestStatus);
+
+/** What an approval request is about (FR-ORG-02). Each type is handled by its subject module. */
+export const ApprovalSubjectType = {
+  LEAVE: 'LEAVE',
+  OVERTIME: 'OVERTIME',
+  ATTENDANCE_CORRECTION: 'ATTENDANCE_CORRECTION',
+} as const;
+export type ApprovalSubjectType = (typeof ApprovalSubjectType)[keyof typeof ApprovalSubjectType];
+export const APPROVAL_SUBJECT_TYPES = values(ApprovalSubjectType);
+
+/** In what capacity an approver acts on a step (FR-ORG-06). */
+export const ApprovalCapacity = {
+  /** The expected manager for this level of the chain of command. */
+  MANAGER: 'MANAGER',
+  /** Someone the manager appointed for a date range (FR-ORG-03). */
+  DELEGATE: 'DELEGATE',
+  /** A higher manager: the expected one was absent or inactive, or the step escalated (FR-ORG-04/05). */
+  UPPER_LEVEL: 'UPPER_LEVEL',
+  /** HR fallback: nobody in the chain can approve (no manager, or everyone unavailable). */
+  HR: 'HR',
+} as const;
+export type ApprovalCapacity = (typeof ApprovalCapacity)[keyof typeof ApprovalCapacity];
+export const APPROVAL_CAPACITIES = values(ApprovalCapacity);
+
+/** Outcome of one approval step. ESCALATED = left undecided too long and moved one level up (FR-ORG-05). */
+export const ApprovalDecision = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  ESCALATED: 'ESCALATED',
+} as const;
+export type ApprovalDecision = (typeof ApprovalDecision)[keyof typeof ApprovalDecision];
+export const APPROVAL_DECISIONS = values(ApprovalDecision);
 
 export const NotificationType = {
   DOCUMENT_EXPIRY: 'DOCUMENT_EXPIRY',

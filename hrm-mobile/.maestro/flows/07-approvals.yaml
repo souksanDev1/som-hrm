@@ -1,0 +1,83 @@
+appId: la.som.hrm
+name: Manager opens the approval inbox and appoints then cancels a delegate (FR-ORG-02, FR-ORG-03.1, FR-ORG-06)
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550002"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "731594"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- scrollUntilVisible:
+    element:
+      id: "open-approvals"
+    direction: DOWN
+- tapOn:
+    id: "open-approvals"
+- assertVisible:
+    id: "approvals-screen"
+# Seeded leave of E003 reserved for manual/Maestro runs (DEMO.leaveReasons[0]); only viewed, never decided, so the flow is rerunnable.
+- scrollUntilVisible:
+    element:
+      text: ".*Family event.*"
+    direction: DOWN
+- tapOn:
+    text: ".*Family event.*"
+- assertVisible:
+    id: "approval-detail-screen"
+- assertVisible:
+    id: "approval-detail"
+- assertVisible:
+    id: "approval-my-capacity"
+- scrollUntilVisible:
+    element:
+      id: "approval-step"
+    direction: DOWN
+- tapOn:
+    id: "approval-back"
+- assertVisible:
+    id: "approvals-screen"
+# Delegate: E003 for today only, then cancel it (cancelled rows never overlap a later run).
+- tapOn:
+    id: "open-delegations"
+- assertVisible:
+    id: "delegations-screen"
+- tapOn:
+    id: "delegation-add"
+- tapOn:
+    id: "delegate-option-E003"
+- tapOn:
+    id: "delegation-reason"
+- inputText: "Maestro"
+- hideKeyboard
+- tapOn:
+    id: "delegation-save"
+- scrollUntilVisible:
+    element:
+      id: "delegation-cancel"
+    direction: DOWN
+- tapOn:
+    id: "delegation-cancel"
+- tapOn:
+    text: "ແມ່ນ"
+- assertNotVisible:
+    id: "delegation-cancel"
+- tapOn:
+    id: "delegations-back"
+- assertVisible:
+    id: "approvals-screen"

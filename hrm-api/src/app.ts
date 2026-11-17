@@ -14,6 +14,11 @@ import { createFilesService, type FilesService } from './modules/files/files.ser
 import { notificationsRoutes } from './modules/notifications/notifications.routes';
 import { createNotificationsService, type NotificationsService } from './modules/notifications/notifications.service';
 import { apiDocsEnabled, registerOpenApi } from './plugins/openapi';
+import type { ApprovalHandlerRegistry } from './modules/approvals/approval-handlers';
+import { approvalsRoutes } from './modules/approvals/approvals.routes';
+import { createApprovalsService, type ApprovalsService } from './modules/approvals/approvals.service';
+import { createDelegationsService, type DelegationsService } from './modules/approvals/delegations.service';
+import { defaultApprovalRegistry } from './modules/approvals/registry';
 import { createAuditService, type AuditService } from './modules/audit/audit.service';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { protectedAuthRoutes, publicAuthRoutes } from './modules/auth/auth.routes';
@@ -47,6 +52,8 @@ export interface Services {
   files: FilesService;
   notifications: NotificationsService;
   schedules: SchedulesService;
+  approvals: ApprovalsService;
+  delegations: DelegationsService;
 }
 
 declare module 'fastify' {
@@ -67,11 +74,13 @@ export interface BuildAppOptions {
   sms?: SmsSender;
   /** Binary file storage; defaults to the local-disk driver at FILE_STORAGE_DIR. */
   storage?: FileStorage;
+  /** Approval subject handlers; defaults to the modules wired in modules/approvals/registry.ts. Tests add their own. */
+  approvalRegistry?: ApprovalHandlerRegistry;
 }
 
 export const API_PREFIX = '/api/v1';
 
-export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAppOptions): Promise<AppInstance> => {
+export const buildApp = async ({ env, db, logger = true, sms, storage, approvalRegistry }: BuildAppOptions): Promise<AppInstance> => {
   const app = Fastify({ logger, trustProxy: env.TRUST_PROXY }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -110,6 +119,8 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
     files: createFilesService(db, fileStorage, { maxBytes: env.FILE_MAX_BYTES }),
     notifications: createNotificationsService(db),
     schedules: createSchedulesService(db),
+    approvals: createApprovalsService(db, approvalRegistry ?? defaultApprovalRegistry),
+    delegations: createDelegationsService(db),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -138,6 +149,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage }: BuildAp
         await secured.register(filesRoutes);
         await secured.register(notificationsRoutes);
         await secured.register(schedulesRoutes);
+        await secured.register(approvalsRoutes);
       });
     },
     { prefix: API_PREFIX },

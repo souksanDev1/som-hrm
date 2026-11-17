@@ -62,7 +62,7 @@ describe('activeNavHref', () => {
 
 describe('visibleNav', () => {
   it('hides items the user has no permission for', () => {
-    expect(visibleNav([]).map((i) => i.href)).toEqual(['/dashboard', '/notifications', '/account']);
+    expect(visibleNav([]).map((i) => i.href)).toEqual(['/dashboard', '/approvals', '/notifications', '/account']);
     expect(visibleNav(['employee.read', 'org.read', 'org.write']).map((i) => i.href)).toContain('/settings');
     expect(visibleNav(['org.read']).map((i) => i.href)).not.toContain('/settings');
     expect(visibleNav(['org.write']).find((i) => i.href === '/settings')?.mobile).toBe(true);

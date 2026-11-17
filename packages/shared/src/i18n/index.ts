@@ -1,3 +1,4 @@
+import { approvalsEn, approvalsLo } from './areas/approvals';
 import { authEn, authLo } from './areas/auth';
 import { employeesEn, employeesLo } from './areas/employees';
 import { infraEn, infraLo } from './areas/infra';
@@ -156,7 +157,7 @@ const coreLo = {
  * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
  * so that features can add strings without editing this file.
  */
-const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo } as const;
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo } as const;
 
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
@@ -303,7 +304,7 @@ const coreEn: Record<keyof typeof coreLo, string> = {
   'error.unknown': 'Unknown error',
 };
 
-const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn };
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];

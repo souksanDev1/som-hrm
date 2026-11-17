@@ -1,13 +1,14 @@
 'use client';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui';
+import { DelegationsCard } from '@/features/approvals/components/DelegationsCard';
 import { ChangePasswordForm } from '@/features/auth/components/ChangePasswordForm';
 import { ChangePinForm } from '@/features/auth/components/ChangePinForm';
 import { LanguageSelect } from '@/features/auth/components/LanguageSelect';
 import { useAuthStore } from '@/features/auth/store';
 import { useT } from '@/lib/i18n';
 
-/** Self-service account settings: language, password, PIN. */
+/** Self-service account settings: language, password, PIN, approval delegates. */
 export default function AccountPage() {
   const t = useT();
   const user = useAuthStore((s) => s.user);
@@ -29,6 +30,9 @@ export default function AccountPage() {
             <ChangePinForm key={String(user.hasPin)} hasPin={user.hasPin} />
           </Card>
         )}
+        <div className="lg:col-span-2">
+          <DelegationsCard />
+        </div>
       </div>
     </>
   );

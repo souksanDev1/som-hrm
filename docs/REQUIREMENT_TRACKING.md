@@ -145,15 +145,15 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ORG-01.1 | MUST | Hierarchy Company > Branch > Department > Position | Web/Mobile | Yes | Yes | M1 | In Progress | Partial | Branch/Department/Position + reporting line exist. |
 | FR-ORG-01.2 | MUST | View chart on web | Web/Mobile | Yes | — | M1 | Implemented | Completed | /org tree; Playwright spec. |
 | FR-ORG-01.3 | MUST | View chart in mobile app | Web/Mobile | Yes | — | M1 | In Progress | Completed | Flat list, not virtualised; Maestro flow. |
-| FR-ORG-02 | MUST | Chain of command is the default approval chain | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-ORG-02 | MUST | Chain of command is the default approval chain | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: generic approval engine (ApprovalRequest/ApprovalStep, replaces LeaveApproval) routes up the Employee.managerId chain for `approval.levels` (default 1); no manager → HR (`approval.hr_fallback`). Inbox/detail/approve/reject API, web /approvals, mobile screen. API/shared/web/mobile tests; E2E + Maestro written, not yet run. |
 | **FR-ORG-03** | | **Delegate approver** (TOR p.7) | | | | | | | |
-| FR-ORG-03.1 | MUST | Manager appoints a delegate with a date range | Web/Mobile | Yes | Yes | M4 | Not Started | Pending | ApprovalDelegation model is schema-only. |
-| FR-ORG-03.2 | MUST | When a manager files leave, the system prompts for a delegate, who is auto-activated for the leave period | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-ORG-04 | MUST | If the manager is on leave with no delegate, requests auto-route to the next-level manager | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-ORG-03.1 | MUST | Manager appoints a delegate with a date range | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: delegation API (no self, no overlap, active delegate in the same workspace, every change audited) + web account card + mobile screen; HR manages other managers' with `approval.delegate.manage`. |
+| FR-ORG-03.2 | MUST | When a manager files leave, the system prompts for a delegate, who is auto-activated for the leave period | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M4: `ensureDelegationForAbsence()` + POST /approvals/delegations/absence (API-tested). Left for M6: prompt in the leave form, call the hook on leave submit, cancel the delegation when the leave is cancelled. |
+| FR-ORG-04 | MUST | If the manager is on leave with no delegate, requests auto-route to the next-level manager | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: pure `resolveApprover()` (shared, unit-tested) skips an approver on approved leave without a delegate, at submission and at each level. |
 | **FR-ORG-05** | | **Escalate stale requests** (TOR p.7) | | | | | | | |
-| FR-ORG-05.1 | SHOULD | Requests unapproved for more than X working days (**default 2**) escalate upward | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-ORG-05.2 | SHOULD | Notify HR on escalation | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-ORG-06 | MUST | Record who approved and in what capacity (manager / delegate / upper level) | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-ORG-05.1 | SHOULD | Requests unapproved for more than X working days (**default 2**) escalate upward | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily pg-boss `approval-escalation` job; working days from the approver's work pattern + holidays; idempotent; `approval.escalationWorkingDays` (default 2). |
+| FR-ORG-05.2 | SHOULD | Notify HR on escalation | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: escalation notifies HR (`approval.hr_fallback` holders) and the new approver (APPROVAL_ESCALATED). |
+| FR-ORG-06 | MUST | Record who approved and in what capacity (manager / delegate / upper level) | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: each ApprovalStep stores the decider and capacity MANAGER/DELEGATE/UPPER_LEVEL/HR; shown in web/mobile history and audited. |
 ## FR-ATT
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
@@ -332,8 +332,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-NOTI-02.2 | SHOULD | SMS key events to employees without the app | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: key events (APPROVAL_DECISION, DOCUMENT_EXPIRY, PROBATION_ENDING) queue an SMS for users with a phone and no registered app device; per-type lo/en template rendered at queue time, ≤160 chars. Console provider only. API tests. Employees with no login at all are not reachable (Notification needs a user). |
 | FR-NOTI-02.3 | SHOULD | Enable/disable SMS per Workspace | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: `notification.smsEnabled` editable on /settings/parameters (effective-dated) and re-checked by the delivery job (pending SMS SKIPPED when off). API tests; Playwright written, not yet run. |
 | **FR-NOTI-03** | | **Notified events** (TOR p.15) | | | | | | | |
-| FR-NOTI-03.1 | MUST | Request pending approval | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
-| FR-NOTI-03.2 | MUST | Approval result | Web/Mobile | Yes | Yes | M4 | Not Started | Pending |  |
+| FR-NOTI-03.1 | MUST | Request pending approval | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: APPROVAL_PENDING to the approver + delegate (or HR) with link /approvals/:id. |
+| FR-NOTI-03.2 | MUST | Approval result | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: APPROVAL_DECISION to the requester on the final approve/reject. |
 | FR-NOTI-03.3 | MUST | Missing check-in/out | Web/Mobile | Yes | Yes | M4 | In Progress | Pending | M4: type MISSING_PUNCH + lo/en templates (notif.missingPunch.*, SMS) ready for M5 to call notify(); trigger is M5. |
 | FR-NOTI-03.4 | MUST | Document expiring | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M2: document-expiry job notifies HR + employee (dedupe). |
 | FR-NOTI-03.5 | MUST | Probation ending | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily job probation-ending-alerts (07:05 Asia/Vientiane) notifies HR (employee.write) + manager at `probation.alertDays` (default 14/7), workspace timezone, dedupe per end date + stage; no end date → skipped. API tests. |

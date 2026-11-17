@@ -29,6 +29,14 @@ describe('resolveNotificationLink (FR-NOTI-04.2)', () => {
     expect(resolveNotificationLink('/notifications', 'mobile')).toBe('/notifications');
   });
 
+  it('opens one approval request on both surfaces, and the inbox for the section', () => {
+    expect(resolveNotificationLink('/approvals/req_1-a', 'web')).toBe('/approvals/req_1-a');
+    expect(resolveNotificationLink('/approvals/req_1-a', 'mobile')).toBe('/approvals/req_1-a');
+    expect(resolveNotificationLink('/approvals', 'mobile')).toBe('/approvals');
+    expect(resolveNotificationLink('/approvals/a/b', 'mobile')).toBe('/approvals');
+    expect(resolveNotificationLink('/approvals/a?x=1', 'mobile')).toBe('/approvals');
+  });
+
   it('has no screen for links a surface does not have', () => {
     expect(resolveNotificationLink('/employees/abc', 'mobile')).toBeNull();
     expect(resolveNotificationLink('/settings/parameters', 'mobile')).toBeNull();
