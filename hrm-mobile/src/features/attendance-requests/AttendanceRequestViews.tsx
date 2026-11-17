@@ -1,17 +1,16 @@
-import type { Correction, CreateCorrectionInput, CreateDeviceChangeInput, DeviceChangeRequest } from '@hrm/shared';
+import type { Correction, CreateCorrectionInput, CreateDeviceChangeInput, DeviceChangeRequest, DeviceInfo } from '@hrm/shared';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Badge, Button, InfoRow, TextField } from '@/components/ui';
 import { errorCode } from '@/lib/api';
 import { useT } from '@/lib/i18n';
-import type { DeviceIdentity } from './device-identity';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const statusTone = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'neutral' } as const;
 
 export interface ChangeDeviceFormProps {
-  device: DeviceIdentity;
+  device: DeviceInfo;
   onSubmit(input: CreateDeviceChangeInput): Promise<unknown>;
 }
 

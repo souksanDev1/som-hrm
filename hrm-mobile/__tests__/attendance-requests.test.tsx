@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import ChangeDeviceScreen from '@/app/attendance/change-device';
 import CorrectionScreen from '@/app/attendance/correction';
 import { ChangeDeviceForm, CorrectionForm, CorrectionList } from '@/features/attendance-requests/AttendanceRequestViews';
-import { DEVICE_ID_KEY, getDeviceIdentity } from '@/features/attendance-requests/device-identity';
+import { DEVICE_ID_KEY, getDeviceInfo, resetDeviceInfoForTests } from '@/features/checkin/device';
 import { useAuthStore } from '@/features/auth/store';
 import { ApiError } from '@/lib/api';
 import { usePrefsStore } from '@/lib/i18n';
@@ -91,8 +91,10 @@ describe('CorrectionScreen', () => {
 
 describe('device change (FR-ATT-11.2)', () => {
   it('keeps one stable install id in secure storage', async () => {
-    const first = await getDeviceIdentity();
-    const second = await getDeviceIdentity();
+    resetDeviceInfoForTests();
+    const first = (await getDeviceInfo())!;
+    resetDeviceInfoForTests();
+    const second = (await getDeviceInfo())!;
     expect(first.deviceId).toBe(second.deviceId);
     expect(await SecureStore.getItemAsync(DEVICE_ID_KEY)).toBe(first.deviceId);
     expect(['IOS', 'ANDROID']).toContain(first.platform);

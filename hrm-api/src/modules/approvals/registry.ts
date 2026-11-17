@@ -1,5 +1,6 @@
 import { leaveApprovalHandler } from '../leave/leave.approval';
 import { overtimeApprovalHandler } from '../overtime/overtime.approval';
+import { offsiteCheckinApprovalHandler } from '../attendance/offsite.approval';
 import { createApprovalRegistry } from './approval-handlers';
 import { correctionApprovalHandler } from '../attendance/correction.approval';
 import { deviceChangeApprovalHandler } from '../attendance/device-change.approval';
@@ -13,4 +14,5 @@ export const defaultApprovalRegistry = createApprovalRegistry([
   overtimeApprovalHandler,
   correctionApprovalHandler,
   deviceChangeApprovalHandler,
+  offsiteCheckinApprovalHandler,
 ]);

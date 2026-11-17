@@ -2,6 +2,7 @@ import {
   normalizeLaoPhone,
   type ChangePasswordInput,
   type ChangePinInput,
+  type DeviceInfo,
   type ForgotCredentialInput,
   type LoginResponse,
   type Me,
@@ -20,6 +21,7 @@ import { randomToken, sha256 } from '../../lib/crypto';
 import { AppError, badRequest, conflict, forbidden, locked, unauthorized } from '../../lib/errors';
 import { hashSecret, verifySecret } from '../../lib/password';
 import type { SmsSender } from '../../lib/sms';
+import { ensureDeviceBinding } from '../attendance/device-binding';
 import { auditRepository } from '../audit/audit.repository';
 import { parameterReader } from '../parameters/parameters.service';
 import { authRepository, type IdentifierKind, type Principal } from './auth.repository';
@@ -153,6 +155,7 @@ export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: Sm
     secret: string,
     secretField: 'passwordHash' | 'pinHash',
     meta: RequestMeta,
+    device: Partial<DeviceInfo> = {},
   ): Promise<LoginResponse> => {
     const result = await db.system(async (tx) => {
       const ws = await authRepository.findWorkspaceByCode(tx, workspaceCode);
@@ -194,6 +197,11 @@ export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: Sm
         meta: { method: secretField === 'pinHash' ? 'PIN' : 'PASSWORD' },
         ip: meta.ip,
       });
+      // Mobile sign-in binds the phone as the attendance device when the user has none yet (FR-ATT-11.1);
+      // another phone still signs in, its punches are refused until the binding is moved.
+      if (user.employeeId && device.deviceId && device.platform) {
+        await ensureDeviceBinding(tx, ws.id, user.id, { deviceId: device.deviceId, platform: device.platform, model: device.model }, { ip: meta.ip });
+      }
       const principal = await authRepository.findPrincipal(tx, user.id);
       const tokens = await issueTokens(tx, user, meta);
       return { value: { ...tokens, user: toMe(principal!, phoneVerification) } };
@@ -205,10 +213,10 @@ export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: Sm
 
   return {
     loginWithPassword: (input: PasswordLoginInput, meta: RequestMeta) =>
-      login(input.workspaceCode, detectIdentifier(input.identifier), input.password, 'passwordHash', meta),
+      login(input.workspaceCode, detectIdentifier(input.identifier), input.password, 'passwordHash', meta, input),
 
     loginWithPin: (input: PinLoginInput, meta: RequestMeta) =>
-      login(input.workspaceCode, detectIdentifier(input.identifier), input.pin, 'pinHash', meta),
+      login(input.workspaceCode, detectIdentifier(input.identifier), input.pin, 'pinHash', meta, input),
 
     /**
      * Rotate a refresh token. The old token is revoked with a conditional update, so of two

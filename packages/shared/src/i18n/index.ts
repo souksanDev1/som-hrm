@@ -2,6 +2,7 @@ import { approvalsEn, approvalsLo } from './areas/approvals';
 import { attendanceEn, attendanceLo } from './areas/attendance';
 import { attendanceRequestsEn, attendanceRequestsLo } from './areas/attendance-requests';
 import { authEn, authLo } from './areas/auth';
+import { checkinEn, checkinLo } from './areas/checkin';
 import { employeesEn, employeesLo } from './areas/employees';
 import { infraEn, infraLo } from './areas/infra';
 import { notificationsEn, notificationsLo } from './areas/notifications';
@@ -162,7 +163,7 @@ const coreLo = {
  * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
  * so that features can add strings without editing this file.
  */
-const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo } as const;
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo, ...checkinLo } as const;
 
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
@@ -309,7 +310,7 @@ const coreEn: Record<keyof typeof coreLo, string> = {
   'error.unknown': 'Unknown error',
 };
 
-const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn };
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn, ...checkinEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];

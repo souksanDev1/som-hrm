@@ -13,7 +13,7 @@ export type LinkSurface = 'web' | 'mobile';
 export const NOTIFICATIONS_ROUTE = '/notifications';
 
 /** Screens of the mobile app (Expo Router paths) a notification may open. */
-export const MOBILE_LINK_ROUTES = ['/home', '/org', '/notifications', '/profile', '/holidays', '/approvals'] as const;
+export const MOBILE_LINK_ROUTES = ['/home', '/org', '/notifications', '/profile', '/holidays', '/approvals', '/checkin'] as const;
 /** A fixed screen, or one approval request's detail screen. */
 export type MobileLinkRoute = (typeof MOBILE_LINK_ROUTES)[number] | `/approvals/${string}`;
 
@@ -48,6 +48,8 @@ const LINK_RULES: readonly LinkRule[] = [
   { pattern: /^\/holidays$/, web: null, mobile: '/holidays' },
   // Attendance report screens (FR-ATT-18; missing-punch alerts link to the employee's month).
   { pattern: section('/attendance'), web: KEEP, mobile: null },
+  // The check-in screen (offline-queue alert, FR-NOTI-03.7) exists only on mobile.
+  { pattern: /^\/checkin$/, web: null, mobile: '/checkin' },
 ];
 
 /** Only same-app absolute paths: no scheme, no protocol-relative `//host`, no backslashes or dot segments. */

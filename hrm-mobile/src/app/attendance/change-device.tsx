@@ -1,22 +1,23 @@
+import type { DeviceInfo } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { Button, Card, QueryView, Screen } from '@/components/ui';
 import { useMyDeviceRequests, useRequestDeviceChange } from '@/features/attendance-requests/api';
 import { ChangeDeviceForm, DeviceRequestList } from '@/features/attendance-requests/AttendanceRequestViews';
-import { getDeviceIdentity, type DeviceIdentity } from '@/features/attendance-requests/device-identity';
 import { useAuthStore } from '@/features/auth/store';
+import { getDeviceInfo } from '@/features/checkin/device';
 import { useT } from '@/lib/i18n';
 
 /** Ask HR to move the attendance binding to this phone (FR-ATT-11.2/11.3). */
 export default function ChangeDeviceScreen() {
   const t = useT();
   const token = useAuthStore((s) => s.accessToken);
-  const [device, setDevice] = useState<DeviceIdentity | null>(null);
+  const [device, setDevice] = useState<DeviceInfo | null>(null);
   const history = useMyDeviceRequests();
   const request = useRequestDeviceChange();
   useEffect(() => {
-    void getDeviceIdentity().then(setDevice);
+    void getDeviceInfo().then(setDevice);
   }, []);
   if (!token) return <Redirect href="/login" />;
 

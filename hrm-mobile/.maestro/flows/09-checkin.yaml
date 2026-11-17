@@ -1,0 +1,58 @@
+appId: la.som.hrm
+name: Field worker checks in inside the branch zone (FR-ATT-01/15, FR-ATT-06)
+# Needs a dev build made with EXPO_PUBLIC_ALLOW_MOCK_LOCATION=true: Maestro's setLocation is an Android mock
+# provider, which release builds (and the API) refuse as fake GPS (FR-ATT-09).
+# Seeded E003 works at "ໜ້າງານ ປາກເຊ" (15.1202, 105.7987, radius 300 m) with MOBILE check-in enabled.
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      location: allow
+      camera: allow
+      notifications: deny
+- setLocation:
+    latitude: 15.1203
+    longitude: 105.7988
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-checkin"
+- assertVisible:
+    id: "checkin-screen"
+- extendedWaitUntil:
+    visible:
+      id: "checkin-zone-inside"
+    timeout: 30000
+- assertVisible:
+    id: "checkin-distance"
+- tapOn:
+    id: "checkin-button"
+- extendedWaitUntil:
+    visible:
+      id: "checkin-message"
+    timeout: 20000
+# Created (IN or OUT, depending on earlier runs today) and listed among recent punches.
+- assertVisible:
+    text: ".*ສຳເລັດ ເວລາ.*"
+- scrollUntilVisible:
+    element:
+      id: "checkin-records"
+    direction: DOWN
