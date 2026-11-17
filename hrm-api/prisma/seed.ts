@@ -54,7 +54,7 @@ const main = async () => {
       data: { workspaceId: ws, name: 'ສຳນັກງານໃຫຍ່ ວຽງຈັນ', address: 'ບ້ານ ໂພນທັນ, ເມືອງ ໄຊເສດຖາ', latitude: 17.9757, longitude: 102.6331, geofenceRadius: 150 },
     });
     const site = await tx.branch.create({
-      data: { workspaceId: ws, name: 'ໜ້າງານ ປາກເຊ', address: 'ແຂວງ ຈຳປາສັກ', latitude: 15.1202, longitude: 105.7987, geofenceRadius: 300 },
+      data: { workspaceId: ws, name: 'ໜ້າງານ ປາກເຊ', address: 'ແຂວງ ຈຳປາສັກ', latitude: 15.1202, longitude: 105.7987, geofenceRadius: 300, attendanceModes: ['MOBILE', 'SCANNER'] },
     });
     const [hr, ops] = await Promise.all([
       tx.department.create({ data: { workspaceId: ws, name: 'ບຸກຄະລາກອນ (HR)' } }),

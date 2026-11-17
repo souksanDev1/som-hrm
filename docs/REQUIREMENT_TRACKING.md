@@ -164,12 +164,12 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-01.3 | MUST | Record GPS on every punch | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-01.4 | MUST | Selfie photo (toggle on/off per Workspace) | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-02** | | **Scanner-file upload** (TOR p.8) | | | | | | | |
-| FR-ATT-02.1 | MUST | ZKTeco file template | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-02.2 | MUST | HIP file template | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-02.3 | MUST | Generic Excel/CSV template for other brands | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-02.4 | MUST | Auto-match employee codes | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-02.5 | MUST | Show unmatched or duplicate rows | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-02.6 | MUST | HR reviews and confirms before saving | Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-02.1 | MUST | ZKTeco file template | Web | Yes | Yes | M5 | Implemented | Partial | `attlog.dat` (state 0/1 = IN/OUT) + ZKTime CSV/Excel export parser (`shared/domain/scan-formats.ts`); real device samples still to verify |
+| FR-ATT-02.2 | MUST | HIP file template | Web | Yes | Yes | M5 | Implemented | Partial | Tolerant HIP text parser (code, dd/MM/yyyy, HH:mm[:ss], comma/tab/space); **format unconfirmed: needs real HIP sample files** |
+| FR-ATT-02.3 | MUST | Generic Excel/CSV template for other brands | Web | Yes | Yes | M5 | Implemented | Partial | Generic CSV/Excel (`employee_code, date|datetime, time, type?`); template CSV + XLSX `GET /attendance/scan-imports/template` |
+| FR-ATT-02.4 | MUST | Auto-match employee codes | Web | Yes | Yes | M5 | Implemented | Partial | Exact employee-code match; resigned/terminated = UNMATCHED; branch must have SCANNER mode; optional branch filter |
+| FR-ATT-02.5 | MUST | Show unmatched or duplicate rows | Web | Yes | Yes | M5 | Implemented | Partial | Preview with OK/UNMATCHED/DUPLICATE/INVALID counts + filters; duplicate = same employee + minute (stored or earlier row) |
+| FR-ATT-02.6 | MUST | HR reviews and confirms before saving | Web | Yes | Yes | M5 | Implemented | Partial | Preview saves nothing; HMAC token (sha256 + format + branch + row outcomes); confirm in one tx via `createPunches` (SCANNER) + recompute; history |
 | **FR-ATT-03** | | **Kiosk for employees without smartphones** (TOR p.8) | | | | | | | |
 | FR-ATT-03.1 | SHOULD | Kiosk mode on a shared on-site tablet | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-03.2 | SHOULD | Punch with employee code + PIN | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |

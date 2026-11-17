@@ -31,6 +31,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings/work-schedule', labelKey: 'schedule.title', icon: 'calendar_month', permission: PERMISSIONS.SCHEDULE_MANAGE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
+  // Scanner-file import (FR-ATT-02): HR uploads ZKTeco/HIP/CSV/Excel scan files.
+  { href: '/attendance/scan-import', labelKey: 'scan.title', icon: 'fingerprint', permission: PERMISSIONS.SCAN_IMPORT },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */
