@@ -1,7 +1,7 @@
 import { NOTIFICATIONS_ROUTE, resolveNotificationLink, type MobileLinkRoute, type PushPlatform } from '@hrm/shared';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { LogBox, Platform } from 'react-native';
 import { apiFetch } from '@/lib/api';
 
 /**
@@ -24,11 +24,16 @@ export const easProjectId = (): string | null => {
 export const isPushConfigured = (): boolean => Platform.OS !== 'web' && easProjectId() !== null;
 
 let loggedUnavailable = false;
+const UNAVAILABLE_PREFIX = '[push] not available';
+// Missing push credentials is an expected setup state: keep the console warning, but not the dev-build
+// LogBox toast, which would cover the tab bar.
+LogBox.ignoreLogs([UNAVAILABLE_PREFIX]);
+
 /** Explain once per app run why push is off; never shown to the user. */
 const logUnavailable = (reason: string, err?: unknown) => {
   if (loggedUnavailable) return;
   loggedUnavailable = true;
-  console.warn(`[push] not available (${reason})`, err instanceof Error ? err.message : (err ?? ''));
+  console.warn(`${UNAVAILABLE_PREFIX} (${reason})`, err instanceof Error ? err.message : (err ?? ''));
 };
 
 /** Token registered with the API for the signed-in user on this device (removed again on sign-out). */

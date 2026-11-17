@@ -16,16 +16,16 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS | 27 | 4 | 25 | 2 | 4 |
 | FR-AUTH | 9 | 2 | 10 | 0 | 1 |
 | FR-EMP | 34 | 2 | 34 | 2 | 0 |
-| FR-ORG | 8 | 2 | 1 | 2 | 7 |
+| FR-ORG | 8 | 2 | 7 | 3 | 0 |
 | FR-ATT | 49 | 11 | 0 | 0 | 60 |
 | FR-LV | 33 | 4 | 0 | 0 | 37 |
 | FR-OB | 18 | 2 | 0 | 0 | 20 |
-| FR-NOTI | 10 | 5 | 3 | 3 | 9 |
+| FR-NOTI | 10 | 5 | 10 | 5 | 0 |
 | FR-PAYDATA | 10 | 1 | 0 | 0 | 11 |
 | FR-RPT | 8 | 1 | 0 | 0 | 9 |
-| **Total** | **206** | **34** | **73** | **9** | **158** |
+| **Total** | **206** | **34** | **86** | **12** | **142** |
 
-"Implemented" here means the M1–M3 code covers it; none of these are UAT-accepted yet.
+"Implemented" here means the M1–M4 code covers it; none of these are UAT-accepted yet.
 
 ## FR-WS
 

@@ -11,7 +11,7 @@
       "name": "hrm-api-mobile",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@hrm/api", "exec", "tsx", "--env-file=/Users/csl-pc033/Desktop/HRM/hrm-api/.env", "/Users/csl-pc033/Desktop/HRM/hrm-api/src/server.ts"],
-      "env": { "DATABASE_URL": "postgresql://hrm:hrm@localhost:5432/hrm_mobile?schema=public" },
+      "env": { "DATABASE_URL": "postgresql://hrm:hrm@localhost:5432/hrm_mobile_m4?schema=public" },
       "port": 4000
     }
   ]
