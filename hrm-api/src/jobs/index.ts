@@ -7,9 +7,11 @@ import { runDocumentExpiryAlerts } from './handlers/document-expiry';
 import { runHolidayDefaults } from './handlers/holiday-defaults';
 import { deliverPendingNotifications } from './handlers/notification-delivery';
 import { runProbationEndingAlerts } from './handlers/probation-ending';
+import { runOvertimeActuals } from './handlers/overtime-actuals';
 import type { JobRunner } from './runner';
 
 export { runAccountDeactivation, runApprovalEscalation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults, runProbationEndingAlerts };
+export { runOvertimeActuals };
 
 /** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
 export interface WorkspaceJob {
@@ -23,6 +25,7 @@ export const JOBS = {
   accountDeactivation: 'account-deactivation',
   holidayDefaults: 'holiday-defaults',
   approvalEscalation: 'approval-escalation',
+  overtimeActuals: 'overtime-actuals',
 } as const;
 
 /** Workspaces that should receive scheduled work (suspended companies are skipped). */
@@ -77,4 +80,6 @@ export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts,
   await perWorkspace(JOBS.holidayDefaults, '15 1 1 * *', (ws) => runHolidayDefaults(db, ws));
   // Before the working day starts: steps left undecided for N full working days move up (FR-ORG-05).
   await perWorkspace(JOBS.approvalEscalation, '0 6 * * *', (ws) => runApprovalEscalation(db, ws));
+  // Hourly: approved planned OT gets its actual period from final punches (FR-ATT-21).
+  await perWorkspace(JOBS.overtimeActuals, '25 * * * *', (ws) => runOvertimeActuals(db, ws));
 };

@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { capStatus, isNightMinute, parseTimeOfDay, splitOvertime, totalOvertimeMinutes, zonedInstant } from '../src';
+import {
+  capStatus,
+  formatDurationMinutes,
+  isNightMinute,
+  isoMonthSchema,
+  overtimeCategoryKey,
+  overtimeInputSchema,
+  overtimePeriod,
+  parseTimeOfDay,
+  periodOverlap,
+  splitOvertime,
+  totalOvertimeMinutes,
+  zonedInstant,
+} from '../src';
 
 const TZ = 'Asia/Vientiane';
 const at = (date: string, hhmm: string) => zonedInstant(date, parseTimeOfDay(hhmm)!, TZ);
@@ -49,5 +62,38 @@ describe('capStatus (FR-ATT-22)', () => {
     expect(capStatus(100, 44, 180, 80)).toMatchObject({ warn: true, exceeded: false });
     expect(capStatus(100, 80, 180, 80)).toMatchObject({ exceeded: false });
     expect(capStatus(100, 81, 180, 80)).toMatchObject({ exceeded: true });
+  });
+});
+
+describe('overtimePeriod / periodOverlap / formatDurationMinutes (FR-ATT-20)', () => {
+  it('places the end on the next day when it is not after the start', () => {
+    expect(overtimePeriod('2026-11-16', '17:30', '20:00', TZ)).toEqual({ start: at('2026-11-16', '17:30'), end: at('2026-11-16', '20:00') });
+    expect(overtimePeriod('2026-11-16', '21:00', '01:00', TZ)).toEqual({ start: at('2026-11-16', '21:00'), end: at('2026-11-17', '01:00') });
+    expect(overtimePeriod('2026-11-16', '25:00', '01:00', TZ)).toBeNull();
+  });
+  it('overlaps periods without counting touching ends', () => {
+    const shift = { start: at('2026-11-16', '08:00'), end: at('2026-11-16', '17:00') };
+    expect(periodOverlap(shift, { start: at('2026-11-16', '17:00'), end: at('2026-11-16', '19:00') })).toBeNull();
+    expect(periodOverlap(shift, { start: at('2026-11-16', '16:00'), end: at('2026-11-16', '19:00') })).toEqual({
+      start: at('2026-11-16', '16:00'),
+      end: at('2026-11-16', '17:00'),
+    });
+  });
+  it('formats minutes as h:mm', () => {
+    expect(formatDurationMinutes(150)).toBe('2:30');
+    expect(formatDurationMinutes(0)).toBe('0:00');
+  });
+});
+
+describe('overtime schemas', () => {
+  it('validates times, months and refuses an empty period', () => {
+    const base = { kind: 'PRE', workDate: '2026-11-16', start: '17:00', end: '19:00', reason: 'Stock count' };
+    expect(overtimeInputSchema.safeParse(base).success).toBe(true);
+    expect(overtimeInputSchema.safeParse({ ...base, end: '17:00' }).success).toBe(false);
+    expect(overtimeInputSchema.safeParse({ ...base, start: '7:00' }).success).toBe(false);
+    expect(overtimeInputSchema.safeParse({ ...base, reason: ' ' }).success).toBe(false);
+    expect(isoMonthSchema.safeParse('2026-13').success).toBe(false);
+    expect(isoMonthSchema.safeParse('2026-11').success).toBe(true);
+    expect(overtimeCategoryKey('holidayNightMinutes')).toBe('ot.category.holidayNight');
   });
 });

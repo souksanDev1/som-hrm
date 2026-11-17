@@ -1,0 +1,86 @@
+appId: la.som.hrm
+name: Employee requests overtime with the live category split and sees it in the month list (FR-ATT-20..23)
+---
+# A far-future date that differs per run (minute-based), so a rerun never overlaps an earlier request.
+- evalScript: ${output.otDate = new Date(Date.UTC(2075, 0, 1) + (Math.floor(Date.now() / 60000) % 3000) * 86400000).toISOString().slice(0, 10)}
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- scrollUntilVisible:
+    element:
+      id: "open-overtime"
+    direction: DOWN
+- tapOn:
+    id: "open-overtime"
+- assertVisible:
+    id: "overtime-screen"
+- assertVisible:
+    id: "ot-approved-total"
+- tapOn:
+    id: "ot-new"
+- assertVisible:
+    id: "overtime-new-screen"
+- tapOn:
+    id: "ot-workDate"
+- eraseText: 12
+- inputText: ${output.otDate}
+- hideKeyboard
+- tapOn:
+    id: "ot-start"
+- inputText: "21:30"
+- hideKeyboard
+- tapOn:
+    id: "ot-end"
+- inputText: "23:00"
+- hideKeyboard
+# 21:30–22:00 day + 22:00–23:00 night = 1:30 (night window 22:00–05:00).
+- scrollUntilVisible:
+    element:
+      id: "ot-preview-split-total"
+    direction: DOWN
+- assertVisible:
+    id: "ot-preview-split-total"
+    text: "1:30"
+- assertVisible:
+    id: "ot-preview-split-workdayNightMinutes"
+    text: "1:00"
+- scrollUntilVisible:
+    element:
+      id: "ot-reason"
+    direction: UP
+- tapOn:
+    id: "ot-reason"
+- inputText: "Maestro OT"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "ot-submit"
+    direction: DOWN
+- tapOn:
+    id: "ot-submit"
+# Back on the list (the current month; the request is in a future month, so only the screen is checked).
+- assertVisible:
+    id: "overtime-screen"
+- tapOn:
+    id: "overtime-back"
+- assertVisible:
+    id: "home-screen"

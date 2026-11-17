@@ -37,6 +37,8 @@ import { platformRoutes } from './modules/platform/platform.routes';
 import { createPlatformService, type PlatformService } from './modules/platform/platform.service';
 import { schedulesRoutes } from './modules/schedules/schedules.routes';
 import { createSchedulesService, type SchedulesService } from './modules/schedules/schedules.service';
+import { overtimeRoutes } from './modules/overtime/overtime.routes';
+import { createOvertimeService, type OvertimeService } from './modules/overtime/overtime.service';
 import { authPlugin, ttlToSeconds } from './plugins/auth';
 import { registerErrorHandler } from './plugins/error-handler';
 
@@ -54,6 +56,7 @@ export interface Services {
   schedules: SchedulesService;
   approvals: ApprovalsService;
   delegations: DelegationsService;
+  overtime: OvertimeService;
 }
 
 declare module 'fastify' {
@@ -121,6 +124,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     schedules: createSchedulesService(db),
     approvals: createApprovalsService(db, approvalRegistry ?? defaultApprovalRegistry),
     delegations: createDelegationsService(db),
+    overtime: createOvertimeService(db, approvalRegistry ?? defaultApprovalRegistry),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -150,6 +154,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(notificationsRoutes);
         await secured.register(schedulesRoutes);
         await secured.register(approvalsRoutes);
+        await secured.register(overtimeRoutes);
       });
     },
     { prefix: API_PREFIX },

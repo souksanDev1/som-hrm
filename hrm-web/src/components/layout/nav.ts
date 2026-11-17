@@ -31,6 +31,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings/work-schedule', labelKey: 'schedule.title', icon: 'calendar_month', permission: PERMISSIONS.SCHEDULE_MANAGE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
+  // Own overtime requests and approved OT hours (FR-ATT-20/23): every signed-in employee.
+  { href: '/overtime', labelKey: 'otx.mine.title', icon: 'more_time' },
+  // Monthly OT by category (payroll input) for HR and managers within their data scope (FR-ATT-21).
+  { href: '/overtime/report', labelKey: 'otx.report.title', icon: 'timer', permission: PERMISSIONS.ATTENDANCE_READ_ALL },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */
