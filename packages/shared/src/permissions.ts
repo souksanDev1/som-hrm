@@ -7,6 +7,8 @@ export const PERMISSIONS = {
   EMPLOYEE_SENSITIVE_READ: 'employee.sensitive.read',
   /** See every employee in the workspace; without it `employee.read` is limited to self + reporting line. */
   EMPLOYEE_READ_ALL: 'employee.read_all',
+  /** Bulk-create employees from an Excel/CSV file (FR-EMP-09); separate from `employee.write` so it can be granted on its own. */
+  EMPLOYEE_IMPORT: 'employee.import',
   ORG_READ: 'org.read',
   ORG_WRITE: 'org.write',
   USER_MANAGE: 'user.manage',

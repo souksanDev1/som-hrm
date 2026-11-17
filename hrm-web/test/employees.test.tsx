@@ -121,6 +121,21 @@ describe('EmployeeForm: M3 fields', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('requires a contract end date for a new fixed-term contract but not for a legacy one left as it is', async () => {
+    const onCreate = vi.fn();
+    const { unmount } = render(<EmployeeForm mode="create" defaultValues={{ ...base, contractType: 'FIXED_TERM' }} onSubmit={onCreate} onCancel={() => undefined} />);
+    fireEvent.submit(screen.getByTestId('employee-form'));
+    await waitFor(() => expect(screen.getByText('ສັນຍາແບບມີກຳນົດເວລາ ຕ້ອງໃສ່ວັນໝົດສັນຍາ')).toBeInTheDocument());
+    expect(onCreate).not.toHaveBeenCalled();
+    unmount();
+
+    const onEdit = vi.fn();
+    render(<EmployeeForm mode="edit" defaultValues={{ ...base, contractType: 'FIXED_TERM', contractEndDate: '' }} onSubmit={onEdit} onCancel={() => undefined} />);
+    await userEvent.type(screen.getByLabelText(/ຊື່ຫຼິ້ນ|Nickname/), 'Noy');
+    fireEvent.submit(screen.getByTestId('employee-form'));
+    await waitFor(() => expect(onEdit).toHaveBeenCalledWith({ nickname: 'Noy' }));
+  });
+
   it('keeps showing a stored manager that is not among the loaded options', () => {
     render(
       <EmployeeForm mode="edit" defaultValues={{ ...base, managerId: 'far' }} currentManager={{ id: 'far', name: 'Far Away' }} onSubmit={vi.fn()} onCancel={() => undefined} />,

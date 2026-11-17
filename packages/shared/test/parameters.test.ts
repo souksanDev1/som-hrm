@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canEditWorkspaceParameter,
   createWorkspaceSchema,
   dictionaries,
   isoDateInTimeZone,
@@ -55,6 +56,14 @@ describe('parameter registry', () => {
     expect(parameterKeysByScope('system')).toContain('otp.length');
     expect(parameterKeysByScope('workspace')).toContain('document.expiryAlertDays');
     expect(parameterKeysByScope('workspace')).not.toContain('otp.length');
+  });
+
+  it('lets settings.manage edit any workspace key and editPermission holders only their key', () => {
+    expect(canEditWorkspaceParameter('approval.levels', ['settings.manage'])).toBe(true);
+    expect(canEditWorkspaceParameter('document.expiryAlertDays', ['employee.write'])).toBe(true);
+    expect(canEditWorkspaceParameter('approval.levels', ['employee.write'])).toBe(false);
+    expect(canEditWorkspaceParameter('document.expiryAlertDays', ['org.write'])).toBe(false);
+    expect(canEditWorkspaceParameter('nope', ['employee.write'])).toBe(false);
   });
 
   it('has a Lao and English label for every parameter', () => {

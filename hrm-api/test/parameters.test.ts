@@ -31,7 +31,7 @@ describe('GET /settings/parameters', () => {
     expect(alert).toMatchObject({ currentValue: [90, 60, 30, 7], source: 'default', unit: 'days', labelKey: 'param.document.expiryAlertDays', history: [], scheduled: [] });
   });
 
-  it('lets HR read but not change; employees can do neither', async () => {
+  it('lets HR read, change only the document-alert days (FR-EMP-05.3); employees can do neither', async () => {
     const ws = await createWorkspace(t.db);
     await createUser(t.db, ws, { email: 'hr@x.test', password: 'Hr12345678', role: 'HR_ADMIN' });
     await createUser(t.db, ws, { email: 'emp@x.test', password: 'Emp12345678', role: 'EMPLOYEE' });
@@ -41,8 +41,11 @@ describe('GET /settings/parameters', () => {
 
     expect((await list(hr)).statusCode).toBe(200);
     expect((await post(hr, change)).statusCode).toBe(403);
+    const alertDays = { key: 'document.expiryAlertDays', value: [60, 14], effectiveFrom: FUTURE, reason: 'HR policy' };
+    expect((await post(hr, alertDays)).statusCode).toBe(201);
     expect((await list(emp)).statusCode).toBe(403);
     expect((await post(emp, change)).statusCode).toBe(403);
+    expect((await post(emp, alertDays)).statusCode).toBe(403);
   });
 });
 

@@ -70,7 +70,7 @@ export default function HolidaysPage() {
           </Button>
         }
       >
-        {notice && <p role="status" className="mb-2 text-sm text-success">{notice}</p>}
+        {notice && <p role="status" data-testid="holiday-notice" className="mb-2 text-sm text-success">{notice}</p>}
         {actionError ? <p role="alert" className="mb-2 text-sm text-danger">{t(actionError instanceof ApiError ? actionError.code : 'unknown')}</p> : null}
         <QueryState query={query}>
           {(holidays) => (

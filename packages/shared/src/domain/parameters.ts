@@ -9,6 +9,7 @@
  * Add a parameter here first, then read it in the API — never read a raw key string.
  * Defaults marked "TOR" come from TOR v1.0; the full table (FRD §15) is still pending.
  */
+import { PERMISSIONS, type Permission } from '../permissions';
 
 export type ParameterScope = 'system' | 'workspace';
 
@@ -19,6 +20,11 @@ interface BaseDef<T> {
   defaultValue: T;
   /** Where the default comes from (TOR item, Lao labour law, or "provisional"). */
   source: string;
+  /**
+   * Workspace parameters only: a permission that may also change this value, besides `settings.manage`
+   * (e.g. HR maintains its own document-alert days).
+   */
+  editPermission?: Permission;
 }
 
 export interface IntParameterDef extends BaseDef<number> {
@@ -80,6 +86,8 @@ export const PARAMETERS = {
   'document.expiryAlertDays': {
     type: 'intList', scope: 'workspace', labelKey: 'param.document.expiryAlertDays', defaultValue: [90, 60, 30, 7],
     min: 1, max: 365, maxItems: 6, unit: 'days', source: 'TOR FR-EMP-05.1',
+    // FR-EMP-05.3: HR configures the alert days.
+    editPermission: PERMISSIONS.EMPLOYEE_WRITE,
   },
   'approval.escalationWorkingDays': {
     type: 'int', scope: 'workspace', labelKey: 'param.approval.escalationWorkingDays', defaultValue: 2, min: 1, max: 30, unit: 'days',
@@ -164,6 +172,14 @@ export const validateParameterValue = (key: string, value: unknown): ParameterVa
 
 /** Registry definition for a key (throws for unknown keys — validate first). */
 export const parameterDefinition = (key: ParameterKey): ParameterDef => PARAMETERS[key];
+
+/** Whether a caller with these permissions may change a workspace parameter (`settings.manage`, or its `editPermission`). */
+export const canEditWorkspaceParameter = (key: string, permissions: readonly string[]): boolean => {
+  if (permissions.includes(PERMISSIONS.SETTINGS_MANAGE)) return true;
+  if (!isParameterKey(key)) return false;
+  const def: ParameterDef = PARAMETERS[key];
+  return def.scope === 'workspace' && !!def.editPermission && permissions.includes(def.editPermission);
+};
 
 /**
  * Calendar date (YYYY-MM-DD) of instant `at` in an IANA time zone.

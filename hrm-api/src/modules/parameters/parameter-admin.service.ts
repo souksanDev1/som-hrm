@@ -1,4 +1,5 @@
 import {
+  canEditWorkspaceParameter,
   isoDateInTimeZone,
   isParameterKey,
   PARAMETERS,
@@ -112,6 +113,7 @@ export const createParameterAdminService = (db: Db) => ({
   /** Schedule a workspace parameter change from `effectiveFrom` (>= today in the workspace time zone). */
   setWorkspace: (ctx: AuthContext, input: SetWorkspaceParameterInput, meta: RequestMeta): Promise<ParameterView> => {
     const key = validateInput(input.key, input.value, 'workspace');
+    if (!canEditWorkspaceParameter(key, ctx.permissions)) throw forbidden();
     return db.tenant(ctx.workspaceId, async (tx) => {
       const today = isoDateInTimeZone(await parametersRepository.workspaceTimezone(tx, ctx.workspaceId));
       if (input.effectiveFrom < today) throw badRequest('effective_date_in_past', { field: 'effectiveFrom', today });

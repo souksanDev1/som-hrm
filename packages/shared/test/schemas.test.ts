@@ -9,6 +9,7 @@ import {
   LAO_PROVINCES,
   laoPhoneSchema,
   laoProvinceName,
+  missingContractEnd,
   translate,
   updateEmployeeSchema,
 } from '../src';
@@ -47,7 +48,7 @@ describe('createEmployeeSchema', () => {
     const { contractType: _c, ...noContract } = base;
     expect(createEmployeeSchema.safeParse(noContract).success).toBe(false);
     expect(createEmployeeSchema.safeParse({ ...base, payType: 'FULL_TIME' }).success).toBe(false);
-    expect(createEmployeeSchema.safeParse({ ...base, contractType: 'FIXED_TERM', payType: 'HOURLY' }).success).toBe(true);
+    expect(createEmployeeSchema.safeParse({ ...base, contractType: 'FIXED_TERM', contractEndDate: '2027-01-01', payType: 'HOURLY' }).success).toBe(true);
   });
   it('accepts English names, a structured address and a known province code only', () => {
     const full = { ...base, firstNameEn: 'Somchai', lastNameEn: 'Vong', village: 'ໂພນທັນ', district: 'ໄຊເສດຖາ', province: 'VT' };
@@ -86,6 +87,27 @@ describe('Lao provinces', () => {
     expect(findLaoProvinceCode('Atlantis')).toBeNull();
     expect(laoProvinceName('SV', 'en')).toBe('Savannakhet');
     expect(laoProvinceName('XX', 'lo')).toBe('XX');
+  });
+});
+
+describe('missingContractEnd (fixed-term contracts need an end date)', () => {
+  const fixed = { contractType: 'FIXED_TERM', contractEndDate: null };
+  it('flags a new fixed-term contract without an end date', () => {
+    expect(missingContractEnd(fixed)).toBe(true);
+    expect(missingContractEnd({ ...fixed, contractEndDate: '2027-01-01' })).toBe(false);
+    expect(missingContractEnd({ contractType: 'INDEFINITE', contractEndDate: null })).toBe(false);
+  });
+  it('flags switching to fixed-term or clearing the date, but not a legacy row left as it is', () => {
+    expect(missingContractEnd(fixed, { contractType: 'INDEFINITE', contractEndDate: null })).toBe(true);
+    expect(missingContractEnd(fixed, { contractType: 'FIXED_TERM', contractEndDate: '2027-01-01' })).toBe(true);
+    expect(missingContractEnd(fixed, fixed)).toBe(false);
+  });
+  it('is enforced by createEmployeeSchema on the end date field', () => {
+    const r = createEmployeeSchema.safeParse({
+      employeeCode: 'E9', firstName: 'A', lastName: 'B', gender: 'MALE', hireDate: '2024-01-01', contractType: 'FIXED_TERM', payType: 'MONTHLY',
+    });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues).toContainEqual(expect.objectContaining({ path: ['contractEndDate'], message: 'contract_end_required' }));
   });
 });
 

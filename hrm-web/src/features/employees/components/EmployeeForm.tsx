@@ -1,10 +1,12 @@
 'use client';
 import {
+  CONTRACT_END_REQUIRED,
   CONTRACT_TYPES,
   createEmployeeSchema,
   EMPLOYMENT_STATUSES,
   GENDERS,
   LAO_PROVINCES,
+  missingContractEnd,
   NATIONALITY_TYPES,
   PAY_TYPES,
   updateEmployeeSchema,
@@ -39,11 +41,20 @@ export type EmployeeFormProps = EmployeeFormBaseProps &
     | { mode: 'edit'; onSubmit(payload: UpdateEmployeeInput): void }
   );
 
-/** Validate exactly what will be sent: the create body, or every field as PATCH sees it. */
-const resolverFor = (mode: 'create' | 'edit'): Resolver<EmployeeFormValues> => async (values, ctx, opts) =>
-  mode === 'create'
-    ? (zodResolver(createEmployeeSchema)(toCreatePayload(values) as never, ctx, opts as never) as never)
-    : (zodResolver(updateEmployeeSchema)(toUpdateFields(values) as never, ctx, opts as never) as never);
+/**
+ * Validate exactly what will be sent: the create body, or every field as PATCH sees it. Edit also checks
+ * the rules that depend on the loaded record (a fixed-term contract's end date, new data only).
+ */
+const resolverFor =
+  (mode: 'create' | 'edit', initial: EmployeeFormValues): Resolver<EmployeeFormValues> =>
+  async (values, ctx, opts) => {
+    if (mode === 'create') return zodResolver(createEmployeeSchema)(toCreatePayload(values) as never, ctx, opts as never) as never;
+    const result = await zodResolver(updateEmployeeSchema)(toUpdateFields(values) as never, ctx, opts as never);
+    if (!result.errors.contractEndDate && missingContractEnd(toUpdateFields(values), toUpdateFields(initial))) {
+      return { values: {}, errors: { ...result.errors, contractEndDate: { type: 'custom', message: CONTRACT_END_REQUIRED } } } as never;
+    }
+    return result as never;
+  };
 
 const FORM_DEFAULTS: Partial<EmployeeFormValues> = {
   nationalityType: 'LAO',
@@ -64,7 +75,7 @@ export function EmployeeForm(props: EmployeeFormProps) {
   const managers = useManagerOptions();
   const locale = usePrefsStore((s) => s.locale);
   const initial = useMemo(() => ({ ...FORM_DEFAULTS, ...defaultValues }) as EmployeeFormValues, [defaultValues]);
-  const resolver = useMemo(() => resolverFor(mode), [mode]);
+  const resolver = useMemo(() => resolverFor(mode, initial), [mode, initial]);
   const { register, handleSubmit, watch, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
   const errors = formState.errors as Partial<Record<string, { message?: string }>>;
   const e = (name: string) => (errors[name]?.message ? t(errors[name]!.message!) : undefined);
@@ -153,7 +164,7 @@ export function EmployeeForm(props: EmployeeFormProps) {
           <Field label={t('empx.contractType')} htmlFor="contractType" required>
             <Select id="contractType" options={opts(CONTRACT_TYPES, 'empx.contractType')} {...register('contractType')} />
           </Field>
-          {contractType === 'FIXED_TERM' && text('contractEndDate', 'empx.contractEndDate', { type: 'date' })}
+          {contractType === 'FIXED_TERM' && text('contractEndDate', 'empx.contractEndDate', { type: 'date', required: true })}
           {contractType === 'PROBATION' && text('probationEndDate', 'empx.probationEndDate', { type: 'date' })}
           <Field label={t('empx.payType')} htmlFor="payType" required>
             <Select id="payType" options={opts(PAY_TYPES, 'empx.payType')} {...register('payType')} />

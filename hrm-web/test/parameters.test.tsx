@@ -2,6 +2,7 @@ import type { ParameterView } from '@hrm/shared';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { ParameterBoard } from '@/features/settings/parameters/components/ParameterBoard';
 import { ScheduleChangeForm } from '@/features/settings/parameters/components/ScheduleChangeForm';
 import { fill, formatParameterValue, parseParameterInput } from '@/features/settings/parameters/format';
 import { ApiError } from '@/lib/api-client';
@@ -50,5 +51,23 @@ describe('ScheduleChangeForm', () => {
     expect(onSubmit).toHaveBeenCalledWith({ value: 2, effectiveFrom: '2026-11-16', reason: 'policy' });
     expect(await screen.findByText('ວັນທີມີຜົນຕ້ອງບໍ່ແມ່ນອະດີດ')).toBeInTheDocument();
     expect(screen.getByLabelText(/ມີຜົນແຕ່/)).toHaveAttribute('aria-invalid', 'true');
+  });
+});
+
+describe('ParameterBoard', () => {
+  it('offers "schedule change" per parameter when canEdit is a function', () => {
+    const alertDays: ParameterView = {
+      ...escalation, key: 'document.expiryAlertDays', labelKey: 'param.document.expiryAlertDays', type: 'intList',
+      defaultValue: [90, 60, 30, 7], currentValue: [90, 60, 30, 7], maxItems: 6,
+    };
+    render(
+      <ParameterBoard
+        items={[escalation, alertDays]}
+        canEdit={(p) => p.key === 'document.expiryAlertDays'}
+        defaultEffectiveFrom="2026-11-17"
+        onSubmit={vi.fn()}
+      />,
+    );
+    expect(screen.getAllByRole('button', { name: /param.scheduleChange|ກຳນົດ|Schedule/ })).toHaveLength(1);
   });
 });

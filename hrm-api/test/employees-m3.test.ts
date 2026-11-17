@@ -68,12 +68,12 @@ describe('FR-EMP-01/02/03: personal, Lao document and employment fields', () => 
     const token = await ownerSession(ws);
     const e = await createEmployee(token, full);
     const res = await req('PATCH', token, `/employees/${e.id}`, {
-      firstNameEn: null, village: '', province: null, familyBookHolder: null, ssnRegisteredAt: null, contractEndDate: '', probationEndDate: null,
+      firstNameEn: null, village: '', province: null, familyBookHolder: null, ssnRegisteredAt: null, contractType: 'INDEFINITE', contractEndDate: '', probationEndDate: null,
     });
     expect(res.statusCode).toBe(200);
     expect(res.json<EmployeeDetail>()).toMatchObject({
       firstNameEn: null, lastNameEn: 'Douangdy', village: null, district: 'ໄຊເສດຖາ', province: null,
-      familyBookHolder: null, ssnRegisteredAt: null, contractEndDate: null, probationEndDate: null, contractType: 'FIXED_TERM', payType: 'DAILY',
+      familyBookHolder: null, ssnRegisteredAt: null, contractEndDate: null, probationEndDate: null, contractType: 'INDEFINITE', payType: 'DAILY',
     });
   });
 
@@ -90,6 +90,28 @@ describe('FR-EMP-01/02/03: personal, Lao document and employment fields', () => 
     expect((await req('PATCH', token, `/employees/${e.id}`, { probationEndDate: '2024-03-01' })).statusCode).toBe(200);
     const moved = await req('PATCH', token, `/employees/${e.id}`, { hireDate: '2024-06-01' });
     expect(moved.json().error).toMatchObject({ code: 'before_hire_date', details: { fields: ['probationEndDate'] } });
+  });
+
+  it('requires an end date for new fixed-term contracts but keeps legacy rows editable', async () => {
+    const ws = await createWorkspace(t.db);
+    const token = await ownerSession(ws);
+    const missing = await req('POST', token, '/employees', employeePayload({ contractType: 'FIXED_TERM' }));
+    expect(missing.statusCode).toBe(400);
+    expect(JSON.stringify(missing.json())).toContain('contract_end_required');
+
+    const e = await createEmployee(token, { hireDate: '2024-01-15' });
+    const switched = await req('PATCH', token, `/employees/${e.id}`, { contractType: 'FIXED_TERM' });
+    expect(switched.statusCode).toBe(400);
+    expect(switched.json().error).toMatchObject({ code: 'contract_end_required', details: { fields: ['contractEndDate'] } });
+    expect((await req('PATCH', token, `/employees/${e.id}`, { contractType: 'FIXED_TERM', contractEndDate: '2026-01-14' })).statusCode).toBe(200);
+    const cleared = await req('PATCH', token, `/employees/${e.id}`, { contractEndDate: null });
+    expect(cleared.json().error).toMatchObject({ code: 'contract_end_required' });
+
+    // A fixed-term row stored before the rule (no end date) can still be edited as it is.
+    await t.db.tenant(ws.workspaceId, (tx) => tx.employee.update({ where: { id: e.id }, data: { contractEndDate: null } }));
+    const legacy = await req('PATCH', token, `/employees/${e.id}`, { nickname: 'Noy' });
+    expect(legacy.statusCode).toBe(200);
+    expect(legacy.json<EmployeeDetail>()).toMatchObject({ contractType: 'FIXED_TERM', contractEndDate: null, nickname: 'Noy' });
   });
 
   it('rejects the retired employmentType field and missing contract/pay type', async () => {

@@ -163,6 +163,40 @@ const serviceErrors = (err: AppError): RowError[] => {
   return [{ column: CONFLICT_COLUMN[err.code] ?? null, code: err.code }];
 };
 
+/**
+ * Processing order so a manager row is created before the rows that report to it, wherever it sits in the
+ * file (each row has at most one manager, so this walks simple chains). Rows on a reporting cycle — including
+ * a row naming itself — are returned in `cyclic`; they keep their place and are reported, not created.
+ * Indexes refer to `rows`; codes are compared exactly, like the database lookup.
+ */
+export const managerFirstOrder = (rows: readonly { code?: string; managerCode?: string }[]): { order: number[]; cyclic: Set<number> } => {
+  const byCode = new Map<string, number>();
+  rows.forEach((r, i) => {
+    if (r.code !== undefined && !byCode.has(r.code)) byCode.set(r.code, i);
+  });
+  const NEW = 0, VISITING = 1, DONE = 2;
+  const state = new Array<number>(rows.length).fill(NEW);
+  const order: number[] = [];
+  const cyclic = new Set<number>();
+  for (let start = 0; start < rows.length; start++) {
+    const path: number[] = [];
+    let i: number | undefined = start;
+    while (i !== undefined && state[i] === NEW) {
+      state[i] = VISITING;
+      path.push(i);
+      const manager: string | undefined = rows[i]!.managerCode;
+      i = manager === undefined ? undefined : byCode.get(manager);
+    }
+    if (i !== undefined && state[i] === VISITING) for (const j of path.slice(path.indexOf(i))) cyclic.add(j);
+    // Managers first: the end of the chain was reached last.
+    for (const j of path.reverse()) {
+      state[j] = DONE;
+      order.push(j);
+    }
+  }
+  return { order, cyclic };
+};
+
 // ─────────────────────────── Token ───────────────────────────
 
 interface TokenPayload {
@@ -233,8 +267,32 @@ export const createEmployeeImportService = (db: Db, employees: Pick<EmployeesSer
       return [key, map] as const;
     });
     const seen = new Set<string>();
+    const textCell = (cells: RawCell[], key: ColumnKey): string | undefined => {
+      for (const [i, k] of index) {
+        if (k !== key) continue;
+        const result = readCell(columnOf(key), cells[i] ?? null);
+        return 'value' in result && typeof result.value === 'string' ? result.value : undefined;
+      }
+      return undefined;
+    };
+    // Repeats are flagged on the later rows of the file, whatever order the rows are created in.
+    const duplicates = new Map<number, ColumnKey[]>();
+    sheet.rows.forEach(({ cells }, position) => {
+      for (const { key, normalize } of UNIQUE_COLUMNS) {
+        const v = textCell(cells, key);
+        if (v === undefined) continue;
+        const id = `${key}:${normalize(v)}`;
+        if (seen.has(id)) duplicates.set(position, [...(duplicates.get(position) ?? []), key]);
+        else seen.add(id);
+      }
+    });
+    // Managers may appear anywhere in the file (FR-EMP-09): create them before their reports.
+    const { order, cyclic } = managerFirstOrder(
+      sheet.rows.map(({ cells }) => ({ code: textCell(cells, 'employeeCode'), managerCode: textCell(cells, 'managerCode') })),
+    );
 
-    for (const { row, cells } of sheet.rows) {
+    for (const position of order) {
+      const { row, cells } = sheet.rows[position]!;
       const rowErrors: RowError[] = [];
       const values: Partial<Record<ColumnKey, string | boolean>> = {};
       index.forEach((key, i) => {
@@ -243,13 +301,7 @@ export const createEmployeeImportService = (db: Db, employees: Pick<EmployeesSer
         else if (result.value !== undefined) values[key] = result.value;
       });
 
-      for (const { key, normalize } of UNIQUE_COLUMNS) {
-        const v = values[key];
-        if (typeof v !== 'string') continue;
-        const id = `${key}:${normalize(v)}`;
-        if (seen.has(id)) rowErrors.push({ column: key, code: 'duplicate_in_file' });
-        else seen.add(id);
-      }
+      for (const column of duplicates.get(position) ?? []) rowErrors.push({ column, code: 'duplicate_in_file' });
 
       const input: Record<string, unknown> = Object.fromEntries(Object.entries(values).filter(([k]) => !REF_COLUMNS.has(k as ColumnKey)));
       for (const [key, map] of lookups) {
@@ -260,8 +312,9 @@ export const createEmployeeImportService = (db: Db, employees: Pick<EmployeesSer
         else rowErrors.push({ column: key, code: 'unknown_reference' });
       }
       const managerCode = values.managerCode;
-      if (typeof managerCode === 'string') {
-        // Existing employees and rows created earlier in this transaction.
+      if (cyclic.has(position)) rowErrors.push({ column: 'managerCode', code: 'manager_cycle' });
+      else if (typeof managerCode === 'string') {
+        // Existing employees and rows created earlier in this transaction (managers are ordered first).
         const manager = await tx.employee.findFirst({ where: { workspaceId: ws, employeeCode: managerCode }, select: { id: true } });
         if (manager) input.managerId = manager.id;
         else rowErrors.push({ column: 'managerCode', code: 'unknown_reference' });
@@ -290,7 +343,8 @@ export const createEmployeeImportService = (db: Db, employees: Pick<EmployeesSer
         errors.push(...serviceErrors(err).map((e) => ({ row, ...e })));
       }
     }
-    return errors;
+    // Report in file order (the sort is stable, so a row's errors keep their column order).
+    return errors.sort((a, b) => a.row - b.row);
   };
 
   /** Non-sensitive display values of the first rows and of every row with an error. */

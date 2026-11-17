@@ -23,7 +23,7 @@ test.describe('employee import', () => {
     expect(download.suggestedFilename()).toBe('employee-import-template.csv');
 
     await page.getByTestId('import-file').setInputFiles(
-      csvFile([`${prefix}-1,ສົມໃຈ,ນຳເຂົ້າ,FEMALE,2024-01-15,INDEFINITE,MONTHLY`, `${prefix}-2,ສົມພອນ,ນຳເຂົ້າ,MALE,2024-02-01,FIXED_TERM,DAILY`]),
+      csvFile([`${prefix}-1,ສົມໃຈ,ນຳເຂົ້າ,FEMALE,2024-01-15,INDEFINITE,MONTHLY`, `${prefix}-2,ສົມພອນ,ນຳເຂົ້າ,MALE,2024-02-01,PROBATION,DAILY`]),
     );
     await expect(page.getByTestId('import-summary')).toBeVisible();
     await expect(page.getByTestId('import-sample-row')).toHaveCount(2);

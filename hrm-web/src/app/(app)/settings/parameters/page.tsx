@@ -1,18 +1,23 @@
 'use client';
-import { PERMISSIONS } from '@hrm/shared';
+import { canEditWorkspaceParameter, PERMISSIONS } from '@hrm/shared';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { QueryState, StateView } from '@/components/ui';
-import { useAuthStore, useHasPermission } from '@/features/auth/store';
+import { useAuthStore } from '@/features/auth/store';
 import { ParameterBoard } from '@/features/settings/parameters/components/ParameterBoard';
 import { fill } from '@/features/settings/parameters/format';
 import { useSetWorkspaceParameter, useWorkspaceParameters } from '@/features/settings/parameters/hooks';
 import { useT } from '@/lib/i18n';
 
-/** Workspace business parameters (FR-WS-08). HR can read; `settings.manage` can schedule changes. */
+const NO_PERMISSIONS: readonly string[] = [];
+
+/**
+ * Workspace business parameters (FR-WS-08). HR can read; `settings.manage` can schedule any change, and a
+ * parameter's own `editPermission` that one (e.g. HR the document-alert days, FR-EMP-05.3).
+ */
 export default function ParametersPage() {
   const t = useT();
   const canRead = useAuthStore((s) => !!s.user?.permissions.some((p) => p === PERMISSIONS.SETTINGS_MANAGE || p === PERMISSIONS.ORG_WRITE));
-  const canEdit = useHasPermission(PERMISSIONS.SETTINGS_MANAGE);
+  const permissions = useAuthStore((s) => s.user?.permissions ?? NO_PERMISSIONS);
   const query = useWorkspaceParameters();
   const save = useSetWorkspaceParameter();
 
@@ -27,7 +32,7 @@ export default function ParametersPage() {
         {(data) => (
           <ParameterBoard
             items={data.items}
-            canEdit={canEdit}
+            canEdit={(p) => canEditWorkspaceParameter(p.key, permissions)}
             defaultEffectiveFrom={data.asOf}
             onSubmit={(key, input) => save.mutateAsync({ key, ...input })}
           />

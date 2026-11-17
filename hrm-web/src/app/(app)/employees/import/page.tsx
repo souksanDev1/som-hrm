@@ -8,7 +8,7 @@ import { useT } from '@/lib/i18n';
 export default function ImportEmployeesPage() {
   const t = useT();
   return (
-    <RequirePermission permission={PERMISSIONS.EMPLOYEE_WRITE}>
+    <RequirePermission permission={PERMISSIONS.EMPLOYEE_IMPORT}>
       <PageHeader title={t('empx.import.title')} description={t('empx.import.subtitle')} />
       <EmployeeImport />
     </RequirePermission>

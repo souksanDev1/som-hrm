@@ -26,11 +26,11 @@ test.describe('holiday calendar', () => {
     await expect(page.getByTestId('holiday-year')).toContainText(String(year));
 
     await page.getByTestId('holiday-ensure').click();
-    await expect(page.getByRole('status')).toBeVisible();
+    await expect(page.getByTestId('holiday-notice')).toBeVisible();
     await expect(page.getByTestId('holiday-row')).toHaveCount(7);
     // Idempotent: a second click adds nothing.
     await page.getByTestId('holiday-ensure').click();
-    await expect(page.getByRole('status')).toContainText('0');
+    await expect(page.getByTestId('holiday-notice')).toContainText('0');
     await expect(page.getByTestId('holiday-row')).toHaveCount(7);
 
     await page.getByTestId('holiday-add').click();

@@ -3,6 +3,7 @@ import { EMPLOYEE_IMPORT_COLUMNS, type EmployeeImportError, type EmployeeImportP
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { columnHeader, parseCsv, zipUncompressedSize } from '../src/modules/employees/employee-import.file';
+import { managerFirstOrder } from '../src/modules/employees/employee-import.service';
 import {
   api, bearer, createTestContext, createUser, createWorkspace, employeePayload, loginAs, OWNER_PASSWORD,
   type TestContext, type WorkspaceFixture,
@@ -172,6 +173,40 @@ describe('preview + confirm (CSV)', () => {
   });
 });
 
+describe('managers in any row order', () => {
+  it('orders managers before their reports and finds reporting cycles', () => {
+    expect(managerFirstOrder([{ code: 'A', managerCode: 'B' }, { code: 'B', managerCode: 'C' }, { code: 'C' }])).toEqual({ order: [2, 1, 0], cyclic: new Set() });
+    // Managers outside the file (or none) keep the file order.
+    expect(managerFirstOrder([{ code: 'A', managerCode: 'BOSS' }, { code: 'B' }]).order).toEqual([0, 1]);
+    const loop = managerFirstOrder([{ code: 'X', managerCode: 'Y' }, { code: 'Y', managerCode: 'X' }, { code: 'Z', managerCode: 'Z' }, { code: 'W', managerCode: 'X' }]);
+    expect(loop.cyclic).toEqual(new Set([0, 1, 2]));
+    expect([...loop.order].sort()).toEqual([0, 1, 2, 3]);
+  });
+
+  it('imports a file whose managers come after their reports', async () => {
+    const { ws, token } = await setup();
+    const headers = [...HEADERS, 'managerCode'];
+    const file = csv([row('ANY-3', ['ANY-2']), row('ANY-2', ['ANY-1']), row('ANY-1', [''])], headers);
+    const p = await previewOk(token, file);
+    expect(p.errors).toEqual([]);
+    expect((await confirm(token, file, p.importToken!)).statusCode).toBe(201);
+    const byCode = new Map(
+      (await t.db.tenant(ws.workspaceId, (tx) => tx.employee.findMany({ where: { employeeCode: { startsWith: 'ANY-' } } }))).map((e) => [e.employeeCode, e]),
+    );
+    expect(byCode.get('ANY-1')!.managerId).toBeNull();
+    expect(byCode.get('ANY-2')!.managerId).toBe(byCode.get('ANY-1')!.id);
+    expect(byCode.get('ANY-3')!.managerId).toBe(byCode.get('ANY-2')!.id);
+  });
+
+  it('rejects reporting loops and reports errors in file order', async () => {
+    const { token } = await setup();
+    const file = csv([row('CYC-1', ['CYC-2']), row('CYC-2', ['CYC-1']), row('SELF', ['SELF']), row('CYC-1', [''])], [...HEADERS, 'managerCode']);
+    const p = await previewOk(token, file);
+    expect(errorsOf(p)).toEqual(['2:managerCode:manager_cycle', '3:managerCode:manager_cycle', '4:managerCode:manager_cycle', '5:employeeCode:duplicate_in_file']);
+    expect(p.importToken).toBeNull();
+  });
+});
+
 describe('preview errors', () => {
   it('reports header problems on row 1', async () => {
     const { token } = await setup();
@@ -199,11 +234,12 @@ describe('preview errors', () => {
         /* 7 */ row('TAKEN', ['', '', '', '', 'ID-TAKEN-1', 'SSN000111', '', '']),
         /* 8 */ row('OK-5', ['', '', '', '', '', '', 'FOREIGN', '2023-01-01']),
         /* 9 */ row('=HYPERLINK("http://x")', ['@SUM(1)', '', '', '', '', '', '', '']),
+        /* 10 */ ['OK-6', 'ສົມ', 'ດີ', 'MALE', '2024-01-15', 'FIXED_TERM', 'MONTHLY', '', '', '', '', '', '', '', ''],
       ],
       headers,
     );
     const p = await previewOk(token, file);
-    expect(p.rows).toBe(8);
+    expect(p.rows).toBe(9);
     expect(errorsOf(p)).toEqual([
       '3:firstName:required',
       '3:gender:invalid_option',
@@ -222,10 +258,11 @@ describe('preview errors', () => {
       '8:contractEndDate:before_hire_date',
       '9:employeeCode:formula_not_allowed',
       '9:branch:formula_not_allowed',
+      '10:contractEndDate:contract_end_required',
     ]);
     expect(p.importToken).toBeNull();
     // Every error row is in the sample, but identity numbers are never echoed back.
-    expect(new Set(p.sample.map((s) => s.row))).toEqual(new Set([2, 3, 4, 5, 6, 7, 8, 9]));
+    expect(new Set(p.sample.map((s) => s.row))).toEqual(new Set([2, 3, 4, 5, 6, 7, 8, 9, 10]));
     expect(JSON.stringify(p.sample)).not.toContain('SSN000');
     expect(await count(ws)).toBe(before);
   });
@@ -372,7 +409,21 @@ describe('tenant isolation and permissions', () => {
     expect(await count(b.ws)).toBe(1);
   });
 
-  it('requires employee.write for template, preview and confirm', async () => {
+  it('requires employee.import for template, preview and confirm, not just employee.write', async () => {
+    const { ws } = await setup();
+    const file = csv([row('P-0')]);
+    // Every role in the workspace keeps employee.write but loses employee.import; sign in again for fresh permissions.
+    await t.db.system((tx) =>
+      tx.rolePermission.deleteMany({ where: { workspaceId: ws.workspaceId, permission: { key: 'employee.import' } } }),
+    );
+    const owner = (await loginAs(t.app, ws.code, ws.ownerEmail, OWNER_PASSWORD)).accessToken;
+    expect((await t.app.inject({ method: 'POST', url: api('/employees'), headers: bearer(owner), payload: employeePayload({ employeeCode: 'W-1' }) })).statusCode).toBe(201);
+    expect((await t.app.inject({ method: 'GET', url: api('/employees/import/template'), headers: bearer(owner) })).statusCode).toBe(403);
+    expect((await preview(owner, file)).statusCode).toBe(403);
+    expect((await confirm(owner, file, 'x')).statusCode).toBe(403);
+  });
+
+  it('forbids roles without employee.import (manager) and anonymous callers', async () => {
     const { ws } = await setup();
     await createUser(t.db, ws, { email: 'mgr@imp.test', password: 'Mgr12345678', role: 'MANAGER' });
     const mgr = (await loginAs(t.app, ws.code, 'mgr@imp.test', 'Mgr12345678')).accessToken;

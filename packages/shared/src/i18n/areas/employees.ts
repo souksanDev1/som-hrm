@@ -81,6 +81,7 @@ export const employeesLo = {
   'empx.expiring.expiringSoon': 'ໃກ້ໝົດອາຍຸ',
   'error.invalid_province': 'ແຂວງບໍ່ຖືກຕ້ອງ',
   'error.before_hire_date': 'ວັນທີນີ້ຕ້ອງບໍ່ກ່ອນວັນເຂົ້າວຽກ',
+  'error.contract_end_required': 'ສັນຍາແບບມີກຳນົດເວລາ ຕ້ອງໃສ່ວັນໝົດສັນຍາ',
   'error.org_unit_closed': 'ສາຂາ/ພະແນກ/ຕຳແໜ່ງນີ້ຖືກປິດແລ້ວ ກະລຸນາເລືອກອັນອື່ນ',
   // Bulk import (FR-EMP-09)
   'empx.import.open': 'ນຳເຂົ້າ',
@@ -209,6 +210,7 @@ export const employeesEn: Record<keyof typeof employeesLo, string> = {
   'empx.expiring.expiringSoon': 'Expiring soon',
   'error.invalid_province': 'Invalid province',
   'error.before_hire_date': 'This date cannot be before the hire date',
+  'error.contract_end_required': 'A fixed-term contract needs an end date',
   'error.org_unit_closed': 'This branch, department or position is closed; choose another one',
   'empx.import.open': 'Import',
   'empx.import.title': 'Import employees',

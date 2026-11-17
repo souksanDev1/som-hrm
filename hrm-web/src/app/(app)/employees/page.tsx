@@ -18,6 +18,7 @@ function EmployeesView() {
   const router = useRouter();
   const params = useSearchParams();
   const canWrite = useHasPermission(PERMISSIONS.EMPLOYEE_WRITE);
+  const canImport = useHasPermission(PERMISSIONS.EMPLOYEE_IMPORT);
   const [search, setSearch] = useState(params.get('search') ?? '');
   const [debounced, setDebounced] = useState(search);
   const status = (params.get('status') ?? '') as EmploymentStatus | '';
@@ -50,10 +51,10 @@ function EmployeesView() {
       <PageHeader
         title={t('nav.employees')}
         actions={
-          canWrite && (
+          (canWrite || canImport) && (
             <>
-              <Link href="/employees/import"><Button variant="secondary" icon="upload_file" data-testid="import-employees">{t('empx.import.open')}</Button></Link>
-              <Link href="/employees/new"><Button icon="person_add" data-testid="new-employee">{t('employee.add')}</Button></Link>
+              {canImport && <Link href="/employees/import"><Button variant="secondary" icon="upload_file" data-testid="import-employees">{t('empx.import.open')}</Button></Link>}
+              {canWrite && <Link href="/employees/new"><Button icon="person_add" data-testid="new-employee">{t('employee.add')}</Button></Link>}
             </>
           )
         }

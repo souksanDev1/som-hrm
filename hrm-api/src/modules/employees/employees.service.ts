@@ -1,5 +1,7 @@
 import {
+  CONTRACT_END_REQUIRED,
   employmentDateIssues,
+  missingContractEnd,
   PERMISSIONS,
   type CreateDocumentData as DocumentData,
   type CreateEmergencyContactData as ContactData,
@@ -374,6 +376,12 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
           probationEndDate: probationEndDate !== undefined ? probationEndDate : toIsoDate(before.probationEndDate),
         });
         if (dateIssues.length) throw badRequest('before_hire_date', { fields: dateIssues.map((i) => i.field) });
+        const storedContract = { contractType: before.contractType, contractEndDate: toIsoDate(before.contractEndDate) };
+        const nextContract = {
+          contractType: input.contractType ?? before.contractType,
+          contractEndDate: contractEndDate !== undefined ? contractEndDate : storedContract.contractEndDate,
+        };
+        if (missingContractEnd(nextContract, storedContract)) throw badRequest(CONTRACT_END_REQUIRED, { fields: ['contractEndDate'] });
         const pii = piiColumns({ idCardNo, socialSecurityNo, familyBookNo });
         const keys = { employeeCode: input.employeeCode, ...pii };
         await assertUnique(tx, ws, id, keys);

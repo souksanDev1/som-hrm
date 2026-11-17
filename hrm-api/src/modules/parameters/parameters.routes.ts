@@ -14,7 +14,7 @@ const requireAnyPermission =
 /**
  * Workspace business parameters (FR-WS-08.1–08.6).
  * Read: company admins (`settings.manage`) and HR (`org.write`, which HR_ADMIN has by default).
- * Write: `settings.manage` only.
+ * Write: `settings.manage`, or a parameter's own `editPermission` (checked per key in the service).
  */
 export const parametersRoutes = async (app: AppInstance) => {
   app.get(
@@ -29,7 +29,7 @@ export const parametersRoutes = async (app: AppInstance) => {
   app.post(
     '/settings/parameters',
     {
-      preHandler: app.requirePermission(PERMISSIONS.SETTINGS_MANAGE),
+      preHandler: requireAnyPermission(PERMISSIONS.SETTINGS_MANAGE, PERMISSIONS.ORG_WRITE),
       schema: { body: setWorkspaceParameterSchema, response: { 201: parameterViewSchema } },
     },
     async (req, reply) => reply.status(201).send(await app.services.parameters.setWorkspace(req.auth, req.body, { ip: req.ip })),

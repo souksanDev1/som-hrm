@@ -8,7 +8,8 @@ import { ScheduleChangeForm, type ScheduleChangeInput } from './ScheduleChangeFo
 
 export interface ParameterBoardProps {
   items: readonly ParameterView[];
-  canEdit: boolean;
+  /** Whether every card may schedule a change, or a per-parameter check. */
+  canEdit: boolean | ((parameter: ParameterView) => boolean);
   dateMode?: 'date' | 'datetime';
   /** Default + minimum effective date for the form (today in the workspace / now). */
   defaultEffectiveFrom: string;
@@ -24,7 +25,7 @@ export function ParameterBoard({ items, canEdit, dateMode = 'date', defaultEffec
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {items.map((p) => (
-          <ParameterCard key={p.key} parameter={p} canEdit={canEdit} onSchedule={setEditing} formatEffective={formatEffective} />
+          <ParameterCard key={p.key} parameter={p} canEdit={typeof canEdit === 'function' ? canEdit(p) : canEdit} onSchedule={setEditing} formatEffective={formatEffective} />
         ))}
       </div>
       <Modal open={!!editing} title={editing ? t(editing.labelKey) : ''} onClose={() => setEditing(null)}>

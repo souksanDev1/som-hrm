@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   CONTRACT_TYPES,
+  ContractType,
   DOCUMENT_TYPES,
   EMPLOYMENT_STATUSES,
   GENDERS,
@@ -114,6 +115,19 @@ const refineEmploymentDates = (v: Parameters<typeof employmentDateIssues>[0], ct
   for (const issue of employmentDateIssues(v)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue.code, path: [issue.field] });
 };
 
+type ContractDates = { contractType?: unknown; contractEndDate?: unknown };
+/**
+ * A fixed-term contract needs its end date. Enforced for new data only: on create (`before` omitted), and on
+ * an update unless the stored row was already fixed-term without one — legacy rows stay editable as they are.
+ */
+export const missingContractEnd = (after: ContractDates, before?: ContractDates | null): boolean =>
+  after.contractType === ContractType.FIXED_TERM &&
+  !after.contractEndDate &&
+  !(before && before.contractType === ContractType.FIXED_TERM && !before.contractEndDate);
+
+export const CONTRACT_END_REQUIRED = 'contract_end_required';
+const contractEndRequired = { message: CONTRACT_END_REQUIRED, path: ['contractEndDate'] };
+
 /** Login methods HR can issue. PASSWORD does not need an email: staff sign in with employee code or phone. */
 export const credentialMethodSchema = z.enum(['PASSWORD', 'PIN']);
 export const issueCredentialSchema = z.object({
@@ -133,6 +147,7 @@ export const createEmployeeSchema = z
     login: issueCredentialSchema.optional(),
   })
   .refine(foreignNeedsNationality, nationalityRequired)
+  .refine((v) => !missingContractEnd(v), contractEndRequired)
   .superRefine(refineEmploymentDates);
 export type CreateEmployeeInput = z.input<typeof createEmployeeSchema>;
 export type CreateEmployeeData = z.output<typeof createEmployeeSchema>;
