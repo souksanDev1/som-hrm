@@ -30,3 +30,4 @@ export * from './api/client';
 export * from './schemas/overtime';
 export * from './domain/scan-formats';
 export * from './schemas/scan-import';
+export * from './schemas/attendance-requests';

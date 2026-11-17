@@ -61,6 +61,8 @@ export default function ProfileScreen() {
       <Card>
         <View className="gap-2">
           <Button title={t('holiday.thisYear')} variant="secondary" onPress={() => router.push('/holidays')} testID="open-holidays" />
+          <Button title={t('attreq.correction.open')} variant="secondary" onPress={() => router.push('/attendance/correction')} testID="open-correction" />
+          <Button title={t('attreq.deviceChange.open')} variant="secondary" onPress={() => router.push('/attendance/change-device')} testID="open-change-device" />
           {method === 'PIN' &&<Button title={t('auth.changePin')} variant="secondary" onPress={() => router.push('/change-pin')} testID="open-change-pin" />}
           <Button title={locale === 'lo' ? 'English' : 'ພາສາລາວ'} variant="secondary" onPress={() => changeLocale(locale === 'lo' ? 'en' : 'lo')} testID="toggle-locale" />
           <Button

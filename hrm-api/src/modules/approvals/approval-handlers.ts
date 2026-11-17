@@ -17,6 +17,12 @@ export interface ApprovalOutcome {
  */
 export interface ApprovalSubjectHandler {
   subjectType: ApprovalSubjectType;
+  /**
+   * Who decides level 1: `chain` (default) routes along the requester's chain of command; `hr` sends the request
+   * straight to HR (holders of `approval.hr_fallback`, capacity HR) — e.g. device change (FR-ATT-11.3). An HR step
+   * is always final.
+   */
+  routing?: 'chain' | 'hr';
   /** Inbox / detail description of each subject, in `locale`. Ids without a row may be left out. */
   summarize(tx: Tx, workspaceId: string, subjectIds: string[], locale: Locale): Promise<Map<string, ApprovalSummary>>;
   onApproved(tx: Tx, outcome: ApprovalOutcome): Promise<void>;

@@ -46,6 +46,8 @@ import { createAttendanceReportService, type AttendanceReportService } from './m
 import { shiftsRoutes } from './modules/shifts/shifts.routes';
 import { createShiftsService, type ShiftsService } from './modules/shifts/shifts.service';
 import { registerErrorHandler } from './plugins/error-handler';
+import { attendanceRequestsRoutes } from './modules/attendance/attendance-requests.routes';
+import { createAttendanceRequestsService, type AttendanceRequestsService } from './modules/attendance/attendance-requests.service';
 
 export interface Services {
   auth: AuthService;
@@ -65,6 +67,7 @@ export interface Services {
   attendanceReport: AttendanceReportService;
   overtime: OvertimeService;
   scanImport: ScanImportService;
+  attendanceRequests: AttendanceRequestsService;
 }
 
 declare module 'fastify' {
@@ -136,6 +139,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     attendanceReport: createAttendanceReportService(db),
     overtime: createOvertimeService(db, approvalRegistry ?? defaultApprovalRegistry),
     scanImport: createScanImportService(db, { secret: env.JWT_SECRET }),
+    attendanceRequests: createAttendanceRequestsService(db, approvalRegistry ?? defaultApprovalRegistry),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -168,6 +172,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(shiftsRoutes);
         await secured.register(overtimeRoutes);
         await secured.register(scanImportRoutes);
+        await secured.register(attendanceRequestsRoutes);
       });
     },
     { prefix: API_PREFIX },

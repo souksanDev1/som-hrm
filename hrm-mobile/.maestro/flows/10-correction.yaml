@@ -1,0 +1,80 @@
+appId: la.som.hrm
+name: Field worker requests a time correction and opens the change-device screen (FR-ATT-19, FR-ATT-11.2)
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "tab-profile"
+- scrollUntilVisible:
+    element:
+      id: "open-correction"
+    direction: DOWN
+- tapOn:
+    id: "open-correction"
+- assertVisible:
+    id: "correction-screen"
+# A past date unlikely to be reused by an earlier run (one pending correction per day is allowed).
+- evalScript: ${output.day = '2024-' + String(1 + Math.floor(Math.random() * 12)).padStart(2, '0') + '-' + String(1 + Math.floor(Math.random() * 28)).padStart(2, '0')}
+- tapOn:
+    id: "correction-date"
+- eraseText: 12
+- inputText: ${output.day}
+- hideKeyboard
+- tapOn:
+    id: "correction-in"
+- inputText: "08:00"
+- hideKeyboard
+- tapOn:
+    id: "correction-reason"
+- inputText: "Forgot to punch"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "correction-submit"
+    direction: DOWN
+- tapOn:
+    id: "correction-submit"
+- assertVisible:
+    id: "correction-sent"
+- scrollUntilVisible:
+    element:
+      text: "${output.day}"
+    direction: DOWN
+- tapOn:
+    id: "correction-back"
+- assertVisible:
+    id: "profile-screen"
+- scrollUntilVisible:
+    element:
+      id: "open-change-device"
+    direction: DOWN
+- tapOn:
+    id: "open-change-device"
+- assertVisible:
+    id: "change-device-screen"
+- assertVisible:
+    id: "device-reason"
+- tapOn:
+    id: "change-device-back"
+- assertVisible:
+    id: "profile-screen"

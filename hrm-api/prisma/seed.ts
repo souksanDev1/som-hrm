@@ -8,7 +8,7 @@
  *   Site manager : manager@som.la / Manager1234, or phone 02055550002 / PIN 731594 (E002, approves E003)
  *   SOM platform : superadmin@som.la / SomAdmin1234  (console at /platform/login)
  */
-import { hoursToMinutes } from '@hrm/shared';
+import { hoursToMinutes, isoDateInTimeZone, parseTimeOfDay, zonedInstant } from '@hrm/shared';
 import { loadEnv } from '../src/config/env';
 import { bootstrapWorkspace } from '../src/db/bootstrap';
 import { createDb } from '../src/db/client';
@@ -17,6 +17,7 @@ import { hashSecret } from '../src/lib/password';
 import { submitApproval } from '../src/modules/approvals/approvals.service';
 import { defaultApprovalRegistry } from '../src/modules/approvals/registry';
 import { notify } from '../src/modules/notifications/notifications.service';
+import { createPunches } from '../src/modules/attendance/punches';
 
 export const DEMO = {
   workspaceCode: 'som-demo',
@@ -29,6 +30,8 @@ export const DEMO = {
    * [1..6] are taken two per Playwright project (desktop, tablet, mobile).
    */
   leaveReasons: ['Family event', 'Medical check-up', 'Moving house', 'Village festival', 'Bank errands', 'School meeting', 'Visa renewal'],
+  /** Local check-in times of E003's suspicious punches awaiting HR review (FR-ATT-14): [0] manual demo, [1..3] one per Playwright project. */
+  suspiciousPunchTimes: ['07:41', '07:42', '07:43', '07:44'],
 } as const;
 
 /** SOM super admin for the platform console (development / E2E only; production uses `platform:create-admin`). */
@@ -179,6 +182,16 @@ const main = async () => {
       dedupeKey: `doc-expiry:${idCard.id}:30`,
       data: { documentId: idCard.id, employeeId: field.id },
     });
+    // Suspicious offline check-ins of E003 waiting in the HR review queue (FR-ATT-14), on recent past days.
+    for (const [i, time] of DEMO.suspiciousPunchTimes.entries()) {
+      const date = isoDateInTimeZone(workspace.timezone, daysFromNow(-(i + 2)));
+      await createPunches(tx, ws, [
+        {
+          employeeId: field.id, kind: 'IN', capturedAt: zonedInstant(date, parseTimeOfDay(time)!, workspace.timezone), source: 'MOBILE', branchId: site.id,
+          latitude: 15.1205, longitude: 105.799, distanceMetres: 40, offline: true, suspicious: true, suspiciousReasons: ['DEVICE_TIME_SKEW'], reviewStatus: 'PENDING',
+        },
+      ]);
+    }
     return true;
   });
   await db.system(async (tx) => {

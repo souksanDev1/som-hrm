@@ -175,9 +175,9 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-03.2 | SHOULD | Punch with employee code + PIN | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-03.3 | SHOULD | Photo at punch | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-04** | | **HR punches on behalf** (TOR p.8) | | | | | | | |
-| FR-ATT-04.1 | MUST | HR records time for an employee | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-04.3 | MUST | Audit-logged | Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-04.1 | MUST | HR records time for an employee | Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/punches/on-behalf (attendance.punch_on_behalf, data scope) → createPunches HR_ON_BEHALF; web /attendance/on-behalf |
+| FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Implemented | Partial | reason required (Zod + web form); kept on the punch with createdById |
+| FR-ATT-04.3 | MUST | Audit-logged | Web | Yes | Yes | M5 | Implemented | Partial | audit attendance.punch_on_behalf |
 | **FR-ATT-05** | | **Offline check-in** (TOR p.8) | | | | | | | |
 | FR-ATT-05.1 | MUST | Store time, GPS and photo on the device when offline | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-05.2 | MUST | Auto-sync when back online | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
@@ -196,18 +196,18 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-11** | | **Device binding** (TOR p.9) | | | | | | | |
 | FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/device-change-requests (mobile change-device screen, install id in SecureStore) |
+| FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | DEVICE_CHANGE approval routed straight to HR (handler routing hr); approve revokes old binding + activates new; HR reset at /attendance/devices |
 | FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-13 | SHOULD | Selfie liveness check (anti-photo spoofing) | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-14** | | **Suspicious-record review queue** (TOR p.9) | | | | | | | |
-| FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-14.2 | MUST | HR approves or rejects each item | Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Implemented | Partial | GET /attendance/review (attendance.review); web /attendance/review with reasons, map link, selfie |
+| FR-ATT-14.2 | MUST | HR approves or rejects each item | Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/review/:id APPROVED/REJECTED (note on reject), audit + recompute |
 | **FR-ATT-15** | | **Outside geofence** (TOR p.9) | | | | | | | |
 | FR-ATT-15.1 | MUST | Block normal check-in outside the zone | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-15.2 | MUST | Show distance from the branch | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-16** | | **Off-site work** (TOR p.9) | | | | | | | |
-| FR-ATT-16.1 | MUST | HR grants an individual "off-site work" permission | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-16.1 | MUST | HR grants an individual "off-site work" permission | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | GET/POST /attendance/offsite-permissions, /:id/revoke, /me; web /attendance/offsite (check-in use = agent C) |
 | FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-17** | | **Shifts** (TOR p.10) | | | | | | | |
@@ -221,9 +221,9 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-18.4 | MUST | Detect missing check-in/out | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: MISSING_IN / MISSING_OUT in reports; job alerts once (FR-NOTI-03.3). API test. |
 | FR-ATT-18.5 | MUST | Configurable grace period | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: parameters `attendance.lateGraceMinutes` / `earlyGraceMinutes`, per-shift override (empty = parameter) in `/settings/shifts`. |
 | **FR-ATT-19** | | **Time-correction requests** (TOR p.10) | | | | | | | |
-| FR-ATT-19.1 | MUST | Employee submits a correction (forgot / wrong time) with reason + attachment | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-19.3 | MUST | Keep both the original and the corrected time | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-19.1 | MUST | Employee submits a correction (forgot / wrong time) with reason + attachment | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/corrections (HH:mm local, attachment from /files?purpose=ATTACHMENT); web + mobile forms |
+| FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | ATTENDANCE_CORRECTION approval along the chain; inbox summary original → requested |
+| FR-ATT-19.3 | MUST | Keep both the original and the corrected time | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | approve adds CORRECTION punch, originals kept with supersededAt/supersededById; day recomputed |
 | **FR-ATT-20** | | **OT requests** (TOR p.10) | | | | | | | |
 | FR-ATT-20.1 | MUST | Pre-approval OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | `POST /overtime` kind PRE (filed before start), must be outside the scheduled shift; web /overtime, mobile /overtime/new; actual = overlap of approved window with worked time once punches are final |
 | FR-ATT-20.2 | MUST | Post-hoc OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | kind POST (after end); given times stored as actual |
