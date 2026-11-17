@@ -6,6 +6,7 @@
  * (`ot.nightStart`–`ot.nightEnd`, minutes after local midnight; a start after the end wraps midnight).
  */
 import { addDays, localDateTimeOf, zonedInstant } from './attendance';
+import { parseTimeOfDay } from './parameters';
 
 export interface OvertimeSplit {
   workdayDayMinutes: number;
@@ -89,4 +90,34 @@ export interface CapStatus {
 export const capStatus = (usedMinutes: number, requestMinutes: number, cap: number, warnPercent: number): CapStatus => {
   const total = usedMinutes + requestMinutes;
   return { total, cap, exceeded: total > cap, warn: total >= (cap * warnPercent) / 100 };
+};
+
+export interface Period {
+  start: Date;
+  end: Date;
+}
+
+/**
+ * The OT period of a request (FR-ATT-20): local "HH:mm" `start` on `workDate` (the local date the OT starts) and
+ * `end` on the same day, or on the next day when it is not after `start` (OT across midnight). `null` for a
+ * malformed time.
+ */
+export const overtimePeriod = (workDate: string, start: string, end: string, timeZone: string): Period | null => {
+  const s = parseTimeOfDay(start);
+  const e = parseTimeOfDay(end);
+  if (s === null || e === null) return null;
+  return { start: zonedInstant(workDate, s, timeZone), end: zonedInstant(workDate, e > s ? e : e + 24 * 60, timeZone) };
+};
+
+/** The common part of two periods, or `null` when they do not overlap (touching ends do not overlap). */
+export const periodOverlap = (a: Period, b: Period): Period | null => {
+  const start = Math.max(a.start.getTime(), b.start.getTime());
+  const end = Math.min(a.end.getTime(), b.end.getTime());
+  return end > start ? { start: new Date(start), end: new Date(end) } : null;
+};
+
+/** Minutes as "h:mm" for display (e.g. 150 → "2:30"). */
+export const formatDurationMinutes = (minutes: number): string => {
+  const m = Math.max(0, Math.round(minutes));
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 };

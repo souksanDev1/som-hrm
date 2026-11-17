@@ -225,18 +225,18 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | FR-ATT-19.3 | MUST | Keep both the original and the corrected time | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-20** | | **OT requests** (TOR p.10) | | | | | | | |
-| FR-ATT-20.1 | MUST | Pre-approval OT request | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-20.2 | MUST | Post-hoc OT request | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-20.3 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-20.1 | MUST | Pre-approval OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | `POST /overtime` kind PRE (filed before start), must be outside the scheduled shift; web /overtime, mobile /overtime/new; actual = overlap of approved window with worked time once punches are final |
+| FR-ATT-20.2 | MUST | Post-hoc OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | kind POST (after end); given times stored as actual |
+| FR-ATT-20.3 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | OVERTIME approval handler (summary: date, times, total + categories) via approval inbox |
 | **FR-ATT-21** | | **OT hours recorded by category (payroll applies rates)** (TOR p.10) | | | | | | | |
-| FR-ATT-21.1 | MUST | Workday, daytime | Backend/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-21.2 | MUST | Workday, night | Backend/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-21.3 | MUST | Holiday/festival, daytime | Backend/Web | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-21.4 | MUST | Holiday/festival, night | Backend/Web | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-21.1 | MUST | Workday, daytime | Backend/Web | Yes | Yes | M5 | Implemented | Test Passed | shared `splitOvertime`; 4 category minutes stored per request; `GET /overtime` + web /overtime/report per employee/category |
+| FR-ATT-21.2 | MUST | Workday, night | Backend/Web | Yes | Yes | M5 | Implemented | Test Passed | night window `ot.nightStart`/`ot.nightEnd` (22:00–05:00) |
+| FR-ATT-21.3 | MUST | Holiday/festival, daytime | Backend/Web | Yes | Yes | M5 | Implemented | Test Passed | holiday per employee (8 March women only) + weekly rest day when `ot.restDayCountsAsHoliday` |
+| FR-ATT-21.4 | MUST | Holiday/festival, night | Backend/Web | Yes | Yes | M5 | Implemented | Test Passed | as 21.3, night window |
 | **FR-ATT-22** | | **OT cap** (TOR p.11) | | | | | | | |
-| FR-ATT-22.1 | SHOULD | Set OT cap per day and per month (**no numeric value given**) | Web/Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-22.2 | SHOULD | Warn when nearing the cap | Web/Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-23 | SHOULD | Show approved OT hours in the employee app | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-22.1 | SHOULD | Set OT cap per day and per month (**no numeric value given**) | Web/Mobile | Yes | Yes | M5 | Implemented | Test Passed | `ot.maxMinutesPerDay`/`ot.maxMinutesPerMonth` (180/2700); pending+approved counted; over cap = 409 `ot_cap_exceeded` (blocked) |
+| FR-ATT-22.2 | SHOULD | Warn when nearing the cap | Web/Mobile | Yes | Yes | M5 | Implemented | Test Passed | `POST /overtime/preview` day/month cap status, warn at `ot.warnPercent`; web + mobile badges |
+| FR-ATT-23 | SHOULD | Show approved OT hours in the employee app | Mobile | Yes | Yes | M5 | Implemented | Test Passed | mobile /overtime: approved hours by category + requests per month (`GET /overtime/me`) |
 ## FR-LV
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |

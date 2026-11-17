@@ -35,7 +35,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/attendance', labelKey: 'nav.attendance', icon: 'schedule', permission: PERMISSIONS.ATTENDANCE_READ_ALL },
   // Rotating roster (FR-ATT-17.3) and shift definitions (FR-ATT-17.1/17.2).
   { href: '/attendance/roster', labelKey: 'roster.title', icon: 'calendar_view_week', permission: PERMISSIONS.SHIFT_MANAGE },
-  { href: '/settings/shifts', labelKey: 'shifts.title', icon: 'more_time', permission: PERMISSIONS.SHIFT_MANAGE },
+  { href: '/settings/shifts', labelKey: 'shifts.title', icon: 'view_timeline', permission: PERMISSIONS.SHIFT_MANAGE },
+  // Own overtime requests and approved OT hours (FR-ATT-20/23): every signed-in employee.
+  { href: '/overtime', labelKey: 'otx.mine.title', icon: 'more_time' },
+  // Monthly OT by category (payroll input) for HR and managers within their data scope (FR-ATT-21).
+  { href: '/overtime/report', labelKey: 'otx.report.title', icon: 'timer', permission: PERMISSIONS.ATTENDANCE_READ_ALL },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */

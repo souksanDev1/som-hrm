@@ -27,3 +27,4 @@ export * from './schemas/approval';
 export * from './schemas/shift';
 export * from './i18n';
 export * from './api/client';
+export * from './schemas/overtime';

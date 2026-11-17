@@ -8,6 +8,7 @@ import { orgEn, orgLo } from './areas/org';
 import { platformEn, platformLo } from './areas/platform';
 import { schedulesEn, schedulesLo } from './areas/schedules';
 import { shiftsEn, shiftsLo } from './areas/shifts';
+import { overtimeEn, overtimeLo } from './areas/overtime';
 
 /**
  * Minimal typed i18n dictionary shared by web + mobile.
@@ -159,7 +160,7 @@ const coreLo = {
  * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
  * so that features can add strings without editing this file.
  */
-const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo } as const;
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo } as const;
 
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
@@ -306,7 +307,7 @@ const coreEn: Record<keyof typeof coreLo, string> = {
   'error.unknown': 'Unknown error',
 };
 
-const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn };
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];
