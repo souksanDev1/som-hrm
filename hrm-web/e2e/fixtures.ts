@@ -9,6 +9,8 @@ export const DEMO = {
   manager: { identifier: 'manager@som.la', password: 'Manager1234' },
   /** Reasons of E003's seeded pending leave requests: [0] manual/Maestro, [1..6] two per Playwright project. */
   leaveReasons: ['Family event', 'Medical check-up', 'Moving house', 'Village festival', 'Bank errands', 'School meeting', 'Visa renewal'],
+  /** Local times of E003's seeded suspicious check-ins (FR-ATT-14): [0] manual demo, [1..3] one per Playwright project. */
+  suspiciousPunchTimes: ['07:41', '07:42', '07:43', '07:44'],
 } as const;
 
 export const loginWithPassword = async (page: Page, identifier: string = DEMO.admin.identifier, password: string = DEMO.admin.password) => {

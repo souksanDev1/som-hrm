@@ -135,7 +135,8 @@ export interface SubmitApprovalInput {
 
 /**
  * Start approval of a subject inside the caller's transaction (FR-ORG-02): routes level 1 along the
- * requester's chain of command (or to HR) and notifies the approver (FR-NOTI-03.1).
+ * requester's chain of command (or to HR, also when the subject's handler asks for `routing: 'hr'`) and
+ * notifies the approver (FR-NOTI-03.1).
  */
 export const submitApproval = async (tx: Tx, registry: ApprovalHandlerRegistry, input: SubmitApprovalInput) => {
   const { workspaceId } = input;
@@ -156,7 +157,10 @@ export const submitApproval = async (tx: Tx, registry: ApprovalHandlerRegistry, 
     submittedByUserId: input.submittedByUserId,
   });
   const requesterUser = await repo.userOfEmployee(tx, workspaceId, input.requesterEmployeeId);
-  const step = (await routeLevel(tx, workspaceId, request, 1, { today, now }, { excludeUserIds: excludedUsers(requesterUser?.id ?? null, []) }))!;
+  const step =
+    handler.routing === 'hr'
+      ? await repo.createStep(tx, { workspaceId, requestId: request.id, level: 1, createdAt: now, chainIndex: null, approverUserId: null, delegateUserId: null, actingAs: 'HR' })
+      : (await routeLevel(tx, workspaceId, request, 1, { today, now }, { excludeUserIds: excludedUsers(requesterUser?.id ?? null, []) }))!;
 
   const recipients = await stepRecipients(tx, workspaceId, step, requesterUser?.id ?? null);
   await notifyPending(tx, { workspaceId, request, requesterName: fullName(requester), link: handler.link(request) }, step.id, recipients);

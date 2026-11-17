@@ -31,6 +31,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/settings/work-schedule', labelKey: 'schedule.title', icon: 'calendar_month', permission: PERMISSIONS.SCHEDULE_MANAGE },
   // Own account: change password/PIN and language (every signed-in user).
   { href: '/account', labelKey: 'authx.account.title', icon: 'manage_accounts' },
+  // M5 agent D — HR attendance tools (FR-ATT-14/04/16.1/11) and own time corrections (FR-ATT-19).
+  { href: '/attendance/review', labelKey: 'attreq.review.title', icon: 'policy', permission: PERMISSIONS.ATTENDANCE_REVIEW },
+  { href: '/attendance/on-behalf', labelKey: 'attreq.onBehalf.title', icon: 'more_time', permission: PERMISSIONS.ATTENDANCE_PUNCH_ON_BEHALF },
+  { href: '/attendance/offsite', labelKey: 'attreq.offsite.title', icon: 'share_location', permission: PERMISSIONS.ATTENDANCE_OFFSITE_MANAGE },
+  { href: '/attendance/devices', labelKey: 'attreq.devices.title', icon: 'phonelink_lock', permission: PERMISSIONS.ATTENDANCE_DEVICE_MANAGE },
+  { href: '/attendance/corrections', labelKey: 'attreq.correction.title', icon: 'edit_calendar' },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */

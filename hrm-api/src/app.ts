@@ -39,6 +39,8 @@ import { schedulesRoutes } from './modules/schedules/schedules.routes';
 import { createSchedulesService, type SchedulesService } from './modules/schedules/schedules.service';
 import { authPlugin, ttlToSeconds } from './plugins/auth';
 import { registerErrorHandler } from './plugins/error-handler';
+import { attendanceRequestsRoutes } from './modules/attendance/attendance-requests.routes';
+import { createAttendanceRequestsService, type AttendanceRequestsService } from './modules/attendance/attendance-requests.service';
 
 export interface Services {
   auth: AuthService;
@@ -54,6 +56,7 @@ export interface Services {
   schedules: SchedulesService;
   approvals: ApprovalsService;
   delegations: DelegationsService;
+  attendanceRequests: AttendanceRequestsService;
 }
 
 declare module 'fastify' {
@@ -121,6 +124,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     schedules: createSchedulesService(db),
     approvals: createApprovalsService(db, approvalRegistry ?? defaultApprovalRegistry),
     delegations: createDelegationsService(db),
+    attendanceRequests: createAttendanceRequestsService(db, approvalRegistry ?? defaultApprovalRegistry),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -150,6 +154,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(notificationsRoutes);
         await secured.register(schedulesRoutes);
         await secured.register(approvalsRoutes);
+        await secured.register(attendanceRequestsRoutes);
       });
     },
     { prefix: API_PREFIX },
