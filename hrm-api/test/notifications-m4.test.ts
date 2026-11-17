@@ -312,6 +312,7 @@ describe('probation-ending alerts (FR-NOTI-03.5)', () => {
     await addEmployee(ws, 'PPAST', { probationEndDate: isoDay(-1), managerId: boss.id }); // already ended
     await addEmployee(ws, 'PNONE', { probationEndDate: null, managerId: boss.id }); // contract PROBATION without a date: skipped
     await addEmployee(ws, 'PGONE', { probationEndDate: isoDay(5), managerId: boss.id, status: 'RESIGNED' });
+    await addEmployee(ws, 'PDONE', { probationEndDate: isoDay(5), managerId: boss.id, status: 'ACTIVE' }); // confirmed early
     // The employee's own login is not alerted.
     await createUser(t.db, ws, { email: 'p14@x.test', password: 'Passw0rd1', role: 'EMPLOYEE', employeeId: in14.id });
 

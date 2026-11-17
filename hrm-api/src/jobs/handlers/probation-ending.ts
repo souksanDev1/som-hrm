@@ -10,7 +10,6 @@ export interface ProbationEndingRunResult {
   notifications: number;
 }
 
-const ENDED_STATUSES = ['RESIGNED', 'TERMINATED'] as const;
 
 /**
  * Daily probation-ending alerts for one workspace (FR-NOTI-03.5, FR-OB-03).
@@ -19,7 +18,7 @@ const ENDED_STATUSES = ['RESIGNED', 'TERMINATED'] as const;
  * workspace timezone. An employee whose `probationEndDate` is today or within a threshold notifies HR
  * (users holding employee.write) and the employee's manager's login, once per stage: the smallest
  * threshold the end date falls within. Employees without an end date (e.g. contract type PROBATION but no
- * date entered) are skipped — nothing is computed from the hire date. The dedupe key
+ * date entered) and employees no longer in status PROBATION (confirmed early, resigned) are skipped — nothing is computed from the hire date. The dedupe key
  * `probation-end:{employeeId}:{endDate}:{threshold}` makes re-runs harmless; a new end date alerts again.
  */
 export const runProbationEndingAlerts = (db: Db, workspaceId: string, now: Date = new Date()): Promise<ProbationEndingRunResult> =>
@@ -34,7 +33,8 @@ export const runProbationEndingAlerts = (db: Db, workspaceId: string, now: Date 
       where: {
         workspaceId,
         probationEndDate: { gte: parseIsoDate(today), lte: horizon },
-        status: { notIn: [...ENDED_STATUSES] },
+        // Only employees still on probation: confirmed (ACTIVE) or departed staff are not alerted.
+        status: 'PROBATION',
       },
       select: {
         id: true,
