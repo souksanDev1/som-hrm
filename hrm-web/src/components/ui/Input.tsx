@@ -7,7 +7,7 @@ export interface InputProps extends ComponentProps<'input'> {
 
 export const controlClass = (invalid?: boolean) =>
   cn(
-    'h-10 w-full rounded-sm border bg-white px-3 text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-canvas dark:bg-night-surface dark:text-night-ink',
+    'h-10 w-full rounded-md border bg-white px-3 text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-canvas dark:bg-night-surface dark:text-night-ink',
     invalid ? 'border-danger' : 'border-line focus:border-primary dark:border-night-line',
   );
 

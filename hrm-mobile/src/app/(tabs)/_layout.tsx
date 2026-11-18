@@ -25,7 +25,7 @@ export default function TabsLayout() {
   if (!hydrated || (token && !user && me.isPending)) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#1F5FD6" />
+        <ActivityIndicator color="#3B5BFD" />
       </View>
     );
   }
@@ -42,8 +42,8 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#1F5FD6',
-          tabBarInactiveTintColor: '#667085',
+          tabBarActiveTintColor: '#3B5BFD',
+          tabBarInactiveTintColor: '#64748B',
           // Tablets/landscape: label beside icon to use the extra width.
           tabBarLabelPosition: width >= 768 ? 'beside-icon' : 'below-icon',
           tabBarLabelStyle: { fontSize: 12 },

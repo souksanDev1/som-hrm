@@ -11,17 +11,17 @@ import { dateTimeOf, type ZoneState } from './zone';
 type IconName = keyof typeof MaterialIcons.glyphMap;
 
 const ZONE_LOOK: Record<ZoneState['kind'], { icon: IconName; color: string }> = {
-  disabled: { icon: 'block', color: '#667085' },
+  disabled: { icon: 'block', color: '#64748B' },
   denied: { icon: 'location-disabled', color: '#F04438' },
   off: { icon: 'location-disabled', color: '#F04438' },
-  locating: { icon: 'my-location', color: '#1F5FD6' },
+  locating: { icon: 'my-location', color: '#3B5BFD' },
   mocked: { icon: 'gpp-bad', color: '#F04438' },
   lowAccuracy: { icon: 'gps-not-fixed', color: '#F79009' },
   inside: { icon: 'where-to-vote', color: '#12B76A' },
-  noGeofence: { icon: 'place', color: '#1F5FD6' },
+  noGeofence: { icon: 'place', color: '#3B5BFD' },
   outside: { icon: 'wrong-location', color: '#F04438' },
   outsideOffsite: { icon: 'share-location', color: '#F79009' },
-  unknown: { icon: 'place', color: '#667085' },
+  unknown: { icon: 'place', color: '#64748B' },
 };
 
 /** One line describing the location state; `testID` = `checkin-zone-<kind>`. */

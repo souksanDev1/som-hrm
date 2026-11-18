@@ -3,7 +3,7 @@
  * Used by both hrm-web (Tailwind) and hrm-mobile (NativeWind) so the
  * two apps stay visually consistent.
  */
-const { colors, radius } = require('./tokens.cjs');
+const { colors, radius, shadows } = require('./tokens.cjs');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -12,6 +12,7 @@ module.exports = {
     extend: {
       colors,
       borderRadius: radius,
+      boxShadow: shadows,
       fontFamily: {
         sans: ['"IBM Plex Sans"', '"Noto Sans Lao"', 'system-ui', 'sans-serif'],
       },

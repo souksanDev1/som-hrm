@@ -28,17 +28,17 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-lg font-bold text-white">S</span>
+            <span className="bg-brand-gradient flex h-10 w-10 items-center justify-center rounded-md text-lg font-bold text-white shadow-brand">S</span>
             <div>
               <h1 className="text-lg font-semibold text-ink dark:text-night-ink">{t('auth.title')}</h1>
               <p className="text-xs text-ink-muted">{t('auth.subtitle')}</p>
             </div>
           </div>
-          <button type="button" className="rounded-sm px-2 py-1 text-sm text-primary hover:bg-primary-soft" onClick={() => changeLocale(locale === 'lo' ? 'en' : 'lo')}>
+          <button type="button" className="rounded-md px-2 py-1 text-sm text-primary hover:bg-primary-soft" onClick={() => changeLocale(locale === 'lo' ? 'en' : 'lo')}>
             {locale === 'lo' ? 'EN' : 'ລາວ'}
           </button>
         </div>
-        <div className="rounded-lg border border-line bg-white p-5 shadow-sm dark:border-night-line dark:bg-night-surface sm:p-6">
+        <div className="rounded-lg border border-line bg-white p-5 shadow-lift dark:border-night-line dark:bg-night-surface sm:p-6">
           {hydrated ? (
             <LoginForm
               defaultWorkspaceCode={lastWorkspaceCode}

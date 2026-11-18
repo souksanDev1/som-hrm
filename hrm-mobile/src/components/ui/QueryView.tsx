@@ -14,7 +14,7 @@ export function QueryView<T>({ query, isEmpty, children }: QueryViewProps<T>) {
   if (query.isPending) {
     return (
       <View className="flex-1 items-center justify-center py-12">
-        <ActivityIndicator color="#1F5FD6" />
+        <ActivityIndicator color="#3B5BFD" />
       </View>
     );
   }

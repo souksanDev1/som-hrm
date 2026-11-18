@@ -147,7 +147,7 @@ export function KioskFlow({ info, pending, submit, resetAfterMs = KIOSK_RESET_MS
   } else if (step.name === 'sending' || step.name === 'photo') {
     body = (
       <View className="flex-1 items-center justify-center gap-4" testID="kiosk-sending">
-        <ActivityIndicator size="large" color="#1F5FD6" />
+        <ActivityIndicator size="large" color="#3B5BFD" />
         <Text className="text-lg text-ink-muted">{t('kiosk.sending')}</Text>
       </View>
     );

@@ -12,10 +12,12 @@ export function Sidebar({ items }: { items: readonly NavItem[] }) {
   const t = useT();
   const activeHref = activeNavHref(pathname, items);
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-white px-3 py-4 dark:border-night-line dark:bg-night-surface lg:flex">
-      <div className="mb-6 flex items-center gap-2 px-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-sm font-bold text-white">S</span>
-        <span className="text-base font-semibold text-ink dark:text-night-ink">{t('app.name')}</span>
+    <aside className="bg-brand-sidebar hidden w-60 shrink-0 flex-col px-3 py-5 lg:flex">
+      <div className="mb-7 flex items-center gap-2.5 px-2">
+        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white/15 text-sm font-bold text-white shadow-sm backdrop-blur">
+          S
+        </span>
+        <span className="text-base font-semibold tracking-wide text-white">{t('app.name')}</span>
       </div>
       <nav aria-label="main" className="flex flex-col gap-1">
         {items.map((item) => {
@@ -26,8 +28,10 @@ export function Sidebar({ items }: { items: readonly NavItem[] }) {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium',
-                active ? 'bg-primary-soft text-primary' : 'text-ink-muted hover:bg-canvas dark:hover:bg-night-line',
+                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-white/15 text-white shadow-sm'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white',
               )}
             >
               <Icon name={item.icon} className="text-[20px]" />

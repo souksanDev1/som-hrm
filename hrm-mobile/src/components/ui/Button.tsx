@@ -10,7 +10,7 @@ export interface ButtonProps extends Omit<PressableProps, 'children'> {
 }
 
 const container: Record<ButtonVariant, string> = {
-  primary: 'bg-primary active:bg-primary-dark',
+  primary: 'bg-primary active:bg-primary-dark shadow-sm',
   secondary: 'border border-line bg-white active:bg-canvas dark:border-night-line dark:bg-night-surface',
   ghost: 'active:bg-primary-soft',
   danger: 'bg-danger active:opacity-90',
@@ -30,10 +30,10 @@ export function Button({ title, variant = 'primary', loading, fullWidth, disable
       accessibilityRole="button"
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
       disabled={isDisabled}
-      className={`min-h-12 flex-row items-center justify-center rounded-sm px-4 ${container[variant]} ${fullWidth ? 'w-full' : ''} ${isDisabled ? 'opacity-60' : ''} ${className ?? ''}`}
+      className={`min-h-12 flex-row items-center justify-center rounded-md px-4 ${container[variant]} ${fullWidth ? 'w-full' : ''} ${isDisabled ? 'opacity-60' : ''} ${className ?? ''}`}
       {...rest}
     >
-      {loading ? <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? '#fff' : '#1F5FD6'} /> : <Text className={`text-base font-semibold ${label[variant]}`}>{title}</Text>}
+      {loading ? <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? '#fff' : '#3B5BFD'} /> : <Text className={`text-base font-semibold ${label[variant]}`}>{title}</Text>}
     </Pressable>
   );
 }

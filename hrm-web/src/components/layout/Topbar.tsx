@@ -14,7 +14,7 @@ export function Topbar() {
   const logout = useLogout();
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-2 border-b border-line bg-white/90 px-4 backdrop-blur dark:border-night-line dark:bg-night-surface/90 sm:px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-2 border-b border-line bg-white/85 px-4 shadow-sm backdrop-blur dark:border-night-line dark:bg-night-surface/85 sm:px-6">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-ink dark:text-night-ink">{user?.workspaceName}</p>
       </div>

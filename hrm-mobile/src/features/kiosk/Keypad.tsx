@@ -74,7 +74,7 @@ export function Keypad({ value, onChange, maxLength, onSubmit, masked, allowLett
         )}
         {letters ? <View className="flex-1" /> : <Key label="0" onPress={() => press('0')} testID={`${testID}-key-0`} />}
         <Key label="⌫" onPress={() => onChange(value.slice(0, -1))} testID={`${testID}-backspace`}>
-          <MaterialIcons name="backspace" size={26} color="#667085" />
+          <MaterialIcons name="backspace" size={26} color="#64748B" />
         </Key>
       </View>
       <Pressable

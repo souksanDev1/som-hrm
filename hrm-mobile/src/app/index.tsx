@@ -12,7 +12,7 @@ export default function Index() {
   if (!hydrated) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas">
-        <ActivityIndicator color="#1F5FD6" />
+        <ActivityIndicator color="#3B5BFD" />
       </View>
     );
   }

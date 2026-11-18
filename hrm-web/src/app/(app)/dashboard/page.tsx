@@ -6,12 +6,20 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { useAuthStore, useHasPermission } from '@/features/auth/store';
 import { useEmployees } from '@/features/employees/hooks';
 import { useT } from '@/lib/i18n';
+import { cn } from '@/lib/cn';
 
-function Stat({ icon, label, value, href }: { icon: string; label: string; value?: number; href: string }) {
+const chipTones = [
+  'bg-emerald-50 text-emerald-600',
+  'bg-sky-50 text-sky-600',
+  'bg-violet-50 text-violet-600',
+  'bg-amber-50 text-amber-600',
+];
+
+function Stat({ icon, label, value, href, tone }: { icon: string; label: string; value?: number; href: string; tone: string }) {
   return (
-    <Link href={href}>
-      <Card className="flex items-center gap-4 hover:border-primary">
-        <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary-soft text-primary">
+    <Link href={href} className="transition-transform hover:-translate-y-0.5">
+      <Card className="flex items-center gap-4 border-transparent shadow-card transition-shadow hover:shadow-lift">
+        <span className={cn('flex h-12 w-12 items-center justify-center rounded-md', tone)}>
           <Icon name={icon} />
         </span>
         <div>
@@ -30,11 +38,16 @@ function HrStats() {
   const all = useEmployees({ pageSize: 1 });
   const active = useEmployees({ pageSize: 1, status: 'ACTIVE' });
   const foreign = useEmployees({ pageSize: 1, nationalityType: 'FOREIGN' });
+  const stats = [
+    { icon: 'group', label: t('nav.employees'), value: all.data?.total, href: '/employees' },
+    { icon: 'badge', label: t('status.ACTIVE'), value: active.data?.total, href: '/employees?status=ACTIVE' },
+    { icon: 'public', label: t('nationality.FOREIGN'), value: foreign.data?.total, href: '/employees?nationalityType=FOREIGN' },
+  ];
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Stat icon="group" label={t('nav.employees')} value={all.data?.total} href="/employees" />
-      <Stat icon="badge" label={t('status.ACTIVE')} value={active.data?.total} href="/employees?status=ACTIVE" />
-      <Stat icon="public" label={t('nationality.FOREIGN')} value={foreign.data?.total} href="/employees?nationalityType=FOREIGN" />
+      {stats.map((s, i) => (
+        <Stat key={s.href} {...s} tone={chipTones[i % chipTones.length] as string} />
+      ))}
     </div>
   );
 }

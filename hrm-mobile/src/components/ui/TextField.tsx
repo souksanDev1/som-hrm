@@ -27,7 +27,7 @@ export function TextField({ label, error, required, testID, secureTextEntry, ...
           testID={testID}
           placeholderTextColor="#98A2B3"
           secureTextEntry={secureTextEntry && !revealed}
-          className={`min-h-12 rounded-sm border bg-white px-3 text-base text-ink dark:bg-night-surface dark:text-night-ink ${secureTextEntry ? 'pr-12' : ''} ${error ? 'border-danger' : 'border-line dark:border-night-line'}`}
+          className={`min-h-12 rounded-md border bg-white px-3 text-base text-ink dark:bg-night-surface dark:text-night-ink ${secureTextEntry ? 'pr-12' : ''} ${error ? 'border-danger' : 'border-line dark:border-night-line'}`}
           {...rest}
         />
         {secureTextEntry ? (
@@ -40,7 +40,7 @@ export function TextField({ label, error, required, testID, secureTextEntry, ...
             testID={testID ? `${testID}-toggle` : undefined}
             className="absolute right-0 h-12 w-12 items-center justify-center"
           >
-            <MaterialIcons name={revealed ? 'visibility-off' : 'visibility'} size={22} color="#667085" />
+            <MaterialIcons name={revealed ? 'visibility-off' : 'visibility'} size={22} color="#64748B" />
           </Pressable>
         ) : null}
       </View>

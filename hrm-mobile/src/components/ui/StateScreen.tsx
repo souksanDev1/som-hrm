@@ -10,10 +10,10 @@ const config: Record<StateKind, { icon: keyof typeof MaterialIcons.glyphMap; col
   offline: { icon: 'wifi-off', color: '#F79009', title: 'state.offline.title', body: 'state.offline.body' },
   outOfZone: { icon: 'wrong-location', color: '#F04438', title: 'state.outOfZone.title', body: 'state.outOfZone.body' },
   gpsOff: { icon: 'location-disabled', color: '#F04438', title: 'state.gpsOff.title', body: 'state.gpsOff.body' },
-  syncPending: { icon: 'cloud-upload', color: '#1F5FD6', title: 'state.syncPending.title', body: 'state.offline.body' },
+  syncPending: { icon: 'cloud-upload', color: '#3B5BFD', title: 'state.syncPending.title', body: 'state.offline.body' },
   error: { icon: 'error-outline', color: '#F04438', title: 'state.error.title', body: 'state.error.body' },
-  empty: { icon: 'inbox', color: '#667085', title: 'common.empty' },
-  forbidden: { icon: 'lock-outline', color: '#667085', title: 'state.forbidden.title' },
+  empty: { icon: 'inbox', color: '#64748B', title: 'common.empty' },
+  forbidden: { icon: 'lock-outline', color: '#64748B', title: 'state.forbidden.title' },
 };
 
 export interface StateScreenProps {

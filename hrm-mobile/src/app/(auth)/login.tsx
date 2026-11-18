@@ -18,7 +18,7 @@ export default function LoginScreen() {
         <View className="flex-1 justify-center gap-6">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
-              <View className="h-12 w-12 items-center justify-center rounded-md bg-primary">
+              <View className="h-12 w-12 items-center justify-center rounded-md bg-primary shadow-sm">
                 <Text className="text-xl font-bold text-white">S</Text>
               </View>
               <View>
@@ -30,7 +30,7 @@ export default function LoginScreen() {
               <Text className="font-medium text-primary">{locale === 'lo' ? 'EN' : 'ລາວ'}</Text>
             </Pressable>
           </View>
-          <View className="rounded-lg border border-line bg-white p-5 dark:border-night-line dark:bg-night-surface">
+          <View className="rounded-lg border border-line bg-white p-5 shadow-sm dark:border-night-line dark:bg-night-surface">
             <LoginForm
               defaultWorkspaceCode={lastWorkspaceCode}
               defaultMethod={lastMethod}

@@ -9,7 +9,7 @@ export interface CardProps extends Omit<ComponentProps<'section'>, 'title'> {
 export function Card({ title, actions, className, children, ...rest }: CardProps) {
   return (
     <section
-      className={cn('rounded-md border border-line bg-white p-4 dark:border-night-line dark:bg-night-surface sm:p-5', className)}
+      className={cn('rounded-lg border border-line bg-white p-4 shadow-card dark:border-night-line dark:bg-night-surface sm:p-5', className)}
       {...rest}
     >
       {(title || actions) && (

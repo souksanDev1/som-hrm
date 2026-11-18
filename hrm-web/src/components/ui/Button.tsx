@@ -15,8 +15,8 @@ export interface ButtonProps extends ComponentProps<'button'> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary-dark disabled:bg-primary/50',
-  secondary: 'border border-line bg-white text-ink hover:bg-canvas dark:border-night-line dark:bg-night-surface dark:text-night-ink',
+  primary: 'bg-brand-gradient text-white shadow-brand hover:brightness-105 disabled:bg-primary/50 disabled:shadow-none disabled:brightness-100',
+  secondary: 'border border-line bg-white text-ink shadow-sm hover:border-primary/40 hover:bg-primary-soft dark:border-night-line dark:bg-night-surface dark:text-night-ink',
   ghost: 'text-ink hover:bg-primary-soft dark:text-night-ink dark:hover:bg-night-line',
   danger: 'bg-danger text-white hover:bg-danger/90 disabled:bg-danger/50',
 };
@@ -44,7 +44,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center rounded-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center rounded-md font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
         fullWidth && 'w-full',
