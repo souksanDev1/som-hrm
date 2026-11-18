@@ -127,3 +127,27 @@ describe('leaveLedger', () => {
     expect(await t.db.tenant(w, (tx) => leaveLedger.balanceByYear(tx, w, employeeId, annual, [2030, 2031]))).toEqual({ 2030: -2, 2031: -3 });
   });
 });
+
+describe('GET /leave/types, GET /leave/balances', () => {
+  it('lists the types and an employee balance within the caller scope', async () => {
+    const { ws, employeeId, typeId } = await setup();
+    const token = (await loginAs(t.app, ws.code, ws.ownerEmail, OWNER_PASSWORD)).accessToken;
+    const types = await t.app.inject({ method: 'GET', url: api('/leave/types'), headers: bearer(token) });
+    expect(types.statusCode).toBe(200);
+    expect(types.json<{ code: string }[]>().map((x) => x.code)).toContain('MATERNITY');
+
+    const w = ws.workspaceId;
+    await t.db.tenant(w, (tx) => leaveLedger.post(tx, w, { employeeId, leaveTypeId: typeId('ANNUAL'), periodYear: 2030, kind: 'ENTITLEMENT', days: 15, effectiveDate: '2030-01-01' }));
+    const res = await t.app.inject({ method: 'GET', url: api(`/leave/balances?employeeId=${employeeId}&year=2030`), headers: bearer(token) });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<{ year: number; balances: { leaveTypeId: string; balance: number }[] }>();
+    expect(body.year).toBe(2030);
+    expect(body.balances.find((b) => b.leaveTypeId === typeId('ANNUAL'))?.balance).toBe(15);
+
+    const other = await setup();
+    const outside = await t.app.inject({ method: 'GET', url: api(`/leave/balances?employeeId=${other.employeeId}`), headers: bearer(token) });
+    expect(outside.statusCode).toBe(404);
+    const noProfile = await t.app.inject({ method: 'GET', url: api('/leave/balances'), headers: bearer(token) });
+    expect(noProfile.statusCode).toBe(404);
+  });
+});
