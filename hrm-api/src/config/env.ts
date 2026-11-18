@@ -49,6 +49,12 @@ const envSchema = z.object({
   PUSH_PROVIDER: z.enum(['expo', 'none']).default('none'),
   /** Optional Expo access token (enhanced push security). */
   EXPO_ACCESS_TOKEN: z.string().optional(),
+  /**
+   * Lifetime of a cached auth context in the authenticate hook (ms); 0 turns the cache off. Changes to users,
+   * roles, permissions and workspaces invalidate it at once (LISTEN/NOTIFY across processes); this only bounds
+   * staleness should a notification ever be missed.
+   */
+  AUTH_CACHE_TTL_MS: z.coerce.number().int().min(0).max(60_000).default(5_000),
   /** Delivery attempts before a push/SMS delivery is marked FAILED (FR-NOTI-04.5). */
   DELIVERY_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
 });

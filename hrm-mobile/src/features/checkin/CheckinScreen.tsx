@@ -12,6 +12,7 @@ import { Notice, OffsiteReasonSheet, PunchButton, RecordList, SelfieCapture, Zon
 import { getDeviceInfo, newId } from './device';
 import { useCheckinContext, useOfflineOverdue } from './hooks';
 import { currentFix, locationBlocker, watchFix, type Fix, type FixState } from './location';
+import { currentWifi } from './wifi';
 import { getQueueStore } from './queue';
 import { syncNow, useCheckinQueue } from './sync';
 import { canPunch, nextKindFor, timeOf, zoneState } from './zone';
@@ -99,7 +100,7 @@ export function CheckinScreen() {
     const clientRef = newId();
     const capturedAt = new Date().toISOString();
     try {
-      const store = await getQueueStore();
+      const [store, wifi] = await Promise.all([getQueueStore(), currentWifi()]);
       await store.add({
         clientRef,
         userId: useAuthStore.getState().user!.id,
@@ -114,6 +115,7 @@ export function CheckinScreen() {
         selfieFileId: null,
         status: 'pending',
         error: null,
+        ...(wifi !== undefined ? { wifi } : {}),
       });
       await useCheckinQueue.getState().refresh();
       const outcome = await syncNow();

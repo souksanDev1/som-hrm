@@ -21,6 +21,13 @@ export type DeviceInfo = z.infer<typeof deviceInfoSchema>;
 
 const instantSchema = z.string().datetime({ offset: true, message: 'invalid_date' });
 
+/** Wi-Fi the phone was connected to at capture (FR-ATT-12); `null` fields = not readable on this phone. */
+export const wifiObservationSchema = z.object({
+  ssid: z.string().max(64).nullable(),
+  bssid: z.string().max(32).nullable(),
+});
+export type WifiObservation = z.infer<typeof wifiObservationSchema>;
+
 /** One queued punch. `clientRef` is the device-generated idempotency key (FR-ATT-05.2). */
 export const punchItemSchema = z.object({
   clientRef: z.string().trim().min(8).max(100),
@@ -38,6 +45,8 @@ export const punchItemSchema = z.object({
   selfieFileId: z.string().min(1).optional(),
   /** Reason for an out-of-zone punch under an off-site permission (FR-ATT-16.2). */
   offsiteReason: z.string().trim().max(500).optional(),
+  /** Wi-Fi at capture (FR-ATT-12); `null` = not on Wi-Fi; omitted = not reported (both count as "not on a listed network"). */
+  wifi: wifiObservationSchema.nullable().optional(),
 });
 export type PunchItemInput = z.input<typeof punchItemSchema>;
 

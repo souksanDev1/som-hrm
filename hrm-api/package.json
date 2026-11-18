@@ -18,7 +18,8 @@
     "db:backfill-pii": "tsx --env-file=.env scripts/backfill-pii.ts",
     "e2e:server": "tsx scripts/e2e-server.ts",
     "db:start": "tsx scripts/local-db.ts",
-    "platform:create-admin": "tsx --env-file-if-exists=.env scripts/create-platform-admin.ts"
+    "platform:create-admin": "tsx --env-file-if-exists=.env scripts/create-platform-admin.ts",
+    "load:checkin": "tsx scripts/load-checkin.ts"
   },
   "dependencies": {
     "@fastify/cors": "~11.4.0",
@@ -35,11 +36,13 @@
     "fastify": "~5.6.0",
     "fastify-plugin": "~5.1.0",
     "fastify-type-provider-zod": "~4.0.2",
+    "pg": "~8.23.1",
     "pg-boss": "~10.4.2",
     "zod": "~3.25.0"
   },
   "devDependencies": {
     "@types/node": "~22.20.0",
+    "@types/pg": "~8.15.0",
     "embedded-postgres": "16.15.0-beta.19",
     "prisma": "~6.19.0",
     "tsup": "~8.5.0",

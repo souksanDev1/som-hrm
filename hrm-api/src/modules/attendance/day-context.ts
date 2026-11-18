@@ -101,3 +101,28 @@ export const workingShiftOf = (day: EmployeeDay | undefined): ShiftTimes | null 
 export const candidateDates = (localDate: string): string[] => [addDays(localDate, -1), localDate];
 
 export const workspaceTimeZone = (tx: Tx, workspaceId: string) => parametersRepository.workspaceTimezone(tx, workspaceId);
+
+/**
+ * Day-context reads memoised for one operation that does not itself change schedules, rosters, holidays or the
+ * workspace time zone — storing punches. The time zone is read once and each employee's days are loaded once
+ * per date, so assigning work dates and recomputing the days after the insert reuse the same reads.
+ */
+export interface DayContextMemo {
+  timeZone(): Promise<string>;
+  days(employeeId: string, dates: readonly string[]): Promise<Map<string, EmployeeDay>>;
+}
+
+export const createDayContextMemo = (tx: Tx, workspaceId: string): DayContextMemo => {
+  let timeZone: Promise<string> | null = null;
+  const loaded = new Map<string, Map<string, EmployeeDay>>();
+  return {
+    timeZone: () => (timeZone ??= workspaceTimeZone(tx, workspaceId)),
+    async days(employeeId, dates) {
+      const known = loaded.get(employeeId) ?? new Map<string, EmployeeDay>();
+      loaded.set(employeeId, known);
+      const missing = [...new Set(dates)].filter((d) => !known.has(d));
+      if (missing.length) (await loadEmployeeDays(tx, workspaceId, employeeId, missing)).forEach((day, date) => known.set(date, day));
+      return new Map(dates.map((d) => [d, known.get(d)!]));
+    },
+  };
+};

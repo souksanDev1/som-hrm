@@ -57,6 +57,14 @@ describe('ReviewItem (FR-ATT-14)', () => {
     expect(loadSelfie).toHaveBeenCalledWith('f1');
   });
 
+  it('translates the rooted-device and Wi-Fi reasons (FR-ATT-10.2, FR-ATT-12)', () => {
+    render(<ReviewItem punch={punch({ selfieFileId: null, suspiciousReasons: ['ROOTED', 'WIFI_MISMATCH'] })} onDecide={vi.fn()} />);
+    const reasons = screen.getByTestId('review-reasons');
+    expect(reasons).toHaveTextContent('ເຄື່ອງຖືກ root/jailbreak');
+    expect(reasons).toHaveTextContent('ບໍ່ໄດ້ເຊື່ອມ Wi-Fi ຂອງສາຂາ');
+    expect(reasons).not.toHaveTextContent('attendance.suspicion');
+  });
+
   it('requires a note to reject, approves without one and shows API errors', async () => {
     const onDecide = vi.fn().mockRejectedValueOnce(new ApiError(409, 'review_already_decided', 'x')).mockResolvedValue(undefined);
     render(<ReviewItem punch={punch({ selfieFileId: null })} onDecide={onDecide} />);

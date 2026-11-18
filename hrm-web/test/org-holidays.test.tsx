@@ -6,7 +6,7 @@ import { HolidayList } from '@/features/holidays/components/HolidayList';
 import { parseHolidayForm } from '@/features/holidays/form';
 import { EntityFormDialog } from '@/features/org/components/EntityFormDialog';
 import { OrgEntityList } from '@/features/org/components/OrgEntityList';
-import { apiFieldErrors, parseBranchForm, parsePositionForm } from '@/features/org/forms';
+import { apiFieldErrors, branchFormValues, parseBranchForm, parsePositionForm } from '@/features/org/forms';
 import { ApiError } from '@/lib/api-client';
 import { usePrefsStore } from '@/lib/i18n';
 
@@ -26,7 +26,7 @@ describe('parseBranchForm (geofence)', () => {
   it('accepts a complete geofence and an empty one', () => {
     expect(parseBranchForm({ ...base, latitude: '17.97', longitude: '102.63' })).toEqual({
       ok: true,
-      data: { name: 'HQ', latitude: 17.97, longitude: 102.63, geofenceRadius: 150, attendanceModes: ['MOBILE'] },
+      data: { name: 'HQ', latitude: 17.97, longitude: 102.63, geofenceRadius: 150, attendanceModes: ['MOBILE'], wifiNetworks: [] },
     });
     expect(parseBranchForm(base)).toMatchObject({ ok: true, data: { latitude: null, longitude: null } });
   });
@@ -43,6 +43,18 @@ describe('parseBranchForm (geofence)', () => {
       data: { attendanceModes: ['MOBILE', 'SCANNER', 'KIOSK'] },
     });
     expect(parseBranchForm({ ...base, mode_MOBILE: '' })).toEqual({ ok: false, errors: { mode_MOBILE: 'attendance_modes_required' } });
+  });
+  it('reads the office Wi-Fi list one entry per line (FR-ATT-12)', () => {
+    expect(parseBranchForm({ ...base, wifiNetworks: ' SOM-Office \n\naa:bb:cc:dd:ee:01\r\nSOM-Office' })).toMatchObject({
+      ok: true,
+      data: { wifiNetworks: ['SOM-Office', 'aa:bb:cc:dd:ee:01'] },
+    });
+    expect(parseBranchForm({ ...base, wifiNetworks: 'x'.repeat(65) })).toEqual({ ok: false, errors: { wifiNetworks: 'wifi_too_long' } });
+    expect(parseBranchForm({ ...base, wifiNetworks: Array.from({ length: 21 }, (_, i) => `net-${i}`).join('\n') })).toEqual({
+      ok: false,
+      errors: { wifiNetworks: 'wifi_too_many' },
+    });
+    expect(branchFormValues({ id: 'b', name: 'HQ', address: null, latitude: null, longitude: null, geofenceRadius: 150, attendanceModes: ['MOBILE'], wifiNetworks: ['A', 'B'], isActive: true, employeeCount: 0 }).wifiNetworks).toBe('A\nB');
   });
   it('parses position levels', () => {
     expect(parsePositionForm({ name: 'Clerk', level: '3' })).toEqual({ ok: true, data: { name: 'Clerk', level: 3 } });
@@ -119,7 +131,7 @@ describe('EntityFormDialog', () => {
 
     await userEvent.type(screen.getByLabelText('Lng'), '102.6');
     await userEvent.click(screen.getByTestId('branch-form-save'));
-    expect(onSubmit).toHaveBeenCalledWith({ name: 'HQ', latitude: 17.5, longitude: 102.6, geofenceRadius: 150, attendanceModes: ['MOBILE'] });
+    expect(onSubmit).toHaveBeenCalledWith({ name: 'HQ', latitude: 17.5, longitude: 102.6, geofenceRadius: 150, attendanceModes: ['MOBILE'], wifiNetworks: [] });
     expect(onClose).toHaveBeenCalled();
   });
 

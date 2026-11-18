@@ -22,7 +22,9 @@ import { defaultApprovalRegistry } from './modules/approvals/registry';
 import { createAuditService, type AuditService } from './modules/audit/audit.service';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { protectedAuthRoutes, publicAuthRoutes } from './modules/auth/auth.routes';
-import { createAuthService, type AuthService } from './modules/auth/auth.service';
+import { createAuthService, type AuthService, type ResolvedAuth } from './modules/auth/auth.service';
+import { AuthCache } from './modules/auth/auth-cache';
+import { listenForAuthChanges } from './db/auth-changes';
 import { employeeImportRoutes } from './modules/employees/employee-import.routes';
 import { createEmployeeImportService, type EmployeeImportService } from './modules/employees/employee-import.service';
 import { employeesRoutes } from './modules/employees/employees.routes';
@@ -81,6 +83,7 @@ declare module 'fastify' {
     services: Services;
     config: Env;
     sms: SmsSender;
+    authCache: AuthCache<ResolvedAuth>;
   }
 }
 
@@ -123,12 +126,29 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
   const cipher = createFieldCipher(env.ENCRYPTION_KEY);
   await app.register(authPlugin, { env, authService: () => app.services.auth });
 
+  // Auth contexts are cached between requests and dropped on every committed change to them: in this process
+  // through the Db change feed, in other processes through LISTEN/NOTIFY (db/auth-changes, auth-cache).
+  const authCache = new AuthCache<ResolvedAuth>({ ttlMs: env.AUTH_CACHE_TTL_MS });
+  app.decorate('authCache', authCache);
+  if (env.AUTH_CACHE_TTL_MS > 0) {
+    const unsubscribe = db.onAuthChange((change) => authCache.invalidate(change));
+    const listener = listenForAuthChanges(env.DATABASE_URL, {
+      onChange: (change) => authCache.invalidate(change),
+      onReady: (ready) => authCache.setReady(ready),
+      onError: (err) => app.log.warn({ err }, 'auth change listener disconnected; auth cache bypassed until it reconnects'),
+    });
+    app.addHook('onClose', async () => {
+      unsubscribe();
+      await listener.close();
+    });
+  }
+
   const fileStorage = storage ?? createLocalFileStorage(env.FILE_STORAGE_DIR);
   app.decorate('config', env);
   app.decorate('sms', sms ?? createConsoleSmsSender((msg) => app.log.info(msg)));
   const employees = createEmployeesService(db, cipher, { storage: fileStorage });
   app.decorate('services', {
-    auth: createAuthService(db, env, { sign: (p) => app.jwt.sign(p), accessTtlSeconds }, app.sms),
+    auth: createAuthService(db, env, { sign: (p) => app.jwt.sign(p), accessTtlSeconds }, app.sms, { cache: authCache }),
     employees,
     employeeImport: createEmployeeImportService(db, employees, { secret: env.JWT_SECRET }),
     org: createOrgService(db),

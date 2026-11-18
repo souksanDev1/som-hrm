@@ -146,6 +146,7 @@ export default function SettingsPage() {
             type: 'checkbox' as const,
             ...(i === 0 ? { section: t('attendance.modes'), hint: t('attendance.modesHint') } : {}),
           })),
+          { name: 'wifiNetworks', label: t('orgx.branch.wifi'), type: 'textarea', hint: t('orgx.branch.wifiHint') },
         ]}
         parse={parseBranchForm}
         onSubmit={(body) => updateBranch.mutateAsync({ id: editing!.item.id, body })}

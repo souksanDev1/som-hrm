@@ -20,6 +20,7 @@ import type { Db, Tx } from '../../db/client';
 import { randomToken, sha256 } from '../../lib/crypto';
 import { AppError, badRequest, conflict, forbidden, locked, unauthorized } from '../../lib/errors';
 import { hashSecret, verifySecret } from '../../lib/password';
+import type { AuthCache } from './auth-cache';
 import type { SmsSender } from '../../lib/sms';
 import { ensureDeviceBinding } from '../attendance/device-binding';
 import { auditRepository } from '../audit/audit.repository';
@@ -55,17 +56,13 @@ export const detectIdentifier = (raw: string): { kind: IdentifierKind; value: st
   return { kind: 'employeeCode', value };
 };
 
-export const toAuthContext = (p: Principal): AuthContext => {
-  const permissions = new Set<string>();
-  p.roles.forEach((ur) => ur.role.permissions.forEach((rp) => permissions.add(rp.permission.key)));
-  return {
-    userId: p.id,
-    workspaceId: p.workspaceId,
-    employeeId: p.employeeId,
-    roles: p.roles.map((ur) => ur.role.code),
-    permissions: [...permissions].sort(),
-  };
-};
+export const toAuthContext = (p: Principal): AuthContext => ({
+  userId: p.id,
+  workspaceId: p.workspaceId,
+  employeeId: p.employeeId,
+  roles: p.roles,
+  permissions: p.permissions,
+});
 
 /** `phoneVerification` is false when no SMS gateway can deliver codes (see createAuthService). */
 const toMe = (p: Principal, phoneVerification: boolean): Me => {
@@ -73,7 +70,7 @@ const toMe = (p: Principal, phoneVerification: boolean): Me => {
   return {
     id: p.id,
     workspaceId: p.workspaceId,
-    workspaceName: p.workspace.name,
+    workspaceName: p.workspaceName,
     displayName: p.displayName,
     email: p.email,
     roles: ctx.roles,
@@ -81,13 +78,15 @@ const toMe = (p: Principal, phoneVerification: boolean): Me => {
     employeeId: p.employeeId,
     mustChangeCredential: p.mustChangeCredential,
     phoneVerificationRequired: phoneVerification && !!p.phone && !p.phoneVerifiedAt,
-    hasPassword: !!p.passwordHash,
-    hasPin: !!p.pinHash,
+    hasPassword: p.hasPassword,
+    hasPin: p.hasPin,
     locale: p.locale === 'en' ? 'en' : 'lo',
   };
 };
 
-export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: SmsSender) => {
+export type ResolvedAuth = { ctx: AuthContext; me: Me };
+
+export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: SmsSender, opts: { cache?: AuthCache<ResolvedAuth> } = {}) => {
   /**
    * First-login SMS verification (FR-AUTH-02.1) is enforced only when codes can actually be delivered:
    * in production the console sender reaches nobody, so gating would lock every user with a phone out.
@@ -250,14 +249,18 @@ export const createAuthService = (db: Db, env: Env, signer: TokenSigner, sms: Sm
     /**
      * Load the principal for an access token; used by the authenticate hook.
      * Returns null for unknown/disabled users; throws `workspace_suspended` (403).
+     * Served from the auth cache when one is configured (see auth-cache.ts for how it stays fresh).
      */
-    resolve: (workspaceId: string, userId: string): Promise<{ ctx: AuthContext; me: Me } | null> =>
-      db.tenant(workspaceId, async (tx) => {
-        const p = await authRepository.findPrincipal(tx, userId);
-        if (!p || !p.isActive) return null;
-        if (p.workspace.status === 'SUSPENDED') throw workspaceSuspended();
-        return { ctx: toAuthContext(p), me: toMe(p, phoneVerification) };
-      }),
+    resolve: (workspaceId: string, userId: string): Promise<ResolvedAuth | null> => {
+      const load = () =>
+        db.tenant(workspaceId, async (tx): Promise<ResolvedAuth | null> => {
+          const p = await authRepository.findPrincipal(tx, userId);
+          if (!p || !p.isActive) return null;
+          if (p.workspaceStatus === 'SUSPENDED') throw workspaceSuspended();
+          return { ctx: toAuthContext(p), me: toMe(p, phoneVerification) };
+        });
+      return opts.cache ? opts.cache.get(workspaceId, userId, load) : load();
+    },
 
     /**
      * Change the PIN, or set the first one. `currentPin` is required only when a PIN exists.

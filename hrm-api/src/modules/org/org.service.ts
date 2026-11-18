@@ -31,6 +31,7 @@ const toBranch = (b: BranchRow): Branch => ({
   longitude: b.longitude,
   geofenceRadius: b.geofenceRadius,
   attendanceModes: b.attendanceModes,
+  wifiNetworks: b.wifiNetworks,
   isActive: b.isActive,
   employeeCount: b._count.employees,
 });

@@ -3,7 +3,7 @@ import type { AttendancePunch } from '@prisma/client';
 import type { Tx } from '../../db/client';
 import { parseIsoDate } from '../../lib/dates';
 import { recomputeAttendanceDays } from './attendance-days';
-import { candidateDates, loadEmployeeDays, workingShiftOf, workspaceTimeZone } from './day-context';
+import { candidateDates, createDayContextMemo, loadEmployeeDays, workingShiftOf, workspaceTimeZone, type DayContextMemo } from './day-context';
 
 /** One punch to store, from any source (mobile, kiosk, scanner, HR on behalf, correction). */
 export interface NewPunch {
@@ -48,13 +48,20 @@ export interface CreatePunchesResult {
  * so work-date assignment (night shifts, A12), idempotency and recalculation never diverge. Source-specific checks
  * (geofence, device binding, suspicion, permissions) happen in the caller before this.
  */
-export const createPunches = async (tx: Tx, workspaceId: string, punches: readonly NewPunch[], now: Date = new Date()): Promise<CreatePunchesResult> => {
+export const createPunches = async (
+  tx: Tx,
+  workspaceId: string,
+  punches: readonly NewPunch[],
+  now: Date = new Date(),
+  /** Reads already made by the caller in this operation (time zone, employee days); one is created otherwise. */
+  memo: DayContextMemo = createDayContextMemo(tx, workspaceId),
+): Promise<CreatePunchesResult> => {
   const refs = punches.flatMap((p) => (p.clientRef ? [p.clientRef] : []));
   const existing = refs.length
     ? new Map((await tx.attendancePunch.findMany({ where: { workspaceId, clientRef: { in: refs } } })).map((p) => [p.clientRef!, p]))
     : new Map<string, AttendancePunch>();
 
-  const timeZone = await workspaceTimeZone(tx, workspaceId);
+  const timeZone = await memo.timeZone();
   const created: AttendancePunch[] = [];
   const replayed: AttendancePunch[] = [];
   const touched = new Map<string, Set<string>>();
@@ -68,7 +75,7 @@ export const createPunches = async (tx: Tx, workspaceId: string, punches: readon
     }
     if (p.clientRef) seenRefs.add(p.clientRef);
 
-    const workDate = p.workDate ?? (await workDateFor(tx, workspaceId, p.employeeId, p.capturedAt, timeZone));
+    const workDate = p.workDate ?? (await workDateFor(tx, workspaceId, p.employeeId, p.capturedAt, timeZone, memo));
     const { workDate: _ignored, ...data } = p;
     created.push(await tx.attendancePunch.create({ data: { ...data, workspaceId, workDate: parseIsoDate(workDate), receivedAt: now } }));
     touched.set(p.employeeId, (touched.get(p.employeeId) ?? new Set()).add(workDate));
@@ -76,15 +83,23 @@ export const createPunches = async (tx: Tx, workspaceId: string, punches: readon
 
   const recomputed = new Map<string, string[]>();
   for (const [employeeId, dates] of touched) {
-    await recomputeAttendanceDays(tx, workspaceId, employeeId, [...dates], now);
+    await recomputeAttendanceDays(tx, workspaceId, employeeId, [...dates], now, memo);
     recomputed.set(employeeId, [...dates].sort());
   }
   return { created, replayed, recomputed };
 };
 
 /** Work date of a punch at `instant` for an employee: a night shift's early-morning punches go to its start day. */
-export const workDateFor = async (tx: Tx, workspaceId: string, employeeId: string, instant: Date, timeZone?: string): Promise<string> => {
-  const tz = timeZone ?? (await workspaceTimeZone(tx, workspaceId));
-  const days = await loadEmployeeDays(tx, workspaceId, employeeId, candidateDates(localDateTimeOf(instant, tz).date));
+export const workDateFor = async (
+  tx: Tx,
+  workspaceId: string,
+  employeeId: string,
+  instant: Date,
+  timeZone?: string,
+  memo?: DayContextMemo,
+): Promise<string> => {
+  const tz = timeZone ?? (memo ? await memo.timeZone() : await workspaceTimeZone(tx, workspaceId));
+  const dates = candidateDates(localDateTimeOf(instant, tz).date);
+  const days = memo ? await memo.days(employeeId, dates) : await loadEmployeeDays(tx, workspaceId, employeeId, dates);
   return workDateOf(instant, tz, (date) => workingShiftOf(days.get(date)));
 };

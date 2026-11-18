@@ -10,6 +10,7 @@ import {
   shiftCrossesMidnight,
   shiftNetMinutes,
   suspicionReasons,
+  isWifiMismatch,
   validateShift,
   workDateOf,
   zonedInstant,
@@ -156,6 +157,30 @@ describe('punches', () => {
     expect(
       suspicionReasons({ capturedAt: new Date(server.getTime() + 3_600_000), deviceSentAt: server, serverReceivedAt: server, toleranceMinutes: 5, rooted: true }),
     ).toEqual(['CAPTURED_IN_FUTURE', 'ROOTED']);
+    expect(suspicionReasons({ capturedAt: server, deviceSentAt: server, serverReceivedAt: server, toleranceMinutes: 5, wifiMismatch: true })).toEqual([
+      'WIFI_MISMATCH',
+    ]);
+  });
+});
+
+describe('isWifiMismatch (FR-ATT-12)', () => {
+  const office = ['SOM-Office', 'AA-BB-CC-DD-EE-01'];
+  it('is off when the branch lists no network', () => {
+    expect(isWifiMismatch([], null)).toBe(false);
+    expect(isWifiMismatch([], { ssid: 'Cafe', bssid: null })).toBe(false);
+  });
+  it('matches SSIDs case-insensitively (Android quotes stripped) and BSSIDs in either notation', () => {
+    expect(isWifiMismatch(office, { ssid: 'som-office', bssid: null })).toBe(false);
+    expect(isWifiMismatch(office, { ssid: '"SOM-Office"', bssid: null })).toBe(false);
+    expect(isWifiMismatch(office, { ssid: 'Guest', bssid: 'aa:bb:cc:dd:ee:01' })).toBe(false);
+  });
+  it('flags another network, no Wi-Fi, or a Wi-Fi the phone could not read', () => {
+    expect(isWifiMismatch(office, { ssid: 'Cafe', bssid: 'aa:bb:cc:dd:ee:02' })).toBe(true);
+    expect(isWifiMismatch(office, null)).toBe(true);
+    expect(isWifiMismatch(office, undefined)).toBe(true);
+    expect(isWifiMismatch(office, { ssid: '<unknown ssid>', bssid: '02:00:00:00:00:00' })).toBe(true);
+    // A MAC-shaped entry is never compared with the SSID.
+    expect(isWifiMismatch(['aa:bb:cc:dd:ee:01'], { ssid: 'aa:bb:cc:dd:ee:01', bssid: null })).toBe(true);
   });
 });
 

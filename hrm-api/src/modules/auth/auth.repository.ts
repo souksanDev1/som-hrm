@@ -3,10 +3,27 @@ import type { Tx } from '../../db/client';
 
 export type IdentifierKind = 'email' | 'phone' | 'employeeCode';
 
-const principalInclude = {
-  workspace: { select: { id: true, name: true, status: true } },
-  roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
-} as const;
+/** Who a user is for authorization: account flags, workspace, role codes and the union of their permissions. */
+export interface Principal {
+  id: string;
+  workspaceId: string;
+  employeeId: string | null;
+  email: string | null;
+  phone: string | null;
+  displayName: string;
+  isActive: boolean;
+  mustChangeCredential: boolean;
+  phoneVerifiedAt: Date | null;
+  hasPassword: boolean;
+  hasPin: boolean;
+  locale: string;
+  workspaceName: string;
+  workspaceStatus: string;
+  /** Role codes, sorted and unique. */
+  roles: string[];
+  /** Permission keys, sorted and unique. */
+  permissions: string[];
+}
 
 export const authRepository = {
   findWorkspaceByCode: (tx: Tx, code: string) => tx.workspace.findUnique({ where: { code } }),
@@ -22,8 +39,29 @@ export const authRepository = {
     }
   },
 
-  findPrincipal: (tx: Tx, userId: string) =>
-    tx.user.findUnique({ where: { id: userId }, include: principalInclude }),
+  /**
+   * The principal behind an access token, in one statement (it runs for every request the auth cache misses).
+   * Row-level security applies as for any tenant query.
+   */
+  findPrincipal: async (tx: Tx, userId: string): Promise<Principal | null> => {
+    const rows = await tx.$queryRaw<Principal[]>`
+      SELECT u.id, u."workspaceId", u."employeeId", u.email, u.phone, u."displayName", u."isActive", u."mustChangeCredential",
+             u."phoneVerifiedAt", u."passwordHash" IS NOT NULL AS "hasPassword", u."pinHash" IS NOT NULL AS "hasPin", u.locale,
+             w.name AS "workspaceName", w.status::text AS "workspaceStatus",
+             COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS roles,
+             COALESCE(array_agg(DISTINCT p.key) FILTER (WHERE p.key IS NOT NULL), '{}') AS permissions
+        FROM "User" u
+        JOIN "Workspace" w ON w.id = u."workspaceId"
+        LEFT JOIN "UserRole" ur ON ur."userId" = u.id
+        LEFT JOIN "Role" r ON r.id = ur."roleId"
+        LEFT JOIN "RolePermission" rp ON rp."roleId" = r.id
+        LEFT JOIN "Permission" p ON p.id = rp."permissionId"
+       WHERE u.id = ${userId}
+       GROUP BY u.id, w.id`;
+    const p = rows[0];
+    // Sorted here (code-unit order), not by the database collation.
+    return p ? { ...p, roles: [...p.roles].sort(), permissions: [...p.permissions].sort() } : null;
+  },
 
   recordFailedAttempt: async (tx: Tx, userId: string, maxAttempts: number, lockMinutes: number) => {
     const user = await tx.user.update({ where: { id: userId }, data: { failedAttempts: { increment: 1 } } });
@@ -96,4 +134,3 @@ export const authRepository = {
     (await tx.otpChallenge.updateMany({ where: { id, consumedAt: null }, data: { consumedAt: new Date() } })).count === 1,
 };
 
-export type Principal = NonNullable<Awaited<ReturnType<typeof authRepository.findPrincipal>>>;

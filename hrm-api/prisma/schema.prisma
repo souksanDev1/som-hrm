@@ -433,6 +433,9 @@ model Branch {
   geofenceRadius  Int              @default(150)
   /// FR-WS-06: enabled attendance modes; several at once are allowed (06.4).
   attendanceModes AttendanceMode[] @default([MOBILE])
+  /// FR-ATT-12 (SHOULD): office Wi-Fi networks (SSID names or BSSID MAC addresses). A mobile punch inside the
+  /// geofence from a phone not on one of them is flagged WIFI_MISMATCH for review (never blocked). Empty = off.
+  wifiNetworks    String[]         @default([])
   isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

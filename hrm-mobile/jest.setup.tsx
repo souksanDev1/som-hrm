@@ -50,3 +50,5 @@ jest.mock('expo-camera', () => ({
   CameraView: () => null,
   useCameraPermissions: () => [{ granted: false }, jest.fn()],
 }));
+// Rooted / jailbroken check (FR-ATT-10): not rooted by default; hardening tests drive this mock.
+jest.mock('expo-device', () => ({ isRootedExperimentalAsync: jest.fn(async () => false) }));

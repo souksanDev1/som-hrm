@@ -192,13 +192,13 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-09.1 | MUST | Detect mock-location apps | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: expo-location `mocked` flag (Android). Real-device check with a mock-location app still to do (lead). |
 | FR-ATT-09.2 | MUST | Block check-in when detected | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: app blocks; API rejects mocked=true with attendance_mock_location + audit. |
 | **FR-ATT-10** | | **Tampered devices** (TOR p.9) | | | | | | | |
-| FR-ATT-10.1 | SHOULD | Detect rooted/jailbroken devices | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-10.1 | SHOULD | Detect rooted/jailbroken devices | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: `expo-device` `isRootedExperimentalAsync` (new native dep → dev-client rebuild), once per session, fail-open; sent as `rooted` with each punch batch. Mobile Jest; real-device check pending. |
+| FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: API flags ROOTED → PENDING review + audit (`rooted: true`) + reviewer notification; HR review queue shows the translated reason. API + web unit tests. |
 | **FR-ATT-11** | | **Device binding** (TOR p.9) | | | | | | | |
 | FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: first mobile login/punch binds (DeviceBinding, one active per user); other phone → device_not_bound. Change request = agent D. |
 | FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/device-change-requests (mobile change-device screen, install id in SecureStore) |
 | FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | DEVICE_CHANGE approval routed straight to HR (handler routing hr); approve revokes old binding + activates new; HR reset at /attendance/devices |
-| FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: `Branch.wifiNetworks` (SSID or BSSID, ≤20; migration 20261120090000 + test), web branch form (one per line). App sends the Wi-Fi at capture (NetInfo; Android needs location permission, iOS usually unreadable). In-zone punch not on a listed network (or Wi-Fi unknown) → WIFI_MISMATCH, flagged for review, never blocked; empty list = off; off-site punches exempt. Shared/API/web/mobile unit tests; Playwright spec added (lead runs). |
 | FR-ATT-13 | SHOULD | Selfie liveness check (anti-photo spoofing) | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-14** | | **Suspicious-record review queue** (TOR p.9) | | | | | | | |
 | FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Implemented | Partial | GET /attendance/review (attendance.review); web /attendance/review with reasons, map link, selfie |
@@ -386,7 +386,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | NFR-04 | Lao + English on every screen; Noto Sans Lao | All | In Progress |  |
 | NFR-05 | iOS + Android, offline, low-end phones, slow networks | M5 | In Progress | M5-C: offline check-in queue (expo-sqlite) + auto-sync built; dev-client rebuild/Maestro pending. |
 | NFR-06 | HTTPS, PII encryption, RBAC, audit log, fake-GPS detection | M2/M5 | In Progress | National ID plaintext; audit log mutable. M5-C: fake-GPS (mocked flag) blocked in app and API + audited. |
-| NFR-07 | 1,000 concurrent check-ins/workspace; main page ≤ 3 s | M5/M7 | Not Started | Needs load test (k6) in M5. |
+| NFR-07 | 1,000 concurrent check-ins/workspace; main page ≤ 3 s | M5/M7 | In Progress | M5-H load test `pnpm --filter @hrm/api load:checkin seed|serve|run` (DB `*_load`, 1,000 employees, 1,000 distinct `POST /attendance/punches`, concurrency 50, local): before 9.47 s, p50 448 / p95 618 / p99 833 ms; after (auth-context cache + single-statement principal + day-context memo + batched parameter reads, 52→25 queries per cold check-in) 6.12 s, 163 req/s, p50 297 / p95 343 / p99 443 ms, 0 errors; idempotent replay p95 136 ms. Client Q9 target met locally; main-page ≤ 3 s not measured (M7). |
 | NFR-08 | Daily automatic backup + tested restore | M7 | Not Started |  |
 | NFR-09 | OpenAPI documentation for every endpoint | M2 | Not Started |  |
 | NFR-10 | Popular, hireable stack with rationale | M1 | Implemented | TypeScript / Fastify / Prisma / Next.js / Expo. |

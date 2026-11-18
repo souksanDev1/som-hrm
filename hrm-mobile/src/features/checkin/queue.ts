@@ -1,4 +1,4 @@
-import type { PunchKind } from '@hrm/shared';
+import type { PunchKind, WifiObservation } from '@hrm/shared';
 import * as SQLite from 'expo-sqlite';
 
 /**
@@ -26,6 +26,8 @@ export interface QueuedPunch {
   error: string | null;
   /** Kiosk queue only (FR-ATT-03.2): the employee code typed on the tablet. */
   employeeCode?: string | null;
+  /** Wi-Fi at capture (FR-ATT-12): `null` = not on Wi-Fi, absent = not read. */
+  wifi?: WifiObservation | null;
 }
 
 export type QueuePatch = Partial<Pick<QueuedPunch, 'offline' | 'selfieFileId' | 'status' | 'error'>>;
@@ -55,6 +57,8 @@ interface Row {
   status: string;
   error: string | null;
   employee_code?: string | null;
+  /** JSON of `QueuedPunch.wifi`; NULL = not read (also rows queued before the column existed). */
+  wifi?: string | null;
 }
 
 const SCHEMA = `
@@ -77,6 +81,21 @@ CREATE TABLE IF NOT EXISTS punch_queue (
 CREATE TABLE IF NOT EXISTS checkin_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
 `;
 
+/** Columns added after the first release, created on phones that already have the table. */
+const ADDED_COLUMNS = [
+  { name: 'employee_code', ddl: 'ALTER TABLE punch_queue ADD COLUMN employee_code TEXT' },
+  { name: 'wifi', ddl: 'ALTER TABLE punch_queue ADD COLUMN wifi TEXT' },
+];
+
+const parseWifi = (raw: string | null | undefined): WifiObservation | null | undefined => {
+  if (raw === null || raw === undefined) return undefined;
+  try {
+    return JSON.parse(raw) as WifiObservation | null;
+  } catch {
+    return undefined;
+  }
+};
+
 const COLUMN: Record<keyof QueuePatch, string> = { offline: 'offline', selfieFileId: 'selfie_file_id', status: 'status', error: 'error' };
 
 export const fromRow = (r: Row): QueuedPunch => ({
@@ -94,6 +113,7 @@ export const fromRow = (r: Row): QueuedPunch => ({
   status: r.status === 'rejected' ? 'rejected' : 'pending',
   error: r.error,
   ...(r.employee_code ? { employeeCode: r.employee_code } : {}),
+  ...(parseWifi(r.wifi) !== undefined ? { wifi: parseWifi(r.wifi) } : {}),
 });
 
 /** expo-sqlite implementation (the database survives app restarts and phone reboots). */
@@ -101,9 +121,12 @@ export const createSqliteQueueStore = (db: SQLite.SQLiteDatabase): QueueStore =>
   list: async (userId) => (await db.getAllAsync<Row>('SELECT * FROM punch_queue WHERE user_id = ? ORDER BY captured_at ASC', [userId])).map(fromRow),
   add: async (p) => {
     await db.runAsync(
-      `INSERT OR IGNORE INTO punch_queue (client_ref, user_id, kind, captured_at, latitude, longitude, accuracy, offline, offsite_reason, selfie_uri, selfie_file_id, status, error, employee_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.clientRef, p.userId, p.kind, p.capturedAt, p.latitude, p.longitude, p.accuracyMetres, p.offline ? 1 : 0, p.offsiteReason, p.selfieUri, p.selfieFileId, p.status, p.error, p.employeeCode ?? null],
+      `INSERT OR IGNORE INTO punch_queue (client_ref, user_id, kind, captured_at, latitude, longitude, accuracy, offline, offsite_reason, selfie_uri, selfie_file_id, status, error, employee_code, wifi)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        p.clientRef, p.userId, p.kind, p.capturedAt, p.latitude, p.longitude, p.accuracyMetres, p.offline ? 1 : 0, p.offsiteReason, p.selfieUri, p.selfieFileId,
+        p.status, p.error, p.employeeCode ?? null, p.wifi === undefined ? null : JSON.stringify(p.wifi),
+      ],
     );
   },
   update: async (clientRef, patch) => {
@@ -129,9 +152,8 @@ export const createSqliteQueueStore = (db: SQLite.SQLiteDatabase): QueueStore =>
 export const openQueueStore = async (fileName: string): Promise<QueueStore> => {
   const db = await SQLite.openDatabaseAsync(fileName);
   await db.execAsync(SCHEMA);
-  // Queues created before the kiosk column existed (M5-C installs).
-  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(punch_queue)');
-  if (!columns.some((c) => c.name === 'employee_code')) await db.execAsync('ALTER TABLE punch_queue ADD COLUMN employee_code TEXT');
+  const columns = new Set((await db.getAllAsync<{ name: string }>('PRAGMA table_info(punch_queue)')).map((c) => c.name));
+  for (const c of ADDED_COLUMNS) if (!columns.has(c.name)) await db.execAsync(c.ddl);
   return createSqliteQueueStore(db);
 };
 

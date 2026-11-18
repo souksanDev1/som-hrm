@@ -10,6 +10,9 @@ export type OrgListQuery = z.infer<typeof orgListQuerySchema>;
 /** Geofence limits (FR-WS-02.4): radius in metres for mobile check-in. */
 export const GEOFENCE_RADIUS = { min: 20, max: 5000, default: 150 } as const;
 
+/** Office Wi-Fi list limits (FR-ATT-12): entries are SSID names (≤ 32 bytes in 802.11) or BSSID MAC addresses. */
+export const BRANCH_WIFI = { maxEntries: 20, maxLength: 64 } as const;
+
 const branchFields = z.object({
   name: z.string().trim().min(1, 'required').max(120),
   address: z.string().trim().max(300).optional(),
@@ -23,6 +26,15 @@ const branchFields = z.object({
     .min(GEOFENCE_RADIUS.min, 'invalid_radius')
     .max(GEOFENCE_RADIUS.max, 'invalid_radius')
     .default(GEOFENCE_RADIUS.default),
+  /**
+   * FR-ATT-12 (SHOULD): office Wi-Fi networks — SSID names or BSSID MAC addresses. A mobile punch inside the
+   * geofence from a phone not on one of them is flagged WIFI_MISMATCH for review. Empty list = check off.
+   */
+  wifiNetworks: z
+    .array(z.string().trim().min(1, 'required').max(BRANCH_WIFI.maxLength, 'wifi_too_long'))
+    .max(BRANCH_WIFI.maxEntries, 'wifi_too_many')
+    .transform((list) => [...new Set(list)])
+    .optional(),
   /** FR-WS-06: attendance modes enabled at this branch; several at once (06.4), at least one. */
   attendanceModes: z
     .array(z.nativeEnum(AttendanceMode))
@@ -50,6 +62,7 @@ export const branchSchema = z.object({
   longitude: z.number().nullable(),
   geofenceRadius: z.number(),
   attendanceModes: z.array(z.nativeEnum(AttendanceMode)),
+  wifiNetworks: z.array(z.string()),
   isActive: z.boolean(),
   employeeCount: z.number(),
 });

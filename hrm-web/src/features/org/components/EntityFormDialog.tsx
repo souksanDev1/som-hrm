@@ -1,6 +1,6 @@
 'use client';
 import { useState, type FormEvent } from 'react';
-import { Button, Checkbox, Field, Input, Modal, Select, type SelectOption } from '@/components/ui';
+import { Button, Checkbox, Field, Input, Modal, Select, Textarea, type SelectOption } from '@/components/ui';
 import { useT } from '@/lib/i18n';
 import { apiFieldErrors, type FormValues, type ParseResult } from '../forms';
 
@@ -8,7 +8,7 @@ export interface EntityFormField {
   name: string;
   label: string;
   /** `checkbox` values are 'true' / '' (form values are strings). */
-  type?: 'text' | 'number' | 'date' | 'time' | 'select' | 'checkbox';
+  type?: 'text' | 'number' | 'date' | 'time' | 'select' | 'checkbox' | 'textarea';
   /** For `select`; an empty first option is added with `placeholder`. */
   options?: readonly SelectOption[];
   placeholder?: string;
@@ -83,6 +83,13 @@ function EntityForm<T>({ testId, fields, initial, saving, parse, onSubmit, onClo
                   id={id(f.name)}
                   options={f.options ?? []}
                   placeholder={f.placeholder ?? '—'}
+                  invalid={!!errors[f.name]}
+                  value={values[f.name] ?? ''}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                />
+              ) : f.type === 'textarea' ? (
+                <Textarea
+                  id={id(f.name)}
                   invalid={!!errors[f.name]}
                   value={values[f.name] ?? ''}
                   onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
