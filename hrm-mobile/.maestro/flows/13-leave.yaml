@@ -1,0 +1,117 @@
+appId: la.som.hrm
+name: Employee files unpaid leave with the live preview, withdraws it, and opens the leave calendar (FR-LV-03/06/12/13)
+---
+# A weekday that grows with time (30 min = 1 day from 2080), so a rerun never overlaps an earlier request and the
+# new request is always first in the list (sorted by start date, newest first).
+- evalScript: ${output.leaveDay = new Date(Date.UTC(2080, 0, 1) + Math.floor((Date.now() - Date.UTC(2026, 10, 18)) / 1800000) * 86400000)}
+- evalScript: ${output.leaveDay.setUTCDate(output.leaveDay.getUTCDate() + [1, 0, 0, 0, 0, 0, 2][output.leaveDay.getUTCDay()])}
+- evalScript: ${output.leaveDate = output.leaveDay.toISOString().slice(0, 10)}
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "tab-pin"
+- tapOn:
+    id: "input-workspace"
+- inputText: "som-demo"
+- tapOn:
+    id: "input-identifier"
+- inputText: "02055550003"
+- hideKeyboard
+- tapOn:
+    id: "input-pin"
+- inputText: "482913"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- assertVisible:
+    id: "home-screen"
+- scrollUntilVisible:
+    element:
+      id: "open-leave"
+    direction: DOWN
+- tapOn:
+    id: "open-leave"
+- assertVisible:
+    id: "leave-screen"
+- assertVisible:
+    id: "leave-balances"
+- tapOn:
+    id: "leave-new"
+- assertVisible:
+    id: "leave-new-screen"
+- tapOn:
+    id: "leave-type-UNPAID"
+- tapOn:
+    id: "leave-start"
+- inputText: ${output.leaveDate}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "leave-preview-days"
+    direction: DOWN
+- assertVisible:
+    id: "leave-preview-days"
+- assertNotVisible:
+    id: "leave-preview-error"
+- scrollUntilVisible:
+    element:
+      id: "leave-reason"
+    direction: DOWN
+- tapOn:
+    id: "leave-reason"
+- inputText: "Maestro leave"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "leave-submit"
+    direction: DOWN
+- tapOn:
+    id: "leave-submit"
+# Back on the list: the new request is first; open it and withdraw it (pending → cancelled at once).
+- assertVisible:
+    id: "leave-screen"
+- tapOn:
+    id: "leave-item-.*"
+    index: 0
+- assertVisible:
+    id: "leave-detail-screen"
+- assertVisible:
+    text: "ລໍຖ້າອະນຸມັດ"
+- scrollUntilVisible:
+    element:
+      id: "leave-cancel"
+    direction: DOWN
+- tapOn:
+    id: "leave-cancel"
+- tapOn:
+    id: "leave-cancel-confirm"
+- extendedWaitUntil:
+    visible:
+      text: "ຍົກເລີກແລ້ວ"
+    timeout: 10000
+- tapOn:
+    id: "leave-detail-back"
+- assertVisible:
+    id: "leave-screen"
+- tapOn:
+    id: "leave-back"
+- assertVisible:
+    id: "home-screen"
+# The leave calendar opens on today.
+- scrollUntilVisible:
+    element:
+      id: "open-leave-calendar"
+    direction: DOWN
+- tapOn:
+    id: "open-leave-calendar"
+- assertVisible:
+    id: "leave-calendar-screen"
+- assertVisible:
+    id: "lcal-period"
+- tapOn:
+    id: "lcal-back"
+- assertVisible:
+    id: "home-screen"

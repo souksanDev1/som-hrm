@@ -1,6 +1,7 @@
 import type { LeaveRequest } from '@hrm/shared';
 import { toIsoDate } from '../../lib/dates';
-import type { LeaveRequestRow } from './leave-requests.repository';
+import type { Tx } from '../../db/client';
+import { leaveRequestsRepository as repo, type LeaveRequestRow } from './leave-requests.repository';
 
 export interface LeaveViewContext {
   /** Approval request id by subject id (the leave request and its cancellation requests). */
@@ -39,4 +40,13 @@ export const toLeaveRequestView = (r: LeaveRequestRow, ctx: LeaveViewContext): L
     cancelReason: r.cancelReason,
     createdAt: r.createdAt.toISOString(),
   };
+};
+
+/** Views of loaded rows with their approval ids and filer names (one query each); used by every leave endpoint. */
+export const buildLeaveRequestViews = async (tx: Tx, workspaceId: string, rows: LeaveRequestRow[]): Promise<LeaveRequest[]> => {
+  const [approvals, userNames] = await Promise.all([
+    repo.approvalIds(tx, workspaceId, rows.flatMap((r) => [r.id, ...r.cancelRequests.map((c) => c.id)])),
+    repo.userNames(tx, workspaceId, rows.flatMap((r) => (r.submittedByUserId ? [r.submittedByUserId] : []))),
+  ]);
+  return rows.map((r) => toLeaveRequestView(r, { approvals, userNames }));
 };

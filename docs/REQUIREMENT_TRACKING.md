@@ -18,14 +18,14 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-EMP | 34 | 2 | 34 | 2 | 0 |
 | FR-ORG | 8 | 2 | 7 | 3 | 0 |
 | FR-ATT | 49 | 11 | 59 | 0 | 1 |
-| FR-LV | 33 | 4 | 0 | 0 | 37 |
+| FR-LV | 33 | 4 | 37 | 0 | 0 |
 | FR-OB | 18 | 2 | 0 | 0 | 20 |
 | FR-NOTI | 10 | 5 | 13 | 2 | 0 |
 | FR-PAYDATA | 10 | 1 | 0 | 0 | 11 |
 | FR-RPT | 8 | 1 | 0 | 0 | 9 |
-| **Total** | **206** | **34** | **152** | **9** | **79** |
+| **Total** | **206** | **34** | **189** | **9** | **42** |
 
-"Implemented" here means the M1–M5 code covers it; none of these are UAT-accepted yet.
+"Implemented" here means the M1–M6 code covers it; none of these are UAT-accepted yet.
 
 ## FR-WS
 
@@ -250,8 +250,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-03.2 | MUST | Half day, morning or afternoon | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: halfDay AM/PM = 0.5 (single day, type allowHalfDay); API `test/leave-requests.test.ts`, web Vitest `test/leave-requests.test.tsx`, mobile Jest `__tests__/leave.test.tsx`. |
 | FR-LV-03.3 | MUST | Compute leave days from the employee's own working days (standard or override) | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 base `loadLeaveDays`/`countLeaveDays` + agent C preview/filing: holiday, rest day, individual override, maternity calendar days API-tested. |
 | **FR-LV-04** | | **Day-counting method** (TOR p.12) | | | | | | | |
-| FR-LV-04.1 | MUST | Maternity counted in calendar days | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveType.countingMethod CALENDAR_DAYS for maternity; `countLeaveDays` unit-tested (105 days). |
-| FR-LV-04.2 | MUST | Other types count working days only | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: WORKING_DAYS default; `countLeaveDays` unit-tested. |
+| FR-LV-04.1 | MUST | Maternity counted in calendar days | Backend | Yes | Yes | M6 | Implemented | Tested | LeaveType.countingMethod CALENDAR_DAYS for maternity (migration + seed); `countLeaveDays` unit-tested (105/120 days); preview/filing API-tested. |
+| FR-LV-04.2 | MUST | Other types count working days only | Backend | Yes | Yes | M6 | Implemented | Tested | WORKING_DAYS for every other type; `countLeaveDays` unit-tested; preview/filing API-tested (holiday, rest day, override). |
 | **FR-LV-05** | | **Medical certificate** (TOR p.12) | | | | | | | |
 | FR-LV-05.1 | MUST | Certificate mandatory when sick leave **> 1 day** | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: `certificateRequired` (type.requiresAttachment, days > threshold) in preview/filing; API-tested. |
 | FR-LV-05.2 | MUST | HR configures the day threshold for a certificate | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | Parameter `leave.certificateThresholdDays` (default 1) read at filing; editable in /settings/parameters. |
@@ -261,15 +261,15 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | Implemented | Tested | M6 C: ledger balance minus other PENDING requests per year; per-event quota per request (Q11); API-tested; shown in web/mobile forms. |
 | FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | Implemented | Tested | M6 C: 400 `leave_gender_ineligible`; API-tested. |
 | **FR-LV-07** | | **Leave balance ledger** (TOR p.12) | | | | | | | |
-| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. Agent B: daily `leave-accrual` job posts ENTITLEMENT (grant date, hazardous, sick 90-day DAILY/HOURLY, idempotent), API-tested in `test/leave-policy.test.ts`. |
+| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | Implemented | Tested | LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. Agent B: daily `leave-accrual` job posts ENTITLEMENT (grant date, hazardous, sick 90-day DAILY/HOURLY, idempotent), API-tested in `test/leave-policy.test.ts`. |
 | FR-LV-07.2 | MUST | HR adjusts the balance with a reason | Web | Yes | Yes | M6 | Implemented | Unit+API | `POST /leave/ledger/adjustments` (leave.ledger.adjust, reason required, audit-logged); form on `/leave/ledger`. API + web tests |
 | FR-LV-07.3 | MUST | View per-person ledger for audit | Web | Yes | Yes | M6 | Implemented | Unit+API | `GET /leave/ledger` (self / data scope / HR) with creator name; `/leave/ledger` balances + movements. API + web tests |
 | **FR-LV-08** | | **Annual-leave carry-over** (TOR p.12) | | | | | | | |
 | FR-LV-08.1 | SHOULD | Carry-over policy for unused days into next year | Web | Yes | Yes | M6 | Implemented | API | Daily `leave-carry-over` job: CARRY = `carryOverDays(prev-year balance, leave.carryOverMaxDays)`; default 0 = off (Q13). `test/leave-policy.test.ts` |
 | FR-LV-08.2 | SHOULD | Expiry date for carried-over days | Web | Yes | Yes | M6 | Implemented | API | EXPIRE after the last day of `leave.carryOverExpiryMonth` (default 3 → 31/03) = `expiringCarryDays`. `test/leave-policy.test.ts` |
 | **FR-LV-09** | | **Submit leave** (TOR p.12) | | | | | | | |
-| FR-LV-09.1 | MUST | Via mobile app | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: mobile `/leave`, `/leave/new`, `/leave/[id]` (home `open-leave`); Jest. Maestro pending (lead). |
-| FR-LV-09.2 | MUST | Via web | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: web `/leave`, `/leave/new`, `/leave/[id]`; Vitest. Playwright pending (lead). |
+| FR-LV-09.1 | MUST | Via mobile app | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: mobile `/leave`, `/leave/new`, `/leave/[id]` (home `open-leave`); Jest; Maestro `13-leave.yaml`. |
+| FR-LV-09.2 | MUST | Via web | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: web `/leave`, `/leave/new`, `/leave/[id]`; Vitest; Playwright `e2e/leave.spec.ts`. |
 | **FR-LV-10** | | **Proxy leave submission (for staff without smartphones)** (TOR p.12) | | | | | | | |
 | FR-LV-10.1 | MUST | HR files on behalf | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: `employeeId` + `leave.file_on_behalf` -> filedAs HR, audited; web "file for" picker; API-tested. |
 | FR-LV-10.2 | MUST | Manager files on behalf of a team member | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: manager for their reporting tree -> filedAs MANAGER (others 403); web picker; API-tested. Mobile proxy filing not built (web only). |
@@ -277,18 +277,18 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-11.1 | MUST | 1–2 approval levels per the org chart | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: LEAVE handler: approval posts ledger USAGE + recomputes AttendanceDay (LEAVE); `approval.levels` 1-2; test/leave-approval.test.ts. |
 | FR-LV-11.2 | MUST | Apply delegate rules FR-ORG-03 to FR-ORG-05 | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: delegate decides while manager on approved leave, upper level otherwise (onLeave reads APPROVED leave), escalation; test/leave-approval.test.ts. |
 | **FR-LV-12** | | **Cancel leave** (TOR p.13) | | | | | | | |
-| FR-LV-12.1 | MUST | Cancel an unapproved request immediately | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: POST /leave/requests/:id/cancel on PENDING -> withdrawApproval (request CANCELLED, step closed with who withdrew) + delegation ended; API/web/mobile tests. |
-| FR-LV-12.2 | MUST | Request cancellation of approved leave (needs approval) | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: APPROVED -> reason required, LeaveCancelRequest + LEAVE_CANCEL approval; approve -> ledger CANCEL + attendance recompute; one pending (409). |
+| FR-LV-12.1 | MUST | Cancel an unapproved request immediately | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: POST /leave/requests/:id/cancel on PENDING -> withdrawApproval (request CANCELLED, step closed with who withdrew) + delegation ended; API/web/mobile tests. Playwright `e2e/leave.spec.ts`. |
+| FR-LV-12.2 | MUST | Request cancellation of approved leave (needs approval) | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: APPROVED -> reason required, LeaveCancelRequest + LEAVE_CANCEL approval; approve -> ledger CANCEL + attendance recompute; one pending (409). Playwright `e2e/leave.spec.ts`. |
 | **FR-LV-13** | | **Leave calendar** (TOR p.13) | | | | | | | |
-| FR-LV-13.1 | MUST | Employees view their own department's leave calendar in app and web | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.2 | MUST | "Today" view: who is on leave today, full or half day | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.3 | MUST | Toggle weekly/monthly views | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.4 | MUST | Managers at every level see all subordinates beneath them (all lower levels) | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.5 | SHOULD | Manager filters by department/sub-team and leave type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.6 | MUST | Visibility: regular staff see only "on leave" (no type/reason). Managers and HR see the type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.7 | MUST | Approved vs pending in different colours. Regular staff see approved only | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.8 | MUST | Show public holidays and weekly rest days | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
-| FR-LV-13.9 | MUST | HR views all departments | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.1 | MUST | Employees view their own department's leave calendar in app and web | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.2 | MUST | "Today" view: who is on leave today, full or half day | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.3 | MUST | Toggle weekly/monthly views | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.4 | MUST | Managers at every level see all subordinates beneath them (all lower levels) | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.5 | SHOULD | Manager filters by department/sub-team and leave type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.6 | MUST | Visibility: regular staff see only "on leave" (no type/reason). Managers and HR see the type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.7 | MUST | Approved vs pending in different colours. Regular staff see approved only | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.8 | MUST | Show public holidays and weekly rest days | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
+| FR-LV-13.9 | MUST | HR views all departments | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.*; Playwright `e2e/leave.spec.ts`, Maestro `13-leave.yaml`. |
 | FR-LV-13.10 | SHOULD | From the approval screen, the manager sees which team members are already on leave that day | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: approval detail `teamOnLeave` (same manager or department, APPROVED/PENDING overlap, no leave type, not for requester); web + mobile panel + tests. |
 ## FR-OB
 

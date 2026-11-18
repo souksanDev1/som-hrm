@@ -18,6 +18,7 @@ import { submitApproval } from '../src/modules/approvals/approvals.service';
 import { defaultApprovalRegistry } from '../src/modules/approvals/registry';
 import { notify } from '../src/modules/notifications/notifications.service';
 import { createPunches } from '../src/modules/attendance/punches';
+import { runLeaveAccrual } from '../src/jobs/handlers/leave-accrual';
 
 export const DEMO = {
   workspaceCode: 'som-demo',
@@ -192,8 +193,10 @@ const main = async () => {
         },
       ]);
     }
-    return true;
+    return ws;
   });
+  // Yearly leave entitlements (annual, sick) for the current year, as the daily accrual job would grant them (FR-LV-07.1).
+  if (seeded) await runLeaveAccrual(db, seeded);
   await db.system(async (tx) => {
     if (await tx.platformUser.findUnique({ where: { email: PLATFORM_DEMO.email } })) return;
     await tx.platformUser.create({

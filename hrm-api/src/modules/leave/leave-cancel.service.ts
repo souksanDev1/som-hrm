@@ -1,70 +1,19 @@
-import { ApprovalSubjectType, PERMISSIONS, roundLeaveDays, type LeaveCancelInput, type LeaveRequest } from '@hrm/shared';
+import { ApprovalSubjectType, PERMISSIONS, type LeaveCancelInput, type LeaveRequest } from '@hrm/shared';
 import { Prisma } from '@prisma/client';
-import type { Db, Tx } from '../../db/client';
-import { toIsoDate } from '../../lib/dates';
+import type { Db } from '../../db/client';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/errors';
 import type { ApprovalHandlerRegistry } from '../approvals/approval-handlers';
 import { submitApproval, withdrawApproval } from '../approvals/approvals.service';
 import { auditRepository } from '../audit/audit.repository';
 import type { AuthContext } from '../auth/auth.service';
 import { employeeAccess } from '../employees/employees.service';
-import { parametersRepository } from '../parameters/parameters.repository';
 import { cancelLeaveDelegation } from './leave-effects';
+import { leaveRequestsRepository } from './leave-requests.repository';
+import { buildLeaveRequestViews } from './leave-requests.view';
 
 interface RequestMeta {
   ip?: string;
 }
-
-const leaveInclude = {
-  employee: { select: { employeeCode: true, firstName: true, lastName: true } },
-  leaveType: { select: { id: true, code: true, nameLo: true, nameEn: true } },
-  cancelRequests: { orderBy: { createdAt: 'desc' }, take: 1 },
-} as const satisfies Prisma.LeaveRequestInclude;
-
-type LeaveRow = Prisma.LeaveRequestGetPayload<{ include: typeof leaveInclude }>;
-
-const findLeave = (tx: Tx, workspaceId: string, id: string) => tx.leaveRequest.findFirst({ where: { workspaceId, id }, include: leaveInclude });
-
-/**
- * Minimal `leaveRequestSchema` view returned by the cancel endpoint. The leave-filing module owns the full view;
- * `certificateRequired` is derived from the stored certificate fields here.
- */
-const toView = async (tx: Tx, workspaceId: string, r: LeaveRow): Promise<LeaveRequest> => {
-  const cancel = r.cancelRequests[0] ?? null;
-  const approvals = await tx.approvalRequest.findMany({
-    where: {
-      workspaceId,
-      OR: [{ subjectType: ApprovalSubjectType.LEAVE, subjectId: r.id }, ...(cancel ? [{ subjectType: ApprovalSubjectType.LEAVE_CANCEL, subjectId: cancel.id }] : [])],
-    },
-    select: { id: true, subjectType: true },
-  });
-  const approvalOf = (type: ApprovalSubjectType) => approvals.find((a) => a.subjectType === type)?.id ?? null;
-  const submittedByName = r.submittedByUserId ? ((await parametersRepository.userNames(tx, [r.submittedByUserId])).get(r.submittedByUserId) ?? null) : null;
-  return {
-    id: r.id,
-    employeeId: r.employeeId,
-    employeeCode: r.employee.employeeCode,
-    employeeName: `${r.employee.firstName} ${r.employee.lastName}`,
-    leaveType: r.leaveType,
-    startDate: toIsoDate(r.startDate)!,
-    endDate: toIsoDate(r.endDate)!,
-    halfDay: r.halfDay,
-    multipleBirth: r.multipleBirth,
-    days: roundLeaveDays(Number(r.days)),
-    reason: r.reason,
-    status: r.status,
-    filedAs: r.filedAs,
-    submittedByName,
-    certificateRequired: r.certificateDueDate !== null || r.certificateFileId !== null,
-    certificateFileId: r.certificateFileId,
-    certificateDueDate: toIsoDate(r.certificateDueDate),
-    approvalRequestId: approvalOf(ApprovalSubjectType.LEAVE),
-    cancelRequest: cancel ? { id: cancel.id, status: cancel.status, reason: cancel.reason, approvalRequestId: approvalOf(ApprovalSubjectType.LEAVE_CANCEL) } : null,
-    cancelledAt: r.cancelledAt?.toISOString() ?? null,
-    cancelReason: r.cancelReason,
-    createdAt: r.createdAt.toISOString(),
-  };
-};
 
 const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
@@ -80,7 +29,7 @@ export const createLeaveCancelService = (db: Db, registry: ApprovalHandlerRegist
   cancel: (auth: AuthContext, id: string, input: LeaveCancelInput, meta: RequestMeta = {}): Promise<LeaveRequest> =>
     db.tenant(auth.workspaceId, async (tx) => {
       const ws = auth.workspaceId;
-      const leave = await findLeave(tx, ws, id);
+      const leave = await leaveRequestsRepository.findById(tx, ws, id);
       if (!leave) throw notFound();
       const allowed = leave.employeeId === auth.employeeId || leave.submittedByUserId === auth.userId || auth.permissions.includes(PERMISSIONS.LEAVE_MANAGE);
       if (!allowed) {
@@ -139,7 +88,7 @@ export const createLeaveCancelService = (db: Db, registry: ApprovalHandlerRegist
       } else {
         throw conflict('leave_not_cancellable');
       }
-      return toView(tx, ws, (await findLeave(tx, ws, leave.id))!);
+      return (await buildLeaveRequestViews(tx, ws, [(await leaveRequestsRepository.findById(tx, ws, leave.id))!]))[0]!;
     }),
 });
 

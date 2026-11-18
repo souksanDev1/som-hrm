@@ -43,6 +43,17 @@
         "PORT": "4001"
       },
       "port": 4001
+    },
+    {
+      "name": "hrm-mobile-metro-m5",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@hrm/mobile", "exec", "expo", "start", "--dev-client", "--port", "8082"],
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:4001/api/v1",
+        "EXPO_PUBLIC_ALLOW_MOCK_LOCATION": "true",
+        "CI": "1"
+      },
+      "port": 8082
     }
   ]
 }

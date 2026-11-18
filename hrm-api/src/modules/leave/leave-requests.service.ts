@@ -33,7 +33,7 @@ import { loadLeaveDays, loadLeaveEmployee } from './leave-days';
 import { leaveLedger } from './leave-ledger';
 import { leaveRequestsRepository as repo, type LeaveRequestRow } from './leave-requests.repository';
 import { leaveTypesRepository, toPolicyRule, toTypeRule } from './leave-types.repository';
-import { toLeaveRequestView } from './leave-requests.view';
+import { buildLeaveRequestViews } from './leave-requests.view';
 
 interface RequestMeta {
   ip?: string;
@@ -156,13 +156,7 @@ const evaluate = async (tx: Tx, ctx: AuthContext, employeeId: string, input: Lea
   };
 };
 
-const views = async (tx: Tx, workspaceId: string, rows: LeaveRequestRow[]): Promise<LeaveRequest[]> => {
-  const [approvals, userNames] = await Promise.all([
-    repo.approvalIds(tx, workspaceId, rows.flatMap((r) => [r.id, ...r.cancelRequests.map((c) => c.id)])),
-    repo.userNames(tx, workspaceId, rows.flatMap((r) => (r.submittedByUserId ? [r.submittedByUserId] : []))),
-  ]);
-  return rows.map((r) => toLeaveRequestView(r, { approvals, userNames }));
-};
+const views = buildLeaveRequestViews;
 
 /** Read access to one request: the employee, whoever filed it, HR, anyone with the employee in data scope, approvers. */
 const canRead = async (tx: Tx, ctx: AuthContext, r: LeaveRequestRow): Promise<boolean> =>

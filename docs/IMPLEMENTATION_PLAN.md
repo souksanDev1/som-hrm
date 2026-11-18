@@ -77,12 +77,16 @@ Onboarding/Offboarding, ຜັງອົງກອນ, ແຈ້ງເຕືອນ
   alert ໝົດອາຍຸ 90/60/30/7 (job) + overview · employment history + effective date · bulk import Excel/CSV + preview · ກັນຊ້ຳ SSN/ບັດ (blind index)
 - **M4 Approval engine + Notification events (ສຳເລັດ 2026-11-17; push ຈິງລໍ EAS/FCM/APNs credentials)**: chain ຈາກ reporting line, delegate + ຊ່ວງວັນ, auto-route ເມື່ອ manager ລາ,
   escalate ຫຼັງ N ວັນເຮັດວຽກ, ບັນທຶກ capacity (FR-ORG-02..06) · push (Expo) + web notification center (FR-NOTI-01, 04)
-- **M5 Attendance + OT** (ຄວາມສຳຄັນສູງສຸດ): attendance mode ຕໍ່ branch · mobile check-in/out GPS + geofence + selfie + offline queue
+- **M5 Attendance + OT (ສຳເລັດ 2026-11-18)** (ຄວາມສຳຄັນສູງສຸດ): attendance mode ຕໍ່ branch · mobile check-in/out GPS + geofence + selfie + offline queue
   (SQLite) + ກວດເວລາເຄື່ອງ + mock GPS + device binding · off-site · suspicious queue · HR ບັນທຶກແທນ · shift (ກະກາງຄືນຂ້າມມື້, ໝຸນວຽນ) ·
   ຄິດໄລ່ ມາຊ້າ/ກັບກ່ອນ/ຂາດ/ລືມກົດ + grace · ຄຳຂໍແກ້ເວລາ · OT ກ່ອນ/ຫຼັງ + 4 ປະເພດ + cap · scanner import ZKTeco/HIP/CSV · Kiosk variant ·
   load test 1,000 check-in
 - **M6 Leave**: ປະເພດລາ + entitlement ≥ ກົດໝາຍ · ເຕັມ/ເຄິ່ງມື້ · ນັບຕາມ schedule (ລາເກີດລູກ = ວັນປະຕິທິນ) · ໃບແພດ · eligibility ·
   ledger · carry-over · ຍື່ນ web/mobile/ແທນ · ອະນຸມັດ 1–2 ຂັ້ນ · ຍົກເລີກ · ປະຕິທິນ (today/week/month + ສິດການເບິ່ງ)
+  — **ສຳເລັດ 2026-11-18** (FR-LV 37/37): ledger `LeaveLedgerEntry` ແທນ LeaveBalance (ENTITLEMENT/USAGE/CANCEL/ADJUST/CARRY/EXPIRE,
+  ຍອດ = ຜົນລວມຕໍ່ປີປະຕິທິນ) · job `leave-accrual` 00:10, `leave-carry-over` 00:20, `leave-certificate-due` 07:10 ·
+  parameters `leave.certificateThresholdDays`/`certificateGraceDays`/`carryOverMaxDays`/`carryOverExpiryMonth` ·
+  LEAVE_CANCEL approval + `withdrawApproval` · ຄຳຕອບລູກຄ້າ Q10–Q15 ([M5_M6_PLAN.md](M5_M6_PLAN.md) §3.1). ຍັງບໍ່ມີ: ຍື່ນແທນໃນ mobile (web ເທົ່ານັ້ນ)
 - **M7 On/Offboarding + Payroll data + Reports + Go-live**: checklist template + tasks + overdue · separation + exit snapshot (lock) ·
   ປິດສິດອັດຕະໂນມັດວັນສຸດທ້າຍ · payroll period close/reopen + export · ລາຍງານ FR-RPT + Excel · backup/restore · deployment · ຄູ່ມື lo/en
 
