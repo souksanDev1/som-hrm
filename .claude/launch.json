@@ -4,15 +4,45 @@
     {
       "name": "hrm-web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@hrm/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@hrm/web",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "hrm-api-mobile",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@hrm/api", "exec", "tsx", "--env-file=/Users/csl-pc033/Desktop/HRM/hrm-api/.env", "/Users/csl-pc033/Desktop/HRM/hrm-api/src/server.ts"],
-      "env": { "DATABASE_URL": "postgresql://hrm:hrm@localhost:5432/hrm_mobile_m4?schema=public" },
+      "runtimeArgs": [
+        "--filter",
+        "@hrm/api",
+        "exec",
+        "tsx",
+        "--env-file=/Users/csl-pc033/Desktop/HRM/hrm-api/.env",
+        "/Users/csl-pc033/Desktop/HRM/hrm-api/src/server.ts"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://hrm:hrm@localhost:5432/hrm_mobile_m4?schema=public"
+      },
       "port": 4000
+    },
+    {
+      "name": "hrm-api-mobile-m5",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@hrm/api",
+        "exec",
+        "tsx",
+        "--env-file=/Users/csl-pc033/Desktop/HRM/hrm-api/.env",
+        "/Users/csl-pc033/Desktop/HRM/hrm-api/src/server.ts"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://hrm:hrm@localhost:5432/hrm_mobile_m5?schema=public",
+        "PORT": "4001"
+      },
+      "port": 4001
     }
   ]
 }

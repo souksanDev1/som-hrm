@@ -13,7 +13,7 @@ var auth = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + JSON
 var branches = JSON.parse(http.get(api + '/branches', { headers: auth }).body);
 var site = branches.filter(function (b) { return b.name === 'ໜ້າງານ ປາກເຊ'; })[0];
 if (site.attendanceModes.indexOf('KIOSK') < 0) {
-  http.patch(api + '/branches/' + site.id, { headers: auth, body: JSON.stringify({ attendanceModes: site.attendanceModes.concat(['KIOSK']) }) });
+  http.request(api + '/branches/' + site.id, { method: 'PATCH', headers: auth, body: JSON.stringify({ attendanceModes: site.attendanceModes.concat(['KIOSK']) }) });
 }
 
 var enrolled = http.post(api + '/kiosks', {

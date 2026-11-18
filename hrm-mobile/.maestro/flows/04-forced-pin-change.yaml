@@ -1,7 +1,5 @@
 appId: la.som.hrm
 name: Temporary PIN from HR must be changed before using the app, even after a restart
-env:
-  API_URL: http://localhost:4000/api/v1
 ---
 - runScript: ../scripts/issue-temp-pin.js
 - launchApp:

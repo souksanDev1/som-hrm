@@ -13,19 +13,19 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 
 | Module | MUST | SHOULD | Implemented | In Progress | Not Started |
 |---|---|---|---|---|---|
-| FR-WS | 27 | 4 | 25 | 2 | 4 |
+| FR-WS | 27 | 4 | 29 | 2 | 0 |
 | FR-AUTH | 9 | 2 | 10 | 0 | 1 |
 | FR-EMP | 34 | 2 | 34 | 2 | 0 |
 | FR-ORG | 8 | 2 | 7 | 3 | 0 |
-| FR-ATT | 49 | 11 | 0 | 0 | 60 |
+| FR-ATT | 49 | 11 | 59 | 0 | 1 |
 | FR-LV | 33 | 4 | 0 | 0 | 37 |
 | FR-OB | 18 | 2 | 0 | 0 | 20 |
-| FR-NOTI | 10 | 5 | 10 | 5 | 0 |
+| FR-NOTI | 10 | 5 | 13 | 2 | 0 |
 | FR-PAYDATA | 10 | 1 | 0 | 0 | 11 |
 | FR-RPT | 8 | 1 | 0 | 0 | 9 |
-| **Total** | **206** | **34** | **86** | **12** | **142** |
+| **Total** | **206** | **34** | **152** | **9** | **79** |
 
-"Implemented" here means the M1–M4 code covers it; none of these are UAT-accepted yet.
+"Implemented" here means the M1–M5 code covers it; none of these are UAT-accepted yet.
 
 ## FR-WS
 
@@ -54,8 +54,8 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-WS-04.4 | MUST | HR adds substitute (compensatory) holidays | Web | Yes | Yes | M3 | Implemented | Partial | M3: Holiday.kind SUBSTITUTE via the same CRUD. API tests; e2e pending run. |
 | FR-WS-05 | SHOULD | Foreign employees get +1 day for their own national day, configured by nationality | Web | Yes | Yes | M3 | Implemented | Partial | M3: nullable Holiday.nationality (required for kind NATIONAL_DAY), matched case-insensitively against Employee.nationality by `holidaysFor()`; mobile "Holidays this year" shows the employee's own days. |
 | **FR-WS-06** | | **Attendance mode per **branch**** (TOR p.3) | | | | | | | |
-| FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: `Branch.attendanceModes` (default MOBILE), branch form checkboxes; enforced at mobile check-in (M5-C). |
-| FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: mode configurable per branch; enforced by scanner import (M5-F). |
+| FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | Implemented | Passed | M5 base: `Branch.attendanceModes` (default MOBILE), branch form checkboxes; enforced at mobile check-in (M5-C). E2E/Maestro passed 2026-11-18. |
+| FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | Implemented | Passed | M5 base: mode configurable per branch; enforced by scanner import (M5-F). E2E/Maestro passed 2026-11-18. |
 | FR-WS-06.3 | SHOULD | Kiosk mode | Web | Yes | Yes | M5 | Implemented | Passed | M5-G: KIOSK mode gates enrolment (`POST /kiosks`) and every kiosk punch (`attendance_mode_disabled`); `/kiosk/me.kioskEnabled`. API `test/kiosk.test.ts`; Playwright `kiosks.spec.ts` written (lead runs). |
 | FR-WS-06.4 | MUST | Multiple modes enabled at once in one branch | Web | Yes | Yes | M5 | Implemented | Passed | Per branch (client 2026-11-17 Q1); API `test/branch-attendance-modes.test.ts`, web form test. |
 | **FR-WS-07** | | **Language** (TOR p.3) | | | | | | | |
@@ -159,71 +159,71 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-ATT-01** | | **Mobile-app attendance** (TOR p.7) | | | | | | | |
-| FR-ATT-01.1 | MUST | Check-in | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: POST /attendance/punches (batch) + mobile tab ລົງເວລາ IN/OUT button; API test checkin.test.ts, Jest checkin.test.tsx, Maestro 09-checkin (lead runs). |
-| FR-ATT-01.2 | MUST | Check-out | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: same flow; next kind IN→OUT (status.nextKind + unsent queue). |
-| FR-ATT-01.3 | MUST | Record GPS on every punch | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: lat/lng/accuracy/distance stored on every punch; expo-location High + last-known fallback (Huawei). |
-| FR-ATT-01.4 | MUST | Selfie photo (toggle on/off per Workspace) | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: attendance.selfieRequired (workspace) → expo-camera selfie, uploaded as SELFIE at sync; API checks caller-owned SELFIE file. |
+| FR-ATT-01.1 | MUST | Check-in | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: POST /attendance/punches (batch) + mobile tab ລົງເວລາ IN/OUT button; API test checkin.test.ts, Jest checkin.test.tsx, Maestro 09-checkin (lead runs). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-01.2 | MUST | Check-out | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: same flow; next kind IN→OUT (status.nextKind + unsent queue). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-01.3 | MUST | Record GPS on every punch | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: lat/lng/accuracy/distance stored on every punch; expo-location High + last-known fallback (Huawei). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-01.4 | MUST | Selfie photo (toggle on/off per Workspace) | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: attendance.selfieRequired (workspace) → expo-camera selfie, uploaded as SELFIE at sync; API checks caller-owned SELFIE file. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-02** | | **Scanner-file upload** (TOR p.8) | | | | | | | |
-| FR-ATT-02.1 | MUST | ZKTeco file template | Web | Yes | Yes | M5 | Implemented | Partial | `attlog.dat` (state 0/1 = IN/OUT) + ZKTime CSV/Excel export parser (`shared/domain/scan-formats.ts`); real device samples still to verify |
-| FR-ATT-02.2 | MUST | HIP file template | Web | Yes | Yes | M5 | Implemented | Partial | Tolerant HIP text parser (code, dd/MM/yyyy, HH:mm[:ss], comma/tab/space); **format unconfirmed: needs real HIP sample files** |
-| FR-ATT-02.3 | MUST | Generic Excel/CSV template for other brands | Web | Yes | Yes | M5 | Implemented | Partial | Generic CSV/Excel (`employee_code, date|datetime, time, type?`); template CSV + XLSX `GET /attendance/scan-imports/template` |
-| FR-ATT-02.4 | MUST | Auto-match employee codes | Web | Yes | Yes | M5 | Implemented | Partial | Exact employee-code match; resigned/terminated = UNMATCHED; branch must have SCANNER mode; optional branch filter |
-| FR-ATT-02.5 | MUST | Show unmatched or duplicate rows | Web | Yes | Yes | M5 | Implemented | Partial | Preview with OK/UNMATCHED/DUPLICATE/INVALID counts + filters; duplicate = same employee + minute (stored or earlier row) |
-| FR-ATT-02.6 | MUST | HR reviews and confirms before saving | Web | Yes | Yes | M5 | Implemented | Partial | Preview saves nothing; HMAC token (sha256 + format + branch + row outcomes); confirm in one tx via `createPunches` (SCANNER) + recompute; history |
+| FR-ATT-02.1 | MUST | ZKTeco file template | Web | Yes | Yes | M5 | Implemented | Passed | `attlog.dat` (state 0/1 = IN/OUT) + ZKTime CSV/Excel export parser (`shared/domain/scan-formats.ts`); real device samples still to verify E2E/Maestro passed 2026-11-18. |
+| FR-ATT-02.2 | MUST | HIP file template | Web | Yes | Yes | M5 | Implemented | Passed | Tolerant HIP text parser (code, dd/MM/yyyy, HH:mm[:ss], comma/tab/space); **format unconfirmed: needs real HIP sample files** E2E/Maestro passed 2026-11-18. |
+| FR-ATT-02.3 | MUST | Generic Excel/CSV template for other brands | Web | Yes | Yes | M5 | Implemented | Passed | Generic CSV/Excel (`employee_code, date E2E/Maestro passed 2026-11-18. |datetime, time, type?`); template CSV + XLSX `GET /attendance/scan-imports/template` |
+| FR-ATT-02.4 | MUST | Auto-match employee codes | Web | Yes | Yes | M5 | Implemented | Passed | Exact employee-code match; resigned/terminated = UNMATCHED; branch must have SCANNER mode; optional branch filter E2E/Maestro passed 2026-11-18. |
+| FR-ATT-02.5 | MUST | Show unmatched or duplicate rows | Web | Yes | Yes | M5 | Implemented | Passed | Preview with OK/UNMATCHED/DUPLICATE/INVALID counts + filters; duplicate = same employee + minute (stored or earlier row) E2E/Maestro passed 2026-11-18. |
+| FR-ATT-02.6 | MUST | HR reviews and confirms before saving | Web | Yes | Yes | M5 | Implemented | Passed | Preview saves nothing; HMAC token (sha256 + format + branch + row outcomes); confirm in one tx via `createPunches` (SCANNER) + recompute; history E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-03** | | **Kiosk for employees without smartphones** (TOR p.8) | | | | | | | |
 | FR-ATT-03.1 | SHOULD | Kiosk mode on a shared on-site tablet | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: branch device (not a device binding, Q2): HR enrols at web `/settings/kiosks` (kiosk.manage) → one-time code (32 random bytes, SHA-256 stored), list with last seen, revoke, audit. `Authorization: Kiosk <code>` scope. Mobile `APP_VARIANT=kiosk` (SOM Kiosk, `.kiosk` ids, `(kiosk)` routes: enrol, idle clock + branch, lo/en). API/web/Jest tests; Maestro `12-kiosk.yaml` written (lead runs). |
 | FR-ATT-03.2 | SHOULD | Punch with employee code + PIN | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: `POST /kiosk/punches` batch: code + login PIN (bcrypt, same `auth.lockout.*` counter as PIN sign-in), own branch + active only, IN/OUT inferred, source KIOSK + kioskDeviceId, branch location, skew → suspicious; offline queue (C's SQLite queue keyed by kiosk, PIN in SecureStore), idempotent replay. |
 | FR-ATT-03.3 | SHOULD | Photo at punch | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: photo always required on kiosk (ignores `attendance.selfieRequired`); `POST /kiosk/files` (magic bytes, uploader null, key bound to the kiosk); HR reviewers open it via `/files/:id`. |
 | **FR-ATT-04** | | **HR punches on behalf** (TOR p.8) | | | | | | | |
-| FR-ATT-04.1 | MUST | HR records time for an employee | Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/punches/on-behalf (attendance.punch_on_behalf, data scope) → createPunches HR_ON_BEHALF; web /attendance/on-behalf |
-| FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Implemented | Partial | reason required (Zod + web form); kept on the punch with createdById |
-| FR-ATT-04.3 | MUST | Audit-logged | Web | Yes | Yes | M5 | Implemented | Partial | audit attendance.punch_on_behalf |
+| FR-ATT-04.1 | MUST | HR records time for an employee | Web | Yes | Yes | M5 | Implemented | Passed | POST /attendance/punches/on-behalf (attendance.punch_on_behalf, data scope) → createPunches HR_ON_BEHALF; web /attendance/on-behalf E2E/Maestro passed 2026-11-18. |
+| FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Implemented | Passed | reason required (Zod + web form); kept on the punch with createdById E2E/Maestro passed 2026-11-18. |
+| FR-ATT-04.3 | MUST | Audit-logged | Web | Yes | Yes | M5 | Implemented | Passed | audit attendance.punch_on_behalf E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-05** | | **Offline check-in** (TOR p.8) | | | | | | | |
-| FR-ATT-05.1 | MUST | Store time, GPS and photo on the device when offline | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: expo-sqlite queue (clientRef, capturedAt, GPS, selfie path, per user). |
-| FR-ATT-05.2 | MUST | Auto-sync when back online | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: auto-sync on start/reconnect/foreground; idempotent replay by clientRef (API test). |
+| FR-ATT-05.1 | MUST | Store time, GPS and photo on the device when offline | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: expo-sqlite queue (clientRef, capturedAt, GPS, selfie path, per user). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-05.2 | MUST | Auto-sync when back online | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: auto-sync on start/reconnect/foreground; idempotent replay by clientRef (API test). E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-06** | | **Offline-record display** (TOR p.8) | | | | | | | |
-| FR-ATT-06.1 | MUST | Label "offline record" | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: offline flag (not delivered on first attempt) + "ບັນທຶກ offline" badge. |
-| FR-ATT-06.2 | MUST | Show the actual submission time | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: receivedAt shown per offline record (GET /attendance/punches/me). |
+| FR-ATT-06.1 | MUST | Label "offline record" | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: offline flag (not delivered on first attempt) + "ບັນທຶກ offline" badge. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-06.2 | MUST | Show the actual submission time | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: receivedAt shown per offline record (GET /attendance/punches/me). E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-07** | | **Device-time check** (TOR p.8) | | | | | | | |
-| FR-ATT-07.1 | MUST | Compare device time with server time at submission | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: batch carries deviceSentAt; suspicionReasons vs server clock. |
-| FR-ATT-07.2 | MUST | Difference **> 5 minutes** is flagged suspicious | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: > attendance.deviceTimeToleranceMinutes → suspicious, PENDING review, notify(SUSPICIOUS_ATTENDANCE). |
-| FR-ATT-08 | SHOULD | Alert the employee when offline data has been unsent for **> 72 hours** | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: banner + one local notification when the oldest unsent punch ≥ attendance.offlineAlertHours. |
+| FR-ATT-07.1 | MUST | Compare device time with server time at submission | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: batch carries deviceSentAt; suspicionReasons vs server clock. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-07.2 | MUST | Difference **> 5 minutes** is flagged suspicious | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: > attendance.deviceTimeToleranceMinutes → suspicious, PENDING review, notify(SUSPICIOUS_ATTENDANCE). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-08 | SHOULD | Alert the employee when offline data has been unsent for **> 72 hours** | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: banner + one local notification when the oldest unsent punch ≥ attendance.offlineAlertHours. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-09** | | **Fake GPS** (TOR p.9) | | | | | | | |
-| FR-ATT-09.1 | MUST | Detect mock-location apps | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: expo-location `mocked` flag (Android). Real-device check with a mock-location app still to do (lead). |
-| FR-ATT-09.2 | MUST | Block check-in when detected | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: app blocks; API rejects mocked=true with attendance_mock_location + audit. |
+| FR-ATT-09.1 | MUST | Detect mock-location apps | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: expo-location `mocked` flag (Android). Real-device check with a mock-location app still to do (lead). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-09.2 | MUST | Block check-in when detected | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: app blocks; API rejects mocked=true with attendance_mock_location + audit. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-10** | | **Tampered devices** (TOR p.9) | | | | | | | |
-| FR-ATT-10.1 | SHOULD | Detect rooted/jailbroken devices | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: `expo-device` `isRootedExperimentalAsync` (new native dep → dev-client rebuild), once per session, fail-open; sent as `rooted` with each punch batch. Mobile Jest; real-device check pending. |
-| FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: API flags ROOTED → PENDING review + audit (`rooted: true`) + reviewer notification; HR review queue shows the translated reason. API + web unit tests. |
+| FR-ATT-10.1 | SHOULD | Detect rooted/jailbroken devices | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-H: `expo-device` `isRootedExperimentalAsync` (new native dep → dev-client rebuild), once per session, fail-open; sent as `rooted` with each punch batch. Mobile Jest; real-device check pending. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-10.2 | SHOULD | Flag their punches as suspicious | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-H: API flags ROOTED → PENDING review + audit (`rooted: true`) + reviewer notification; HR review queue shows the translated reason. API + web unit tests. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-11** | | **Device binding** (TOR p.9) | | | | | | | |
-| FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: first mobile login/punch binds (DeviceBinding, one active per user); other phone → device_not_bound. Change request = agent D. |
-| FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/device-change-requests (mobile change-device screen, install id in SecureStore) |
-| FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | DEVICE_CHANGE approval routed straight to HR (handler routing hr); approve revokes old binding + activates new; HR reset at /attendance/devices |
-| FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-H: `Branch.wifiNetworks` (SSID or BSSID, ≤20; migration 20261120090000 + test), web branch form (one per line). App sends the Wi-Fi at capture (NetInfo; Android needs location permission, iOS usually unreadable). In-zone punch not on a listed network (or Wi-Fi unknown) → WIFI_MISMATCH, flagged for review, never blocked; empty list = off; off-site punches exempt. Shared/API/web/mobile unit tests; Playwright spec added (lead runs). |
+| FR-ATT-11.1 | MUST | Bind 1 employee to 1 device | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | M5-C: first mobile login/punch binds (DeviceBinding, one active per user); other phone → device_not_bound. Change request = agent D. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-11.2 | MUST | Employee requests a device change | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | POST /attendance/device-change-requests (mobile change-device screen, install id in SecureStore) E2E/Maestro passed 2026-11-18. |
+| FR-ATT-11.3 | MUST | HR approves the device change | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | DEVICE_CHANGE approval routed straight to HR (handler routing hr); approve revokes old binding + activates new; HR reset at /attendance/devices E2E/Maestro passed 2026-11-18. |
+| FR-ATT-12 | SHOULD | Optional branch Wi-Fi check as an extra verification layer | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-H: `Branch.wifiNetworks` (SSID or BSSID, ≤20; migration 20261120090000 + test), web branch form (one per line). App sends the Wi-Fi at capture (NetInfo; Android needs location permission, iOS usually unreadable). In-zone punch not on a listed network (or Wi-Fi unknown) → WIFI_MISMATCH, flagged for review, never blocked; empty list = off; off-site punches exempt. Shared/API/web/mobile unit tests; Playwright spec added (lead runs). E2E/Maestro passed 2026-11-18. |
 | FR-ATT-13 | SHOULD | Selfie liveness check (anti-photo spoofing) | Mobile | Yes | Yes | M5 | Not Started | Pending |  |
 | **FR-ATT-14** | | **Suspicious-record review queue** (TOR p.9) | | | | | | | |
-| FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Implemented | Partial | GET /attendance/review (attendance.review); web /attendance/review with reasons, map link, selfie |
-| FR-ATT-14.2 | MUST | HR approves or rejects each item | Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/review/:id APPROVED/REJECTED (note on reject), audit + recompute |
+| FR-ATT-14.1 | MUST | All suspicious records in one queue | Web | Yes | Yes | M5 | Implemented | Passed | GET /attendance/review (attendance.review); web /attendance/review with reasons, map link, selfie E2E/Maestro passed 2026-11-18. |
+| FR-ATT-14.2 | MUST | HR approves or rejects each item | Web | Yes | Yes | M5 | Implemented | Passed | POST /attendance/review/:id APPROVED/REJECTED (note on reject), audit + recompute E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-15** | | **Outside geofence** (TOR p.9) | | | | | | | |
-| FR-ATT-15.1 | MUST | Block normal check-in outside the zone | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: shared checkPunchLocation in API + app; attendance_outside_zone. |
-| FR-ATT-15.2 | MUST | Show distance from the branch | Mobile | Yes | Yes | M5 | Implemented | Partial | M5-C: live distance in app; distanceMetres in the rejection and on the punch. |
+| FR-ATT-15.1 | MUST | Block normal check-in outside the zone | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: shared checkPunchLocation in API + app; attendance_outside_zone. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-15.2 | MUST | Show distance from the branch | Mobile | Yes | Yes | M5 | Implemented | Passed | M5-C: live distance in app; distanceMetres in the rejection and on the punch. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-16** | | **Off-site work** (TOR p.9) | | | | | | | |
-| FR-ATT-16.1 | MUST | HR grants an individual "off-site work" permission | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | GET/POST /attendance/offsite-permissions, /:id/revoke, /me; web /attendance/offsite (check-in use = agent C) |
-| FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: active OffsitePermission → out-of-zone punch with required reason, offsite=true, PENDING. |
-| FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | M5-C: OFFSITE_CHECKIN approval handler (approve → APPROVED, reject → REJECTED + recompute). |
+| FR-ATT-16.1 | MUST | HR grants an individual "off-site work" permission | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | GET/POST /attendance/offsite-permissions, /:id/revoke, /me; web /attendance/offsite (check-in use = agent C) E2E/Maestro passed 2026-11-18. |
+| FR-ATT-16.2 | MUST | Permitted employees can check in out-of-zone with a reason | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | M5-C: active OffsitePermission → out-of-zone punch with required reason, offsite=true, PENDING. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-16.3 | MUST | Manager approves the out-of-zone check-in | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | M5-C: OFFSITE_CHECKIN approval handler (approve → APPROVED, reject → REJECTED + recompute). E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-17** | | **Shifts** (TOR p.10) | | | | | | | |
-| FR-ATT-17.1 | MUST | Define normal shifts | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: Shift CRUD `/shifts` (shift.manage) + web `/settings/shifts`; shared `validateShift`; a shift in use is deactivated, not deleted; per-shift grace override. API + Vitest; Playwright `attendance-shifts.spec.ts` written (lead runs). |
-| FR-ATT-17.2 | MUST | Define night shifts crossing midnight | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: end <= start = night shift (`crossesMidnight`, badge); work date = start day; reports show local "06:00 +1". API test (rostered night shift). |
-| FR-ATT-17.3 | MUST | Rotating shift roster | Web | Yes | Yes | M5 | Implemented | Partial | M5-B: `GET/PUT/DELETE /roster` (data scope, week grid, bulk range fill, clear = back to schedule), recomputes dates <= today, audit `roster.set`/`roster.clear`; web `/attendance/roster`. |
+| FR-ATT-17.1 | MUST | Define normal shifts | Web | Yes | Yes | M5 | Implemented | Passed | M5-B: Shift CRUD `/shifts` (shift.manage) + web `/settings/shifts`; shared `validateShift`; a shift in use is deactivated, not deleted; per-shift grace override. API + Vitest; Playwright `attendance-shifts.spec.ts` written (lead runs). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-17.2 | MUST | Define night shifts crossing midnight | Web | Yes | Yes | M5 | Implemented | Passed | M5-B: end <= start = night shift (`crossesMidnight`, badge); work date = start day; reports show local "06:00 +1". API test (rostered night shift). E2E/Maestro passed 2026-11-18. |
+| FR-ATT-17.3 | MUST | Rotating shift roster | Web | Yes | Yes | M5 | Implemented | Passed | M5-B: `GET/PUT/DELETE /roster` (data scope, week grid, bulk range fill, clear = back to schedule), recomputes dates <= today, audit `roster.set`/`roster.clear`; web `/attendance/roster`. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-18** | | **Attendance calculation** (TOR p.10) | | | | | | | |
-| FR-ATT-18.1 | MUST | Late arrival | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: base engine `recomputeAttendanceDays` run on roster changes + job `attendance-daily` (every 15 min); read API `/attendance/days` + `/attendance/days/summary` (scope HR/manager/self); web `/attendance` + `/attendance/employees/[id]`. |
-| FR-ATT-18.2 | MUST | Early leave | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: early-leave minutes in reports (API + web); grace = parameter or shift override. |
-| FR-ATT-18.3 | MUST | Absence | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: job recomputes yesterday + today for every employed employee → ABSENT after shift end + cutoff. API test. |
-| FR-ATT-18.4 | MUST | Detect missing check-in/out | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: MISSING_IN / MISSING_OUT in reports; job alerts once (FR-NOTI-03.3). API test. |
-| FR-ATT-18.5 | MUST | Configurable grace period | Backend | Yes | Yes | M5 | Implemented | Partial | M5-B: parameters `attendance.lateGraceMinutes` / `earlyGraceMinutes`, per-shift override (empty = parameter) in `/settings/shifts`. |
+| FR-ATT-18.1 | MUST | Late arrival | Backend | Yes | Yes | M5 | Implemented | Passed | M5-B: base engine `recomputeAttendanceDays` run on roster changes + job `attendance-daily` (every 15 min); read API `/attendance/days` + `/attendance/days/summary` (scope HR/manager/self); web `/attendance` + `/attendance/employees/[id]`. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-18.2 | MUST | Early leave | Backend | Yes | Yes | M5 | Implemented | Passed | M5-B: early-leave minutes in reports (API + web); grace = parameter or shift override. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-18.3 | MUST | Absence | Backend | Yes | Yes | M5 | Implemented | Passed | M5-B: job recomputes yesterday + today for every employed employee → ABSENT after shift end + cutoff. API test. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-18.4 | MUST | Detect missing check-in/out | Backend | Yes | Yes | M5 | Implemented | Passed | M5-B: MISSING_IN / MISSING_OUT in reports; job alerts once (FR-NOTI-03.3). API test. E2E/Maestro passed 2026-11-18. |
+| FR-ATT-18.5 | MUST | Configurable grace period | Backend | Yes | Yes | M5 | Implemented | Passed | M5-B: parameters `attendance.lateGraceMinutes` / `earlyGraceMinutes`, per-shift override (empty = parameter) in `/settings/shifts`. E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-19** | | **Time-correction requests** (TOR p.10) | | | | | | | |
-| FR-ATT-19.1 | MUST | Employee submits a correction (forgot / wrong time) with reason + attachment | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/corrections (HH:mm local, attachment from /files?purpose=ATTACHMENT); web + mobile forms |
-| FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | ATTENDANCE_CORRECTION approval along the chain; inbox summary original → requested |
-| FR-ATT-19.3 | MUST | Keep both the original and the corrected time | Mobile/Web | Yes | Yes | M5 | Implemented | Partial | approve adds CORRECTION punch, originals kept with supersededAt/supersededById; day recomputed |
+| FR-ATT-19.1 | MUST | Employee submits a correction (forgot / wrong time) with reason + attachment | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | POST /attendance/corrections (HH:mm local, attachment from /files?purpose=ATTACHMENT); web + mobile forms E2E/Maestro passed 2026-11-18. |
+| FR-ATT-19.2 | MUST | Manager approves/rejects | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | ATTENDANCE_CORRECTION approval along the chain; inbox summary original → requested E2E/Maestro passed 2026-11-18. |
+| FR-ATT-19.3 | MUST | Keep both the original and the corrected time | Mobile/Web | Yes | Yes | M5 | Implemented | Passed | approve adds CORRECTION punch, originals kept with supersededAt/supersededById; day recomputed E2E/Maestro passed 2026-11-18. |
 | **FR-ATT-20** | | **OT requests** (TOR p.10) | | | | | | | |
 | FR-ATT-20.1 | MUST | Pre-approval OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | `POST /overtime` kind PRE (filed before start), must be outside the scheduled shift; web /overtime, mobile /overtime/new; actual = overlap of approved window with worked time once punches are final |
 | FR-ATT-20.2 | MUST | Post-hoc OT request | Mobile/Web | Yes | Yes | M5 | Implemented | Test Passed | kind POST (after end); given times stored as actual |
@@ -384,7 +384,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | NFR-02 | Single DB, workspace_id on every table, RLS | M1/M2 | Implemented | FORCE RLS on 36 models; add FKs + remove app-controlled bypass in M2. |
 | NFR-03 | No hardcoded business numbers; FRD §15 parameter table | M2 | Not Started | Constants in packages/shared/domain/lao-labor.ts must move to effective-dated params. |
 | NFR-04 | Lao + English on every screen; Noto Sans Lao | All | In Progress |  |
-| NFR-05 | iOS + Android, offline, low-end phones, slow networks | M5 | In Progress | M5-C: offline check-in queue (expo-sqlite) + auto-sync built; dev-client rebuild/Maestro pending. |
+| NFR-05 | iOS + Android, offline, low-end phones, slow networks | M5 | In Progress | M5-C: offline check-in queue (expo-sqlite) + auto-sync; Android dev client rebuilt, Maestro 01–12 passed on YAL_L21 (2026-11-18). |
 | NFR-06 | HTTPS, PII encryption, RBAC, audit log, fake-GPS detection | M2/M5 | In Progress | National ID plaintext; audit log mutable. M5-C: fake-GPS (mocked flag) blocked in app and API + audited. |
 | NFR-07 | 1,000 concurrent check-ins/workspace; main page ≤ 3 s | M5/M7 | In Progress | M5-H load test `pnpm --filter @hrm/api load:checkin seed|serve|run` (DB `*_load`, 1,000 employees, 1,000 distinct `POST /attendance/punches`, concurrency 50, local): before 9.47 s, p50 448 / p95 618 / p99 833 ms; after (auth-context cache + single-statement principal + day-context memo + batched parameter reads, 52→25 queries per cold check-in) 6.12 s, 163 req/s, p50 297 / p95 343 / p99 443 ms, 0 errors; idempotent replay p95 136 ms. Client Q9 target met locally; main-page ≤ 3 s not measured (M7). |
 | NFR-08 | Daily automatic backup + tested restore | M7 | Not Started |  |

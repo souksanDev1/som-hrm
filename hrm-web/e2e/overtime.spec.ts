@@ -12,7 +12,7 @@ const uniqueWorkDate = (projectName: string) => {
   const base = Date.UTC(2080 + projectIndex(projectName) * 4, 0, 1);
   const offsetDays = Math.floor(Date.now() / 60_000) % 1400;
   const day = new Date(base + offsetDays * 86_400_000);
-  // A weekday, so the night minutes count as workday night (weekends are rest days in the demo schedule).
+  // Monday–Friday, so the night minutes count as workday night (Sunday is the demo rest day; Saturday may be a half day).
   while (day.getUTCDay() === 0 || day.getUTCDay() === 6) day.setUTCDate(day.getUTCDate() + 1);
   return day.toISOString().slice(0, 10);
 };

@@ -58,7 +58,8 @@ export function Keypad({ value, onChange, maxLength, onSubmit, masked, allowLett
       </View>
       <View className="flex-row flex-wrap">
         {keys.map((k) => (
-          <View key={k} className={letters ? 'w-1/6' : 'w-1/3'}>
+          // flex-row: the key's flex-1 must stretch the width; in a column it would collapse the height to 0.
+          <View key={k} className={`flex-row ${letters ? 'w-1/6' : 'w-1/3'}`}>
             <Key label={k} onPress={() => press(k)} testID={`${testID}-key-${k}`} />
           </View>
         ))}
