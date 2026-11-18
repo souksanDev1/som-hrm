@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useAuthStore } from '@/features/auth/store';
 import { checkinApi } from './api';
 import { getDeviceInfo } from './device';
+import { isDeviceRooted } from './integrity';
 import { getQueueStore, type QueuedPunch, type QueueStore } from './queue';
 
 export interface SyncDeps {
@@ -12,6 +13,8 @@ export interface SyncDeps {
   submit(body: PunchBatchInput): Promise<PunchBatchResponse>;
   uploadSelfie(uri: string): Promise<string>;
   device(): Promise<DeviceInfo | null>;
+  /** Rooted / jailbroken phone (FR-ATT-10): sent with each batch so the server flags its punches for review. */
+  rooted?(): Promise<boolean>;
   now?(): Date;
 }
 
@@ -44,6 +47,7 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
   if (!pending.length) return outcome;
   const device = await deps.device();
   if (!device) return outcome;
+  const rooted = (await deps.rooted?.().catch(() => false)) ?? false;
 
   const ready: QueuedPunch[] = [];
   for (const p of pending) {
@@ -72,6 +76,7 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
     try {
       response = await deps.submit({
         ...device,
+        ...(rooted ? { rooted: true } : {}),
         deviceSentAt: (deps.now?.() ?? new Date()).toISOString(),
         items: chunk.map((p) => ({
           clientRef: p.clientRef,
@@ -84,6 +89,7 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
           offline: p.offline,
           ...(p.selfieFileId ? { selfieFileId: p.selfieFileId } : {}),
           ...(p.offsiteReason ? { offsiteReason: p.offsiteReason } : {}),
+          ...(p.wifi !== undefined ? { wifi: p.wifi } : {}),
         })),
       });
     } catch (err) {
@@ -138,7 +144,7 @@ export const syncNow = (): Promise<SyncOutcome> => {
       const userId = useAuthStore.getState().user?.id;
       if (!userId) return { accepted: [], rejected: [], offline: false };
       const store = await getQueueStore();
-      return await syncQueue({ store, userId, submit: checkinApi.submit, uploadSelfie: checkinApi.uploadSelfie, device: getDeviceInfo });
+      return await syncQueue({ store, userId, submit: checkinApi.submit, uploadSelfie: checkinApi.uploadSelfie, device: getDeviceInfo, rooted: isDeviceRooted });
     } finally {
       await useCheckinQueue.getState().refresh();
       useCheckinQueue.setState({ syncing: false });

@@ -40,7 +40,15 @@ export const branchFormValues = (b: Branch): FormValues => ({
   longitude: b.longitude === null ? '' : String(b.longitude),
   geofenceRadius: String(b.geofenceRadius),
   ...Object.fromEntries(ATTENDANCE_MODES.map((m) => [`mode_${m}`, b.attendanceModes.includes(m) ? 'true' : ''])),
+  wifiNetworks: b.wifiNetworks.join('\n'),
 });
+
+/** One Wi-Fi SSID / BSSID per line; blank lines ignored (FR-ATT-12). */
+const wifiLines = (raw: string | undefined): string[] =>
+  (raw ?? '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
 /** Branch edit incl. the GPS geofence (FR-WS-02.4); mirrors the API checks so errors show before submitting. */
 export const parseBranchForm = (v: FormValues): ParseResult<UpdateBranchInput> => {
@@ -58,6 +66,7 @@ export const parseBranchForm = (v: FormValues): ParseResult<UpdateBranchInput> =
     longitude,
     geofenceRadius: radius === '' ? Number.NaN : Number(radius),
     attendanceModes: ATTENDANCE_MODES.filter((m) => v[`mode_${m}`] === 'true'),
+    wifiNetworks: wifiLines(v.wifiNetworks),
   });
   if (!parsed.success) {
     const e = zodErrors(parsed.error);

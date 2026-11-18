@@ -14,3 +14,4 @@ export * from './Select';
 export * from './Spinner';
 export * from './StateView';
 export * from './QueryState';
+export * from './Textarea';

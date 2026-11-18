@@ -2,7 +2,7 @@ import { computeAttendanceDay, punchCounts, type AttendanceDayResult } from '@hr
 import type { Tx } from '../../db/client';
 import { parseIsoDate, toIsoDate } from '../../lib/dates';
 import { parameterReader } from '../parameters/parameters.service';
-import { loadEmployeeDays, workspaceTimeZone } from './day-context';
+import { loadEmployeeDays, workspaceTimeZone, type DayContextMemo } from './day-context';
 
 /**
  * Rebuild `AttendanceDay` for one employee on the given work dates (FR-ATT-18) from the counted punches, the
@@ -16,14 +16,16 @@ export const recomputeAttendanceDays = async (
   employeeId: string,
   dates: readonly string[],
   now: Date = new Date(),
+  /** Reads already made in this operation (see createPunches). */
+  memo?: DayContextMemo,
 ): Promise<Map<string, AttendanceDayResult>> => {
   const unique = [...new Set(dates)].sort();
   const results = new Map<string, AttendanceDayResult>();
   if (!unique.length) return results;
 
   const [timeZone, days, punches, leaves] = await Promise.all([
-    workspaceTimeZone(tx, workspaceId),
-    loadEmployeeDays(tx, workspaceId, employeeId, unique),
+    memo ? memo.timeZone() : workspaceTimeZone(tx, workspaceId),
+    memo ? memo.days(employeeId, unique) : loadEmployeeDays(tx, workspaceId, employeeId, unique),
     tx.attendancePunch.findMany({
       where: { workspaceId, employeeId, workDate: { in: unique.map(parseIsoDate) } },
       select: { id: true, kind: true, capturedAt: true, workDate: true, reviewStatus: true, supersededAt: true },
@@ -37,11 +39,16 @@ export const recomputeAttendanceDays = async (
   for (const date of unique) {
     const day = days.get(date)!;
     const at = parseIsoDate(date);
-    const [lateGrace, earlyGrace, missingAfter] = await Promise.all([
-      parameterReader.workspace(tx, workspaceId, 'attendance.lateGraceMinutes', at),
-      parameterReader.workspace(tx, workspaceId, 'attendance.earlyGraceMinutes', at),
-      parameterReader.workspace(tx, workspaceId, 'attendance.missingPunchAfterMinutes', at),
-    ]);
+    const {
+      'attendance.lateGraceMinutes': lateGrace,
+      'attendance.earlyGraceMinutes': earlyGrace,
+      'attendance.missingPunchAfterMinutes': missingAfter,
+    } = await parameterReader.workspaceMany(
+      tx,
+      workspaceId,
+      ['attendance.lateGraceMinutes', 'attendance.earlyGraceMinutes', 'attendance.missingPunchAfterMinutes'],
+      at,
+    );
     const result = computeAttendanceDay({
       workDate: date,
       timeZone,

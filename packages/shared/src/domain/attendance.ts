@@ -295,6 +295,8 @@ export const SuspicionReason = {
   CAPTURED_IN_FUTURE: 'CAPTURED_IN_FUTURE',
   /** Rooted / jailbroken device (SHOULD, FR-ATT-10). */
   ROOTED: 'ROOTED',
+  /** Inside the geofence but not on one of the branch's Wi-Fi networks (SHOULD, FR-ATT-12). */
+  WIFI_MISMATCH: 'WIFI_MISMATCH',
 } as const;
 export type SuspicionReason = (typeof SuspicionReason)[keyof typeof SuspicionReason];
 
@@ -312,6 +314,8 @@ export interface SuspicionInput {
   /** `attendance.deviceTimeToleranceMinutes`. */
   toleranceMinutes: number;
   rooted?: boolean;
+  /** See `isWifiMismatch`. */
+  wifiMismatch?: boolean;
 }
 
 /** Reasons a punch is suspicious; empty when it is not. Skew strictly greater than the tolerance flags (TOR "> 5 minutes"). */
@@ -322,7 +326,35 @@ export const suspicionReasons = (input: SuspicionInput): SuspicionReason[] => {
     reasons.push(SuspicionReason.CAPTURED_IN_FUTURE);
   }
   if (input.rooted) reasons.push(SuspicionReason.ROOTED);
+  if (input.wifiMismatch) reasons.push(SuspicionReason.WIFI_MISMATCH);
   return reasons;
+};
+
+/** A BSSID (access point MAC address): six hex pairs separated by `:` or `-`. */
+const MAC_ADDRESS = /^([0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i;
+const normalizeMac = (mac: string) => mac.trim().toLowerCase().replace(/-/g, ':');
+/** Android may quote the SSID and reports `<unknown ssid>` without location permission. */
+const normalizeSsid = (ssid: string | null | undefined): string | null => {
+  const v = (ssid ?? '').trim().replace(/^"(.*)"$/, '$1').trim();
+  return v && v !== '<unknown ssid>' ? v.toLowerCase() : null;
+};
+
+/**
+ * Office Wi-Fi check (FR-ATT-12, SHOULD): true when the branch lists networks and the phone's Wi-Fi matches none
+ * of them. An entry shaped like a MAC address is compared with the BSSID, any other with the SSID (trimmed,
+ * case-insensitive). A phone off Wi-Fi or one that could not read its Wi-Fi (`null`) counts as not matching —
+ * the punch is only flagged for review, never refused. An empty list turns the check off. Apply it to punches
+ * inside the geofence only (off-site punches have their own approval).
+ */
+export const isWifiMismatch = (
+  networks: readonly string[],
+  observed: { ssid: string | null; bssid: string | null } | null | undefined,
+): boolean => {
+  if (!networks.length) return false;
+  const ssid = normalizeSsid(observed?.ssid);
+  const bssid = observed?.bssid && MAC_ADDRESS.test(observed.bssid.trim()) ? normalizeMac(observed.bssid) : null;
+  const matches = networks.some((entry) => (MAC_ADDRESS.test(entry.trim()) ? bssid !== null && normalizeMac(entry) === bssid : ssid !== null && entry.trim().toLowerCase() === ssid));
+  return !matches;
 };
 
 // ───────────────────────────── Location ─────────────────────────────

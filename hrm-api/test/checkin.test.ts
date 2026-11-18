@@ -212,6 +212,20 @@ describe('POST /attendance/punches', () => {
     expect(r!.punch).toMatchObject({ suspicious: true, suspiciousReasons: ['ROOTED'] });
   });
 
+  it('puts a rooted-device punch in the HR review queue with its reason (FR-ATT-10.2)', async () => {
+    const { ws, branchId } = await setupWorkspace();
+    const p = await person(ws, branchId, { device: PHONE_A });
+    const [r] = await results(p.token, [item()], { rooted: true });
+    const owner = (await loginAs(t.app, ws.code, ws.ownerEmail, OWNER_PASSWORD)).accessToken;
+    const queue = await t.app.inject({ method: 'GET', url: api('/attendance/review'), headers: bearer(owner) });
+    expect(queue.json<{ items: { id: string; suspiciousReasons: string[] }[] }>().items).toEqual([
+      expect.objectContaining({ id: r!.punch!.id, suspiciousReasons: ['ROOTED'] }),
+    ]);
+    const audit = await t.db.tenant(ws.workspaceId, (tx) => tx.auditLog.findFirstOrThrow({ where: { action: 'attendance.suspicious_punch', entityId: r!.punch!.id } }));
+    expect(audit.meta).toMatchObject({ reasons: ['ROOTED'], rooted: true });
+  });
+
+
   it('refuses the branch without MOBILE mode and employees who left', async () => {
     const scanner = await setupWorkspace(['SCANNER']);
     const p = await person(scanner.ws, scanner.branchId, { device: PHONE_A });
@@ -355,5 +369,60 @@ describe('data scope and tenant isolation', () => {
     const own = (await list(pb.token)).json<MyPunch[]>();
     expect(own).toHaveLength(1);
     expect(await punchCount(a.ws, pb.employeeId)).toBe(0);
+  });
+});
+
+describe('office Wi-Fi check (FR-ATT-12)', () => {
+  const OFFICE = { ssid: 'SOM-Office', bssid: 'aa:bb:cc:dd:ee:01' };
+  const withWifi = async (wifiNetworks: string[]) => {
+    const { ws, branchId } = await setupWorkspace();
+    const owner = (await loginAs(t.app, ws.code, ws.ownerEmail, OWNER_PASSWORD)).accessToken;
+    const res = await t.app.inject({ method: 'PATCH', url: api(`/branches/${branchId}`), headers: bearer(owner), payload: { wifiNetworks } });
+    expect(res.statusCode).toBe(200);
+    return { ws, branchId, owner, branch: res.json<{ wifiNetworks: string[] }>() };
+  };
+
+  it('HR sets the branch Wi-Fi list (trimmed, de-duplicated, validated)', async () => {
+    const { branch, owner, branchId } = await withWifi([' SOM-Office ', 'SOM-Office', 'AA:BB:CC:DD:EE:01']);
+    expect(branch.wifiNetworks).toEqual(['SOM-Office', 'AA:BB:CC:DD:EE:01']);
+    const tooMany = await t.app.inject({
+      method: 'PATCH', url: api(`/branches/${branchId}`), headers: bearer(owner), payload: { wifiNetworks: Array.from({ length: 21 }, (_, i) => `net-${i}`) },
+    });
+    expect(tooMany.statusCode).toBe(400);
+  });
+
+  it('accepts but flags an in-zone punch from another or no Wi-Fi; a listed SSID or BSSID passes', async () => {
+    const { ws, branchId } = await withWifi(['SOM-Office', 'aa:bb:cc:dd:ee:02']);
+    const p = await person(ws, branchId, { device: PHONE_A });
+    const [onSsid, onBssid, other, none, unreported] = await results(p.token, [
+      item({ wifi: OFFICE }),
+      item({ kind: 'OUT', wifi: { ssid: 'Guest', bssid: 'AA-BB-CC-DD-EE-02' } }),
+      item({ wifi: { ssid: 'Cafe', bssid: null } }),
+      item({ kind: 'OUT', wifi: null }),
+      item(),
+    ]);
+    expect(onSsid!.punch).toMatchObject({ suspicious: false, suspiciousReasons: [] });
+    expect(onBssid!.punch).toMatchObject({ suspicious: false });
+    for (const r of [other, none, unreported]) {
+      expect(r).toMatchObject({ result: 'created', punch: { suspicious: true, suspiciousReasons: ['WIFI_MISMATCH'], reviewStatus: 'PENDING' } });
+    }
+    const audit = await t.db.tenant(ws.workspaceId, (tx) => tx.auditLog.findFirstOrThrow({ where: { action: 'attendance.suspicious_punch', entityId: other!.punch!.id } }));
+    expect(audit.meta).toMatchObject({ reasons: ['WIFI_MISMATCH'], wifi: { ssid: 'Cafe', bssid: null } });
+  });
+
+  it('is off when the branch lists no Wi-Fi, and does not apply to off-site punches', async () => {
+    const off = await setupWorkspace();
+    const p = await person(off.ws, off.branchId, { device: PHONE_A });
+    expect((await results(p.token, [item({ wifi: null })]))[0]!.punch).toMatchObject({ suspicious: false });
+
+    const { ws, branchId, owner } = await withWifi(['SOM-Office']);
+    const q = await person(ws, branchId, { device: PHONE_A });
+    const today_ = today();
+    const grant = await t.app.inject({
+      method: 'POST', url: api('/attendance/offsite-permissions'), headers: bearer(owner), payload: { employeeId: q.employeeId, fromDate: today_, toDate: today_, note: 'client visit' },
+    });
+    expect(grant.statusCode).toBe(201);
+    const [r] = await results(q.token, [item({ ...FAR, offsiteReason: 'client visit', wifi: null })]);
+    expect(r!.punch).toMatchObject({ offsite: true, suspicious: false, suspiciousReasons: [] });
   });
 });

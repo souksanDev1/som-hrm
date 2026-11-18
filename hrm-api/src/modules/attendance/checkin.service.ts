@@ -2,9 +2,11 @@ import {
   ApprovalSubjectType,
   AttendanceMode,
   checkPunchLocation,
+  isWifiMismatch,
   nextPunchKind,
   PERMISSIONS,
   scheduledWindow,
+  SuspicionReason,
   suspicionReasons,
   type CheckinStatus,
   type MyPunch,
@@ -24,7 +26,7 @@ import { auditRepository } from '../audit/audit.repository';
 import type { AuthContext } from '../auth/auth.service';
 import { notify } from '../notifications/notifications.service';
 import { parameterReader } from '../parameters/parameters.service';
-import { loadEmployeeDays, workingShiftOf, workspaceTimeZone } from './day-context';
+import { createDayContextMemo, loadEmployeeDays, workingShiftOf, workspaceTimeZone } from './day-context';
 import { activeDeviceBinding, ensureDeviceBinding } from './device-binding';
 import { createPunches, workDateFor, type NewPunch } from './punches';
 
@@ -84,6 +86,8 @@ interface ItemPlan {
   clientRef: string;
   punch?: NewPunch;
   result?: PunchItemResult;
+  /** Wi-Fi reported at capture, kept in the audit trail of a suspicious punch. */
+  wifi?: PunchBatchData['items'][number]['wifi'];
 }
 
 export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) => {
@@ -105,7 +109,9 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
         if (!binding.ok) batchError = 'device_not_bound';
       }
 
-      const timeZone = await workspaceTimeZone(tx, workspaceId);
+      // Work dates are assigned here and the days recomputed by createPunches from the same reads.
+      const memo = createDayContextMemo(tx, workspaceId);
+      const timeZone = await memo.timeZone();
       const plans: ItemPlan[] = [];
       const seen = new Set<string>();
       for (const item of body.items) {
@@ -150,14 +156,22 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
         }
 
         const capturedAt = new Date(item.capturedAt);
-        const workDate = await workDateFor(tx, workspaceId, employeeId, capturedAt, timeZone);
+        const workDate = await workDateFor(tx, workspaceId, employeeId, capturedAt, timeZone, memo);
         const paramDate = parseIsoDate(workDate);
-        const [maxAccuracyMetres, selfieRequired, toleranceMinutes, permission] = await Promise.all([
-          parameterReader.workspace(tx, workspaceId, 'attendance.maxAccuracyMetres', paramDate),
-          parameterReader.workspace(tx, workspaceId, 'attendance.selfieRequired', paramDate),
-          parameterReader.workspace(tx, workspaceId, 'attendance.deviceTimeToleranceMinutes', paramDate),
+        const [params, permission] = await Promise.all([
+          parameterReader.workspaceMany(
+            tx,
+            workspaceId,
+            ['attendance.maxAccuracyMetres', 'attendance.selfieRequired', 'attendance.deviceTimeToleranceMinutes'],
+            paramDate,
+          ),
           offsitePermissionOn(tx, workspaceId, employeeId, workDate),
         ]);
+        const {
+          'attendance.maxAccuracyMetres': maxAccuracyMetres,
+          'attendance.selfieRequired': selfieRequired,
+          'attendance.deviceTimeToleranceMinutes': toleranceMinutes,
+        } = params;
         const point = item.latitude !== null && item.longitude !== null ? { latitude: item.latitude, longitude: item.longitude } : null;
         const location = checkPunchLocation({ point, accuracyMetres: item.accuracyMetres, maxAccuracyMetres }, branch!, !!permission);
         if (!location.ok) {
@@ -186,10 +200,13 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
           serverReceivedAt: now,
           toleranceMinutes,
           rooted: body.rooted,
+          // Office Wi-Fi (FR-ATT-12): only for punches inside the geofence; off-site punches have their own approval.
+          wifiMismatch: !location.outsideZone && isWifiMismatch(branch!.wifiNetworks, item.wifi),
         });
         const suspicious = reasons.length > 0;
         plans.push({
           clientRef: item.clientRef,
+          wifi: item.wifi,
           punch: {
             employeeId,
             kind: item.kind,
@@ -215,10 +232,11 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
       }
 
       const toCreate = plans.flatMap((p) => (p.punch ? [p.punch] : []));
-      const { created } = toCreate.length ? await createPunches(tx, workspaceId, toCreate, now) : { created: [] };
+      const { created } = toCreate.length ? await createPunches(tx, workspaceId, toCreate, now, memo) : { created: [] };
       const byRef = new Map(created.map((p) => [p.clientRef!, p]));
 
       const reviewers = created.some((p) => p.suspicious) ? await reviewerUserIds(tx, workspaceId) : [];
+      const wifiByRef = new Map(plans.flatMap((p) => (p.punch ? [[p.clientRef, p.wifi] as const] : [])));
       for (const p of created) {
         if (p.offsite) {
           await submitApproval(tx, registry, {
@@ -238,7 +256,13 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
             action: 'attendance.suspicious_punch',
             entity: 'AttendancePunch',
             entityId: p.id,
-            meta: { reasons: p.suspiciousReasons, deviceSentAt: body.deviceSentAt, receivedAt: iso(now) },
+            meta: {
+              reasons: p.suspiciousReasons,
+              deviceSentAt: body.deviceSentAt,
+              receivedAt: iso(now),
+              ...(body.rooted ? { rooted: true } : {}),
+              ...(p.suspiciousReasons.includes(SuspicionReason.WIFI_MISMATCH) ? { wifi: wifiByRef.get(p.clientRef!) ?? null } : {}),
+            },
             ip: meta.ip,
           });
           await notify(tx, {
