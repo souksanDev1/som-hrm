@@ -50,6 +50,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/attendance/corrections', labelKey: 'attreq.correction.title', icon: 'edit_calendar' },
   // M5 agent G — kiosk tablets of the branches (FR-ATT-03.1, FR-WS-06.3).
   { href: '/settings/kiosks', labelKey: 'kiosk.title', icon: 'tablet_android', permission: PERMISSIONS.KIOSK_MANAGE },
+  // M6 agent E — leave calendar (FR-LV-13): every signed-in user; visibility is decided by the API.
+  { href: '/leave/calendar', labelKey: 'lcal.title', icon: 'event_available' },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */

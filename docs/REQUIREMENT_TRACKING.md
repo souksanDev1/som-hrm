@@ -280,15 +280,15 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-12.1 | MUST | Cancel an unapproved request immediately | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-12.2 | MUST | Request cancellation of approved leave (needs approval) | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-13** | | **Leave calendar** (TOR p.13) | | | | | | | |
-| FR-LV-13.1 | MUST | Employees view their own department's leave calendar in app and web | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.2 | MUST | "Today" view: who is on leave today, full or half day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.3 | MUST | Toggle weekly/monthly views | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.4 | MUST | Managers at every level see all subordinates beneath them (all lower levels) | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.5 | SHOULD | Manager filters by department/sub-team and leave type | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.6 | MUST | Visibility: regular staff see only "on leave" (no type/reason). Managers and HR see the type | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.7 | MUST | Approved vs pending in different colours. Regular staff see approved only | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.8 | MUST | Show public holidays and weekly rest days | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.9 | MUST | HR views all departments | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-13.1 | MUST | Employees view their own department's leave calendar in app and web | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.2 | MUST | "Today" view: who is on leave today, full or half day | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.3 | MUST | Toggle weekly/monthly views | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.4 | MUST | Managers at every level see all subordinates beneath them (all lower levels) | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.5 | SHOULD | Manager filters by department/sub-team and leave type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.6 | MUST | Visibility: regular staff see only "on leave" (no type/reason). Managers and HR see the type | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.7 | MUST | Approved vs pending in different colours. Regular staff see approved only | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.8 | MUST | Show public holidays and weekly rest days | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
+| FR-LV-13.9 | MUST | HR views all departments | Web/Mobile | Yes | Yes | M6 | Implemented | Unit+API+Web+Mobile | M6-E: GET /leave/calendar + web /leave/calendar + mobile /leave-calendar; tests leave-calendar.test.* (Playwright/Maestro pending lead). |
 | FR-LV-13.10 | SHOULD | From the approval screen, the manager sees which team members are already on leave that day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 ## FR-OB
 
