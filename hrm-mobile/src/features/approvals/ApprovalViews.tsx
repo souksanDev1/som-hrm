@@ -49,31 +49,49 @@ export function ApprovalInboxList({ items, onOpen }: { items: readonly ApprovalI
 }
 
 /** Who each level was routed to and who decided it, in what capacity (FR-ORG-06). */
-export function ApprovalStepList({ steps, requiredLevels }: { steps: readonly ApprovalStep[]; requiredLevels: number }) {
+export function ApprovalStepList({
+  steps,
+  requiredLevels,
+  requestStatus,
+}: {
+  steps: readonly ApprovalStep[];
+  requiredLevels: number;
+  /** A CANCELLED request shows its still-open step as withdrawn (FR-LV-12.1). */
+  requestStatus?: RequestStatus;
+}) {
   const t = useT();
   return (
     <View>
-      {steps.map((s) => (
-        <View key={s.id} testID="approval-step" className="gap-1 border-b border-line py-3 last:border-b-0 dark:border-night-line">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <Text className="text-sm font-medium text-ink dark:text-night-ink">{fill(t('approval.level'), { level: s.level, total: Math.max(requiredLevels, s.level) })}</Text>
-            <Badge tone={DECISION_TONES[s.decision]} label={t(`approval.decision.${s.decision}`)} />
-            <CapacityBadge capacity={s.actingAs} />
+      {steps.map((s) => {
+        const withdrawn = requestStatus === 'CANCELLED' && s.decision === 'PENDING';
+        return (
+          <View key={s.id} testID="approval-step" className="gap-1 border-b border-line py-3 last:border-b-0 dark:border-night-line">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="text-sm font-medium text-ink dark:text-night-ink">{fill(t('approval.level'), { level: s.level, total: Math.max(requiredLevels, s.level) })}</Text>
+              {withdrawn ? (
+                <Badge tone="neutral" label={t('approval.withdrawn')} />
+              ) : (
+                <Badge tone={DECISION_TONES[s.decision]} label={t(`approval.decision.${s.decision}`)} />
+              )}
+              <CapacityBadge capacity={s.actingAs} />
+            </View>
+            <Text className="text-sm text-ink dark:text-night-ink">
+              {s.approver?.name ?? t('approval.hrPool')}
+              {s.delegate ? ` · ${fill(t('approval.delegateOf'), { name: s.delegate.name })}` : ''}
+            </Text>
+            <Text className="text-xs text-ink-muted" testID="approval-step-meta">
+              {withdrawn
+                ? `${s.decidedBy ? fill(t('approval.withdrawnBy'), { name: s.decidedBy.name }) : t('approval.withdrawn')} · ${day(s.decidedAt ?? s.createdAt)}`
+                : s.decidedBy
+                ? `${fill(t('approval.decidedBy'), { name: s.decidedBy.name, capacity: t(`approval.capacity.${s.actingAs}`) })} · ${day(s.decidedAt ?? s.createdAt)}`
+                : s.decision === 'PENDING'
+                  ? fill(t('approval.pendingSince'), { date: day(s.createdAt) })
+                  : day(s.decidedAt ?? s.createdAt)}
+            </Text>
+            {s.note ? <Text className="text-sm italic text-ink-muted">{`“${s.note}”`}</Text> : null}
           </View>
-          <Text className="text-sm text-ink dark:text-night-ink">
-            {s.approver?.name ?? t('approval.hrPool')}
-            {s.delegate ? ` · ${fill(t('approval.delegateOf'), { name: s.delegate.name })}` : ''}
-          </Text>
-          <Text className="text-xs text-ink-muted">
-            {s.decidedBy
-              ? `${fill(t('approval.decidedBy'), { name: s.decidedBy.name, capacity: t(`approval.capacity.${s.actingAs}`) })} · ${day(s.decidedAt ?? s.createdAt)}`
-              : s.decision === 'PENDING'
-                ? fill(t('approval.pendingSince'), { date: day(s.createdAt) })
-                : day(s.decidedAt ?? s.createdAt)}
-          </Text>
-          {s.note ? <Text className="text-sm italic text-ink-muted">{`“${s.note}”`}</Text> : null}
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

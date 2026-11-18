@@ -274,11 +274,11 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-10.1 | MUST | HR files on behalf | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-10.2 | MUST | Manager files on behalf of a team member | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-11** | | **Approval chain** (TOR p.13) | | | | | | | |
-| FR-LV-11.1 | MUST | 1–2 approval levels per the org chart | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-11.2 | MUST | Apply delegate rules FR-ORG-03 to FR-ORG-05 | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-11.1 | MUST | 1–2 approval levels per the org chart | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: LEAVE handler: approval posts ledger USAGE + recomputes AttendanceDay (LEAVE); `approval.levels` 1-2; test/leave-approval.test.ts. |
+| FR-LV-11.2 | MUST | Apply delegate rules FR-ORG-03 to FR-ORG-05 | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: delegate decides while manager on approved leave, upper level otherwise (onLeave reads APPROVED leave), escalation; test/leave-approval.test.ts. |
 | **FR-LV-12** | | **Cancel leave** (TOR p.13) | | | | | | | |
-| FR-LV-12.1 | MUST | Cancel an unapproved request immediately | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-12.2 | MUST | Request cancellation of approved leave (needs approval) | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-12.1 | MUST | Cancel an unapproved request immediately | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: POST /leave/requests/:id/cancel on PENDING -> withdrawApproval (request CANCELLED, step closed with who withdrew) + delegation ended; API/web/mobile tests. |
+| FR-LV-12.2 | MUST | Request cancellation of approved leave (needs approval) | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: APPROVED -> reason required, LeaveCancelRequest + LEAVE_CANCEL approval; approve -> ledger CANCEL + attendance recompute; one pending (409). |
 | **FR-LV-13** | | **Leave calendar** (TOR p.13) | | | | | | | |
 | FR-LV-13.1 | MUST | Employees view their own department's leave calendar in app and web | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-13.2 | MUST | "Today" view: who is on leave today, full or half day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
@@ -289,7 +289,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-13.7 | MUST | Approved vs pending in different colours. Regular staff see approved only | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-13.8 | MUST | Show public holidays and weekly rest days | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-13.9 | MUST | HR views all departments | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-13.10 | SHOULD | From the approval screen, the manager sees which team members are already on leave that day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-13.10 | SHOULD | From the approval screen, the manager sees which team members are already on leave that day | Web/Mobile | Yes | Yes | M6 | Implemented | Completed | M6-D: approval detail `teamOnLeave` (same manager or department, APPROVED/PENDING overlap, no leave type, not for requester); web + mobile panel + tests. |
 ## FR-OB
 
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |

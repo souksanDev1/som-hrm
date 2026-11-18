@@ -14,6 +14,7 @@ import { overtimeEn, overtimeLo } from './areas/overtime';
 import { scanImportEn, scanImportLo } from './areas/scan-import';
 import { kioskEn, kioskLo } from './areas/kiosk';
 import { leaveEn, leaveLo } from './areas/leave';
+import { leaveApprovalEn, leaveApprovalLo } from './areas/leave-approval';
 
 /**
  * Minimal typed i18n dictionary shared by web + mobile.
@@ -165,7 +166,7 @@ const coreLo = {
  * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
  * so that features can add strings without editing this file.
  */
-const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo, ...checkinLo, ...kioskLo, ...leaveLo } as const;
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo, ...checkinLo, ...kioskLo, ...leaveLo, ...leaveApprovalLo } as const;
 
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
@@ -312,7 +313,7 @@ const coreEn: Record<keyof typeof coreLo, string> = {
   'error.unknown': 'Unknown error',
 };
 
-const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn, ...checkinEn, ...kioskEn, ...leaveEn };
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn, ...checkinEn, ...kioskEn, ...leaveEn, ...leaveApprovalEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];

@@ -4,6 +4,7 @@ import { offsiteCheckinApprovalHandler } from '../attendance/offsite.approval';
 import { createApprovalRegistry } from './approval-handlers';
 import { correctionApprovalHandler } from '../attendance/correction.approval';
 import { deviceChangeApprovalHandler } from '../attendance/device-change.approval';
+import { leaveCancelApprovalHandler } from '../leave/leave-cancel.approval';
 
 /**
  * Subject modules wired into the approval engine. Add a module's handler here when it starts
@@ -15,4 +16,5 @@ export const defaultApprovalRegistry = createApprovalRegistry([
   correctionApprovalHandler,
   deviceChangeApprovalHandler,
   offsiteCheckinApprovalHandler,
+  leaveCancelApprovalHandler,
 ]);

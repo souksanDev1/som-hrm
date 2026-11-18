@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n';
 import { RequestStatusBadge } from './ApprovalBadges';
 import { DecisionForm, type DecisionFormProps } from './DecisionForm';
 import { StepHistory } from './StepHistory';
+import { TeamOnLeave } from './TeamOnLeave';
 
 export interface ApprovalDetailProps {
   request: ApprovalRequestDetail;
@@ -42,8 +43,13 @@ export function ApprovalDetail({ request, onDecide }: ApprovalDetailProps) {
         )}
       </Card>
       <Card title={t('approval.history')}>
-        <StepHistory steps={request.steps} requiredLevels={request.requiredLevels} />
+        <StepHistory steps={request.steps} requiredLevels={request.requiredLevels} requestStatus={request.status} />
       </Card>
+      {request.teamOnLeave && (
+        <Card title={t('approval.teamOnLeave.title')} className="lg:col-span-2">
+          <TeamOnLeave members={request.teamOnLeave} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { Button, Card, QueryView, Screen } from '@/components/ui';
 import { useApprovalRequest, useDecideApproval } from '@/features/approvals/api';
 import { ApprovalDecisionPanel, ApprovalStepList, RequestStatusBadge } from '@/features/approvals/ApprovalViews';
+import { TeamOnLeaveList } from '@/features/approvals/TeamOnLeaveList';
 import { useAuthStore } from '@/features/auth/store';
 import { useT } from '@/lib/i18n';
 
@@ -34,8 +35,13 @@ export default function ApprovalDetailScreen() {
                 <ApprovalDecisionPanel capacity={r.myCapacity} onDecide={(decision, note) => decide.mutateAsync({ decision, note })} />
               </Card>
             ) : null}
+            {r.teamOnLeave ? (
+              <Card title={t('approval.teamOnLeave.title')}>
+                <TeamOnLeaveList members={r.teamOnLeave} />
+              </Card>
+            ) : null}
             <Card title={t('approval.history')}>
-              <ApprovalStepList steps={r.steps} requiredLevels={r.requiredLevels} />
+              <ApprovalStepList steps={r.steps} requiredLevels={r.requiredLevels} requestStatus={r.status} />
             </Card>
           </>
         )}

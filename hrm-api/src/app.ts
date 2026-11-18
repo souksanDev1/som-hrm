@@ -56,6 +56,8 @@ import { kioskDeviceRoutes, kioskRoutes } from './modules/kiosk/kiosk.routes';
 import { createKioskService, type KioskService } from './modules/kiosk/kiosk.service';
 import { createLeaveService, type LeaveService } from './modules/leave/leave.service';
 import { leaveRoutes } from './modules/leave/leave.routes';
+import { leaveCancelRoutes } from './modules/leave/leave-cancel.routes';
+import { createLeaveCancelService, type LeaveCancelService } from './modules/leave/leave-cancel.service';
 
 export interface Services {
   auth: AuthService;
@@ -79,6 +81,7 @@ export interface Services {
   checkin: CheckinService;
   kiosk: KioskService;
   leave: LeaveService;
+  leaveCancel: LeaveCancelService;
 }
 
 declare module 'fastify' {
@@ -172,6 +175,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     checkin: createCheckinService(db, approvalRegistry ?? defaultApprovalRegistry),
     kiosk: createKioskService(db, () => app.services.files),
     leave: createLeaveService(db),
+    leaveCancel: createLeaveCancelService(db, approvalRegistry ?? defaultApprovalRegistry),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -208,6 +212,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(checkinRoutes);
         await secured.register(kioskRoutes);
         await secured.register(leaveRoutes);
+        await secured.register(leaveCancelRoutes);
       });
       // Kiosk tablets (FR-ATT-03): own `Authorization: Kiosk <token>` scope, no user JWT.
       await api.register(kioskDeviceRoutes);
