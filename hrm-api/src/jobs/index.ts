@@ -10,10 +10,13 @@ import { runProbationEndingAlerts } from './handlers/probation-ending';
 import { runOvertimeActuals } from './handlers/overtime-actuals';
 import type { JobRunner } from './runner';
 import { runAttendanceDaily } from './handlers/attendance-daily';
+import { runLeaveAccrual } from './handlers/leave-accrual';
+import { runLeaveCarryOver } from './handlers/leave-carry-over';
 
 export { runAccountDeactivation, runApprovalEscalation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults, runProbationEndingAlerts };
 export { runAttendanceDaily };
 export { runOvertimeActuals };
+export { runLeaveAccrual, runLeaveCarryOver };
 
 /** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
 export interface WorkspaceJob {
@@ -29,6 +32,8 @@ export const JOBS = {
   approvalEscalation: 'approval-escalation',
   attendanceDaily: 'attendance-daily',
   overtimeActuals: 'overtime-actuals',
+  leaveAccrual: 'leave-accrual',
+  leaveCarryOver: 'leave-carry-over',
 } as const;
 
 /** Workspaces that should receive scheduled work (suspended companies are skipped). */
@@ -87,4 +92,8 @@ export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts,
   await perWorkspace(JOBS.attendanceDaily, '*/15 * * * *', (ws) => runAttendanceDaily(db, ws));
   // Hourly: approved planned OT gets its actual period from final punches (FR-ATT-21).
   await perWorkspace(JOBS.overtimeActuals, '25 * * * *', (ws) => runOvertimeActuals(db, ws));
+  // Daily just after midnight: yearly leave entitlements whose grant date has come (FR-LV-07.1, Q10).
+  await perWorkspace(JOBS.leaveAccrual, '10 0 * * *', (ws) => runLeaveAccrual(db, ws));
+  // Daily: annual-leave carry-over from 1 January and its expiry (SHOULD FR-LV-08; off while leave.carryOverMaxDays = 0).
+  await perWorkspace(JOBS.leaveCarryOver, '20 0 * * *', (ws) => runLeaveCarryOver(db, ws));
 };

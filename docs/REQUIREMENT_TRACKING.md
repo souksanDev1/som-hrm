@@ -242,9 +242,9 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | ID | Pri | Requirement | Platform | Backend | DB | Milestone | Status | Test | Notes |
 |---|---|---|---|---|---|---|---|---|---|
 | **FR-LV-01** | | **Leave-day entitlements** (TOR p.11) | | | | | | | |
-| FR-LV-01.1 | MUST | HR edits the day count per leave type | Web | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-01.2 | MUST | Block settings below the legal minimum | Web | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-02 | MUST | Custom leave types (for example ordination, exam leave) | Web | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-01.1 | MUST | HR edits the day count per leave type | Web | Yes | Yes | M6 | Implemented | Unit+API | `PUT /leave/types/:id` (leave.manage, audit-logged); `/settings/leave-types`. API `test/leave-policy.test.ts`, web `test/leave-policy.test.tsx` |
+| FR-LV-01.2 | MUST | Block settings below the legal minimum | Web | Yes | Yes | M6 | Implemented | Unit+API | 400 `below_legal_minimum` `{field, legalMin}` via `validateLeavePolicy`; statutory code/category/quota/counting/gender locked (`leave_type_field_locked`). Same tests |
+| FR-LV-02 | MUST | Custom leave types (for example ordination, exam leave) | Web | Yes | Yes | M6 | Implemented | Unit+API | `POST /leave/types` (category OTHER, isCustom); "add" form on `/settings/leave-types`. Same tests |
 | **FR-LV-03** | | **Leave units** (TOR p.11) | | | | | | | |
 | FR-LV-03.1 | MUST | Full day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-03.2 | MUST | Half day, morning or afternoon | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
@@ -261,12 +261,12 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` per leave year vs ledger balance; unit-tested; API wiring pending. |
 | FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` gender rule unit-tested; API wiring pending. |
 | **FR-LV-07** | | **Leave balance ledger** (TOR p.12) | | | | | | | |
-| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. |
-| FR-LV-07.2 | MUST | HR adjusts the balance with a reason | Web | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-07.3 | MUST | View per-person ledger for audit | Web | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. Agent B: daily `leave-accrual` job posts ENTITLEMENT (grant date, hazardous, sick 90-day DAILY/HOURLY, idempotent), API-tested in `test/leave-policy.test.ts`. |
+| FR-LV-07.2 | MUST | HR adjusts the balance with a reason | Web | Yes | Yes | M6 | Implemented | Unit+API | `POST /leave/ledger/adjustments` (leave.ledger.adjust, reason required, audit-logged); form on `/leave/ledger`. API + web tests |
+| FR-LV-07.3 | MUST | View per-person ledger for audit | Web | Yes | Yes | M6 | Implemented | Unit+API | `GET /leave/ledger` (self / data scope / HR) with creator name; `/leave/ledger` balances + movements. API + web tests |
 | **FR-LV-08** | | **Annual-leave carry-over** (TOR p.12) | | | | | | | |
-| FR-LV-08.1 | SHOULD | Carry-over policy for unused days into next year | Web | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-08.2 | SHOULD | Expiry date for carried-over days | Web | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-08.1 | SHOULD | Carry-over policy for unused days into next year | Web | Yes | Yes | M6 | Implemented | API | Daily `leave-carry-over` job: CARRY = `carryOverDays(prev-year balance, leave.carryOverMaxDays)`; default 0 = off (Q13). `test/leave-policy.test.ts` |
+| FR-LV-08.2 | SHOULD | Expiry date for carried-over days | Web | Yes | Yes | M6 | Implemented | API | EXPIRE after the last day of `leave.carryOverExpiryMonth` (default 3 → 31/03) = `expiringCarryDays`. `test/leave-policy.test.ts` |
 | **FR-LV-09** | | **Submit leave** (TOR p.12) | | | | | | | |
 | FR-LV-09.1 | MUST | Via mobile app | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-09.2 | MUST | Via web | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |

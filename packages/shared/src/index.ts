@@ -36,3 +36,4 @@ export * from './schemas/checkin';
 export * from './schemas/kiosk';
 export * from './domain/leave';
 export * from './schemas/leave';
+export * from './schemas/leave-policy';

@@ -50,6 +50,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/attendance/corrections', labelKey: 'attreq.correction.title', icon: 'edit_calendar' },
   // M5 agent G — kiosk tablets of the branches (FR-ATT-03.1, FR-WS-06.3).
   { href: '/settings/kiosks', labelKey: 'kiosk.title', icon: 'tablet_android', permission: PERMISSIONS.KIOSK_MANAGE },
+  // M6 agent B — leave type settings (FR-LV-01/02) and the per-employee leave ledger with HR adjustments (FR-LV-07).
+  { href: '/settings/leave-types', labelKey: 'lvp.types.title', icon: 'beach_access', permission: PERMISSIONS.LEAVE_MANAGE },
+  { href: '/leave/ledger', labelKey: 'lvp.ledger.title', icon: 'account_balance_wallet', permission: PERMISSIONS.LEAVE_MANAGE },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */
