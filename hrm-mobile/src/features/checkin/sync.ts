@@ -15,12 +15,24 @@ export interface SyncDeps {
   now?(): Date;
 }
 
-export interface SyncOutcome {
+export interface SyncOutcome<R extends PunchItemResult = PunchItemResult> {
   /** Accepted by the server (created or replayed), in send order. */
-  accepted: PunchItemResult[];
-  rejected: PunchItemResult[];
+  accepted: R[];
+  rejected: R[];
   /** Stopped because the server could not be reached; everything left stays queued. */
   offline: boolean;
+}
+
+/** What a queue sync needs, independent of who punches (phone user or kiosk tablet). */
+export interface QueueSyncDeps<R extends PunchItemResult> {
+  store: QueueStore;
+  /** Queue owner: the signed-in user, or `kiosk:<id>` on a kiosk tablet. */
+  ownerId: string;
+  uploadSelfie(uri: string): Promise<string>;
+  /** Send one chunk (photos already uploaded) and return the server's per-item answers. */
+  sendBatch(chunk: readonly QueuedPunch[], deviceSentAt: string): Promise<{ results: R[] }>;
+  batchMax: number;
+  now?(): Date;
 }
 
 const isNetwork = (err: unknown) => err instanceof ApiError && err.code === 'network';
@@ -33,17 +45,16 @@ const markOffline = (store: QueueStore, items: readonly QueuedPunch[]) =>
   Promise.all(items.filter((i) => !i.offline).map((i) => store.update(i.clientRef, { offline: true })));
 
 /**
- * Send the pending queue (FR-ATT-05): upload selfies first, then the punches in batches. The server answers
- * each item; accepted ones (created or replayed — idempotent by clientRef) leave the queue, refused ones stay
- * as `rejected` with the error code. A network failure stops the run and keeps the rest for the next one.
+ * Send a pending queue (FR-ATT-05): upload photos first, then the punches in batches. The server answers each
+ * item; accepted ones (created or replayed — idempotent by clientRef) leave the queue, refused ones stay as
+ * `rejected` with the error code. A network failure stops the run and keeps the rest for the next one.
  */
-export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
+export const syncPunchQueue = async <R extends PunchItemResult>(deps: QueueSyncDeps<R>): Promise<SyncOutcome<R>> => {
   const { store } = deps;
-  const outcome: SyncOutcome = { accepted: [], rejected: [], offline: false };
-  const pending = (await store.list(deps.userId)).filter((p) => p.status === 'pending');
+  const outcome: SyncOutcome<R> = { accepted: [], rejected: [], offline: false };
+  const pending = (await store.list(deps.ownerId)).filter((p) => p.status === 'pending');
   if (!pending.length) return outcome;
-  const device = await deps.device();
-  if (!device) return outcome;
+  const rejectedResult = (clientRef: string, err: unknown) => ({ clientRef, result: 'rejected', error: codeOf(err) }) as R;
 
   const ready: QueuedPunch[] = [];
   for (const p of pending) {
@@ -58,7 +69,7 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
     } catch (err) {
       if (isPermanent(err)) {
         await store.update(p.clientRef, { status: 'rejected', error: codeOf(err) });
-        outcome.rejected.push({ clientRef: p.clientRef, result: 'rejected', error: codeOf(err) });
+        outcome.rejected.push(rejectedResult(p.clientRef, err));
         continue;
       }
       await markOffline(store, pending);
@@ -66,30 +77,15 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
     }
   }
 
-  for (let i = 0; i < ready.length; i += PUNCH_BATCH_MAX) {
-    const chunk = ready.slice(i, i + PUNCH_BATCH_MAX);
-    let response: PunchBatchResponse;
+  for (let i = 0; i < ready.length; i += deps.batchMax) {
+    const chunk = ready.slice(i, i + deps.batchMax);
+    let response: { results: R[] };
     try {
-      response = await deps.submit({
-        ...device,
-        deviceSentAt: (deps.now?.() ?? new Date()).toISOString(),
-        items: chunk.map((p) => ({
-          clientRef: p.clientRef,
-          kind: p.kind,
-          capturedAt: p.capturedAt,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          accuracyMetres: p.accuracyMetres,
-          mocked: false,
-          offline: p.offline,
-          ...(p.selfieFileId ? { selfieFileId: p.selfieFileId } : {}),
-          ...(p.offsiteReason ? { offsiteReason: p.offsiteReason } : {}),
-        })),
-      });
+      response = await deps.sendBatch(chunk, (deps.now?.() ?? new Date()).toISOString());
     } catch (err) {
       if (isPermanent(err)) {
         await Promise.all(chunk.map((p) => store.update(p.clientRef, { status: 'rejected', error: codeOf(err) })));
-        outcome.rejected.push(...chunk.map((p): PunchItemResult => ({ clientRef: p.clientRef, result: 'rejected', error: codeOf(err) })));
+        outcome.rejected.push(...chunk.map((p) => rejectedResult(p.clientRef, err)));
         continue;
       }
       await markOffline(store, ready.slice(i));
@@ -108,6 +104,38 @@ export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
     await store.remove(done);
   }
   return outcome;
+};
+
+/** The phone check-in queue of the signed-in user (FR-ATT-05), sent with this phone's identity. */
+export const syncQueue = async (deps: SyncDeps): Promise<SyncOutcome> => {
+  const pending = (await deps.store.list(deps.userId)).filter((p) => p.status === 'pending');
+  if (!pending.length) return { accepted: [], rejected: [], offline: false };
+  const device = await deps.device();
+  if (!device) return { accepted: [], rejected: [], offline: false };
+  return syncPunchQueue({
+    store: deps.store,
+    ownerId: deps.userId,
+    uploadSelfie: deps.uploadSelfie,
+    batchMax: PUNCH_BATCH_MAX,
+    now: deps.now,
+    sendBatch: (chunk, deviceSentAt) =>
+      deps.submit({
+        ...device,
+        deviceSentAt,
+        items: chunk.map((p) => ({
+          clientRef: p.clientRef,
+          kind: p.kind,
+          capturedAt: p.capturedAt,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          accuracyMetres: p.accuracyMetres,
+          mocked: false,
+          offline: p.offline,
+          ...(p.selfieFileId ? { selfieFileId: p.selfieFileId } : {}),
+          ...(p.offsiteReason ? { offsiteReason: p.offsiteReason } : {}),
+        })),
+      }),
+  });
 };
 
 // ─────────────────────── App-wide queue state ───────────────────────

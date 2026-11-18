@@ -1,0 +1,126 @@
+appId: la.som.hrm.kiosk
+name: Kiosk tablet — enrol, then E003 punches with employee code + PIN + photo (FR-ATT-03.1–03.3)
+# Needs the kiosk build: APP_VARIANT=kiosk EXPO_PUBLIC_API_URL=http://localhost:4000/api/v1 npx expo run:android
+# (package la.som.hrm.kiosk, installed beside the employee app). The script turns on KIOSK mode at the seeded
+# site branch of E003 (PIN 482913) and enrols a new kiosk through the API.
+---
+- runScript: ../scripts/enrol-kiosk.js
+- launchApp:
+    clearState: true
+    clearKeychain: true
+    permissions:
+      camera: allow
+- assertVisible:
+    id: "kiosk-enrol-screen"
+- tapOn:
+    id: "kiosk-enrol-code"
+- inputText: ${output.enrolCode}
+- hideKeyboard
+- tapOn:
+    id: "kiosk-enrol-submit"
+- extendedWaitUntil:
+    visible:
+      id: "kiosk-start"
+    timeout: 20000
+- assertVisible:
+    text: "ໜ້າງານ ປາກເຊ"
+# Language switch on the idle screen.
+- tapOn:
+    id: "kiosk-lang-en"
+- assertVisible:
+    text: "Tap to punch"
+- tapOn:
+    id: "kiosk-lang-lo"
+- tapOn:
+    id: "kiosk-start"
+- assertVisible:
+    id: "kiosk-code-step"
+# Employee code "E003": letters page for E, digits page for 003.
+- tapOn:
+    id: "kiosk-code-toggle"
+- tapOn:
+    id: "kiosk-code-key-E"
+- tapOn:
+    id: "kiosk-code-toggle"
+- tapOn:
+    id: "kiosk-code-key-0"
+- tapOn:
+    id: "kiosk-code-key-0"
+- tapOn:
+    id: "kiosk-code-key-3"
+- tapOn:
+    id: "kiosk-code-ok"
+- assertVisible:
+    id: "kiosk-pin-step"
+- tapOn:
+    id: "kiosk-pin-key-4"
+- tapOn:
+    id: "kiosk-pin-key-8"
+- tapOn:
+    id: "kiosk-pin-key-2"
+- tapOn:
+    id: "kiosk-pin-key-9"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-3"
+# The photo is always taken on the kiosk (FR-ATT-03.3).
+- extendedWaitUntil:
+    visible:
+      id: "selfie-take"
+    timeout: 10000
+- tapOn:
+    id: "selfie-take"
+- extendedWaitUntil:
+    visible:
+      id: "kiosk-result-name"
+    timeout: 20000
+# IN or OUT depending on earlier punches today.
+- assertVisible:
+    text: ".*ລົງເວລາ(ເຂົ້າ|ອອກ) ສຳເລັດ.*"
+# Back to the idle screen by itself.
+- extendedWaitUntil:
+    visible:
+      id: "kiosk-start"
+    timeout: 15000
+# A wrong PIN is refused (the same login PIN and lockout as the PIN sign-in).
+- tapOn:
+    id: "kiosk-start"
+- tapOn:
+    id: "kiosk-code-toggle"
+- tapOn:
+    id: "kiosk-code-key-E"
+- tapOn:
+    id: "kiosk-code-toggle"
+- tapOn:
+    id: "kiosk-code-key-0"
+- tapOn:
+    id: "kiosk-code-key-0"
+- tapOn:
+    id: "kiosk-code-key-3"
+- tapOn:
+    id: "kiosk-code-ok"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- tapOn:
+    id: "kiosk-pin-key-1"
+- extendedWaitUntil:
+    visible:
+      id: "selfie-take"
+    timeout: 10000
+- tapOn:
+    id: "selfie-take"
+- extendedWaitUntil:
+    visible:
+      id: "kiosk-result-error"
+    timeout: 20000
+- assertVisible:
+    text: "ລະຫັດພະນັກງານ ຫຼື PIN ບໍ່ຖືກຕ້ອງ"

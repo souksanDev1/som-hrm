@@ -43,6 +43,49 @@ const toRef = (f: { id: string; originalName: string; mimeType: string; sizeByte
   sizeBytes: f.sizeBytes,
 });
 
+/** Storage-key prefix of the photos one kiosk uploaded (see `uploadKioskPhoto`). */
+export const kioskPhotoKeyPrefix = (workspaceId: string, kioskId: string) => storageKey(workspaceId, 'SELFIE', `kiosk-${kioskId}/`);
+
+/** Validate a stand-alone upload (size, magic bytes), store the bytes, then record it; the bytes go if the record fails. */
+const storeStandalone = async (
+  db: Db,
+  storage: FileStorage,
+  maxBytes: number,
+  ws: string,
+  purpose: StandaloneFilePurpose,
+  upload: UploadedFile,
+  owner: { uploadedById: string | null; keyPrefix?: string },
+): Promise<StoredFileRef> => {
+  if (upload.data.length === 0) throw badRequest('file_required');
+  if (upload.data.length > maxBytes) throw fileTooLarge();
+  const type = detectDocumentFileType(upload.data);
+  if (!type || (purpose === 'SELFIE' && type.mimeType === 'application/pdf')) throw new AppError(415, 'unsupported_file_type');
+
+  const id = randomUUID();
+  const key = storageKey(ws, purpose, `${owner.keyPrefix ?? ''}${id}`);
+  await storage.put(key, upload.data);
+  try {
+    return toRef(
+      await db.tenant(ws, (tx) =>
+        repo.create(tx, {
+          id,
+          workspaceId: ws,
+          storageKey: key,
+          purpose,
+          originalName: sanitizeFileName(upload.fileName, type.extension),
+          mimeType: type.mimeType,
+          sizeBytes: upload.data.length,
+          sha256: createHash('sha256').update(upload.data).digest('hex'),
+          uploadedById: owner.uploadedById,
+        }),
+      ),
+    );
+  } catch (err) {
+    await storage.delete(key).catch(() => undefined);
+    throw err;
+  }
+};
+
 /** Validated, tenant-scoped file uploads/downloads (A7, FR-EMP-07). */
 export const createFilesService = (db: Db, storage: FileStorage, opts: { maxBytes: number }) => ({
   maxBytes: opts.maxBytes,
@@ -100,37 +143,16 @@ export const createFilesService = (db: Db, storage: FileStorage, opts: { maxByte
    * Upload a file that a later request references by id (`selfieFileId`, `attachmentFileId`). Selfies must be
    * JPEG/PNG; attachments PDF/JPEG/PNG (magic bytes). The uploader is recorded and is the only one who may link it.
    */
-  async uploadStandalone(ctx: AuthContext, purpose: StandaloneFilePurpose, upload: UploadedFile): Promise<StoredFileRef> {
-    if (upload.data.length === 0) throw badRequest('file_required');
-    if (upload.data.length > opts.maxBytes) throw fileTooLarge();
-    const type = detectDocumentFileType(upload.data);
-    if (!type || (purpose === 'SELFIE' && type.mimeType === 'application/pdf')) throw new AppError(415, 'unsupported_file_type');
+  uploadStandalone: (ctx: AuthContext, purpose: StandaloneFilePurpose, upload: UploadedFile): Promise<StoredFileRef> =>
+    storeStandalone(db, storage, opts.maxBytes, ctx.workspaceId, purpose, upload, { uploadedById: ctx.userId }),
 
-    const ws = ctx.workspaceId;
-    const id = randomUUID();
-    const key = storageKey(ws, purpose, id);
-    await storage.put(key, upload.data);
-    try {
-      return toRef(
-        await db.tenant(ws, (tx) =>
-          repo.create(tx, {
-            id,
-            workspaceId: ws,
-            storageKey: key,
-            purpose,
-            originalName: sanitizeFileName(upload.fileName, type.extension),
-            mimeType: type.mimeType,
-            sizeBytes: upload.data.length,
-            sha256: createHash('sha256').update(upload.data).digest('hex'),
-            uploadedById: ctx.userId,
-          }),
-        ),
-      );
-    } catch (err) {
-      await storage.delete(key).catch(() => undefined);
-      throw err;
-    }
-  },
+  /**
+   * Punch photo taken on a kiosk tablet (FR-ATT-03.3). A kiosk has no user, so `uploadedById` stays null and the
+   * owning kiosk is encoded in the storage key (`kioskPhotoKeyPrefix`); only that kiosk may link it to a punch, and
+   * attendance readers/reviewers download it like any selfie.
+   */
+  uploadKioskPhoto: (workspaceId: string, kioskId: string, upload: UploadedFile): Promise<StoredFileRef> =>
+    storeStandalone(db, storage, opts.maxBytes, workspaceId, 'SELFIE', upload, { uploadedById: null, keyPrefix: `kiosk-${kioskId}/` }),
 
   /** Download a stand-alone file: its uploader, or a holder of an attendance/leave reading permission; else 404. */
   async downloadStandalone(ctx: AuthContext, fileId: string): Promise<FileDownload> {
