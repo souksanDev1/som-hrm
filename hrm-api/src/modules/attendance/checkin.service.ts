@@ -48,8 +48,8 @@ export const toMyPunch = (p: AttendancePunch): MyPunch => ({
   reviewStatus: p.reviewStatus,
 });
 
-/** Employment statuses that may still punch. */
-const PUNCHING_STATUSES = new Set(['PROBATION', 'ACTIVE', 'ON_LEAVE']);
+/** Employment statuses that may still punch (mobile and kiosk). */
+export const PUNCHING_STATUSES = new Set(['PROBATION', 'ACTIVE', 'ON_LEAVE']);
 /** Longest range `GET /attendance/punches/me` returns at once. */
 const MY_PUNCHES_MAX_DAYS = 62;
 
@@ -79,6 +79,55 @@ const reviewerUserIds = async (tx: Tx, workspaceId: string) =>
       select: { id: true },
     })
   ).map((u) => u.id);
+
+/**
+ * Audit and notify the review queue about suspicious punches (FR-ATT-07.2/14, FR-NOTI-03.6). Shared by the mobile
+ * check-in and the kiosk; `actorUserId` is null for a kiosk (the tablet has no user).
+ */
+export const reportSuspiciousPunches = async (
+  tx: Tx,
+  input: {
+    workspaceId: string;
+    actorUserId: string | null;
+    punches: readonly AttendancePunch[];
+    employeeName(employeeId: string): string;
+    deviceSentAt: string;
+    now: Date;
+    ip?: string;
+    meta?: Record<string, string>;
+  },
+) => {
+  const suspicious = input.punches.filter((p) => p.suspicious);
+  if (!suspicious.length) return;
+  const { workspaceId } = input;
+  const reviewers = (await reviewerUserIds(tx, workspaceId)).filter((id) => id !== input.actorUserId);
+  for (const p of suspicious) {
+    await auditRepository.create(tx, {
+      workspaceId,
+      actorUserId: input.actorUserId,
+      action: 'attendance.suspicious_punch',
+      entity: 'AttendancePunch',
+      entityId: p.id,
+      meta: { reasons: p.suspiciousReasons, deviceSentAt: input.deviceSentAt, receivedAt: iso(input.now), ...input.meta },
+      ip: input.ip,
+    });
+    await notify(tx, {
+      workspaceId,
+      userIds: reviewers,
+      type: 'SUSPICIOUS_ATTENDANCE',
+      titleKey: 'notif.suspicious.title',
+      bodyKey: 'notif.suspicious.body',
+      params: {
+        employee: input.employeeName(p.employeeId),
+        reason: { t: `attendance.suspicion.${p.suspiciousReasons[0]}` },
+        date: toIsoDate(p.workDate)!,
+      },
+      link: '/attendance/review',
+      dedupeKey: `suspicious-punch:${p.id}`,
+      data: { punchId: p.id, employeeId: p.employeeId },
+    });
+  }
+};
 
 interface ItemPlan {
   clientRef: string;
@@ -218,7 +267,6 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
       const { created } = toCreate.length ? await createPunches(tx, workspaceId, toCreate, now) : { created: [] };
       const byRef = new Map(created.map((p) => [p.clientRef!, p]));
 
-      const reviewers = created.some((p) => p.suspicious) ? await reviewerUserIds(tx, workspaceId) : [];
       for (const p of created) {
         if (p.offsite) {
           await submitApproval(tx, registry, {
@@ -231,33 +279,16 @@ export const createCheckinService = (db: Db, registry: ApprovalHandlerRegistry) 
             now,
           });
         }
-        if (p.suspicious) {
-          await auditRepository.create(tx, {
-            workspaceId,
-            actorUserId: ctx.userId,
-            action: 'attendance.suspicious_punch',
-            entity: 'AttendancePunch',
-            entityId: p.id,
-            meta: { reasons: p.suspiciousReasons, deviceSentAt: body.deviceSentAt, receivedAt: iso(now) },
-            ip: meta.ip,
-          });
-          await notify(tx, {
-            workspaceId,
-            userIds: reviewers.filter((id) => id !== ctx.userId),
-            type: 'SUSPICIOUS_ATTENDANCE',
-            titleKey: 'notif.suspicious.title',
-            bodyKey: 'notif.suspicious.body',
-            params: {
-              employee: `${employee.firstName} ${employee.lastName}`,
-              reason: { t: `attendance.suspicion.${p.suspiciousReasons[0]}` },
-              date: toIsoDate(p.workDate)!,
-            },
-            link: '/attendance/review',
-            dedupeKey: `suspicious-punch:${p.id}`,
-            data: { punchId: p.id, employeeId },
-          });
-        }
       }
+      await reportSuspiciousPunches(tx, {
+        workspaceId,
+        actorUserId: ctx.userId,
+        punches: created,
+        employeeName: () => `${employee.firstName} ${employee.lastName}`,
+        deviceSentAt: body.deviceSentAt,
+        now,
+        ip: meta.ip,
+      });
 
       const results = plans.map((plan): PunchItemResult => {
         if (plan.result) return plan.result;

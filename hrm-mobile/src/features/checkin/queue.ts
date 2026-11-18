@@ -24,6 +24,8 @@ export interface QueuedPunch {
   selfieFileId: string | null;
   status: 'pending' | 'rejected';
   error: string | null;
+  /** Kiosk queue only (FR-ATT-03.2): the employee code typed on the tablet. */
+  employeeCode?: string | null;
 }
 
 export type QueuePatch = Partial<Pick<QueuedPunch, 'offline' | 'selfieFileId' | 'status' | 'error'>>;
@@ -52,6 +54,7 @@ interface Row {
   selfie_file_id: string | null;
   status: string;
   error: string | null;
+  employee_code?: string | null;
 }
 
 const SCHEMA = `
@@ -68,7 +71,8 @@ CREATE TABLE IF NOT EXISTS punch_queue (
   selfie_uri TEXT,
   selfie_file_id TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
-  error TEXT
+  error TEXT,
+  employee_code TEXT
 );
 CREATE TABLE IF NOT EXISTS checkin_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
 `;
@@ -89,6 +93,7 @@ export const fromRow = (r: Row): QueuedPunch => ({
   selfieFileId: r.selfie_file_id,
   status: r.status === 'rejected' ? 'rejected' : 'pending',
   error: r.error,
+  ...(r.employee_code ? { employeeCode: r.employee_code } : {}),
 });
 
 /** expo-sqlite implementation (the database survives app restarts and phone reboots). */
@@ -96,9 +101,9 @@ export const createSqliteQueueStore = (db: SQLite.SQLiteDatabase): QueueStore =>
   list: async (userId) => (await db.getAllAsync<Row>('SELECT * FROM punch_queue WHERE user_id = ? ORDER BY captured_at ASC', [userId])).map(fromRow),
   add: async (p) => {
     await db.runAsync(
-      `INSERT OR IGNORE INTO punch_queue (client_ref, user_id, kind, captured_at, latitude, longitude, accuracy, offline, offsite_reason, selfie_uri, selfie_file_id, status, error)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.clientRef, p.userId, p.kind, p.capturedAt, p.latitude, p.longitude, p.accuracyMetres, p.offline ? 1 : 0, p.offsiteReason, p.selfieUri, p.selfieFileId, p.status, p.error],
+      `INSERT OR IGNORE INTO punch_queue (client_ref, user_id, kind, captured_at, latitude, longitude, accuracy, offline, offsite_reason, selfie_uri, selfie_file_id, status, error, employee_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.clientRef, p.userId, p.kind, p.capturedAt, p.latitude, p.longitude, p.accuracyMetres, p.offline ? 1 : 0, p.offsiteReason, p.selfieUri, p.selfieFileId, p.status, p.error, p.employeeCode ?? null],
     );
   },
   update: async (clientRef, patch) => {
@@ -117,15 +122,24 @@ export const createSqliteQueueStore = (db: SQLite.SQLiteDatabase): QueueStore =>
   },
 });
 
+/**
+ * Open (and migrate) a queue database. The phone app uses `hrm-checkin.db`; the kiosk variant its own file, keyed
+ * by kiosk instead of user (FR-ATT-03).
+ */
+export const openQueueStore = async (fileName: string): Promise<QueueStore> => {
+  const db = await SQLite.openDatabaseAsync(fileName);
+  await db.execAsync(SCHEMA);
+  // Queues created before the kiosk column existed (M5-C installs).
+  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(punch_queue)');
+  if (!columns.some((c) => c.name === 'employee_code')) await db.execAsync('ALTER TABLE punch_queue ADD COLUMN employee_code TEXT');
+  return createSqliteQueueStore(db);
+};
+
 let storePromise: Promise<QueueStore> | null = null;
 
 /** The app's queue (opened once). */
 export const getQueueStore = (): Promise<QueueStore> => {
-  storePromise ??= (async () => {
-    const db = await SQLite.openDatabaseAsync('hrm-checkin.db');
-    await db.execAsync(SCHEMA);
-    return createSqliteQueueStore(db);
-  })();
+  storePromise ??= openQueueStore('hrm-checkin.db');
   return storePromise;
 };
 

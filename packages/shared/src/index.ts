@@ -33,3 +33,4 @@ export * from './schemas/scan-import';
 export * from './schemas/attendance-requests';
 export * from './domain/checkin';
 export * from './schemas/checkin';
+export * from './schemas/kiosk';

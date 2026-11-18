@@ -56,7 +56,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | **FR-WS-06** | | **Attendance mode per **branch**** (TOR p.3) | | | | | | | |
 | FR-WS-06.1 | MUST | Mobile-app mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: `Branch.attendanceModes` (default MOBILE), branch form checkboxes; enforced at mobile check-in (M5-C). |
 | FR-WS-06.2 | MUST | Scanner-file upload mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: mode configurable per branch; enforced by scanner import (M5-F). |
-| FR-WS-06.3 | SHOULD | Kiosk mode | Web | Yes | Yes | M5 | In Progress | Partial | M5 base: mode configurable per branch; kiosk app M5-G. |
+| FR-WS-06.3 | SHOULD | Kiosk mode | Web | Yes | Yes | M5 | Implemented | Passed | M5-G: KIOSK mode gates enrolment (`POST /kiosks`) and every kiosk punch (`attendance_mode_disabled`); `/kiosk/me.kioskEnabled`. API `test/kiosk.test.ts`; Playwright `kiosks.spec.ts` written (lead runs). |
 | FR-WS-06.4 | MUST | Multiple modes enabled at once in one branch | Web | Yes | Yes | M5 | Implemented | Passed | Per branch (client 2026-11-17 Q1); API `test/branch-attendance-modes.test.ts`, web form test. |
 | **FR-WS-07** | | **Language** (TOR p.3) | | | | | | | |
 | FR-WS-07.1 | MUST | System displays in Lao and English | Web/Mobile/Kiosk | Yes | — | M2 | In Progress | Partial | Shared lo/en dictionary; some hardcoded strings remain. |
@@ -171,9 +171,9 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ATT-02.5 | MUST | Show unmatched or duplicate rows | Web | Yes | Yes | M5 | Implemented | Partial | Preview with OK/UNMATCHED/DUPLICATE/INVALID counts + filters; duplicate = same employee + minute (stored or earlier row) |
 | FR-ATT-02.6 | MUST | HR reviews and confirms before saving | Web | Yes | Yes | M5 | Implemented | Partial | Preview saves nothing; HMAC token (sha256 + format + branch + row outcomes); confirm in one tx via `createPunches` (SCANNER) + recompute; history |
 | **FR-ATT-03** | | **Kiosk for employees without smartphones** (TOR p.8) | | | | | | | |
-| FR-ATT-03.1 | SHOULD | Kiosk mode on a shared on-site tablet | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-03.2 | SHOULD | Punch with employee code + PIN | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
-| FR-ATT-03.3 | SHOULD | Photo at punch | Kiosk | Yes | Yes | M5 | Not Started | Pending |  |
+| FR-ATT-03.1 | SHOULD | Kiosk mode on a shared on-site tablet | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: branch device (not a device binding, Q2): HR enrols at web `/settings/kiosks` (kiosk.manage) → one-time code (32 random bytes, SHA-256 stored), list with last seen, revoke, audit. `Authorization: Kiosk <code>` scope. Mobile `APP_VARIANT=kiosk` (SOM Kiosk, `.kiosk` ids, `(kiosk)` routes: enrol, idle clock + branch, lo/en). API/web/Jest tests; Maestro `12-kiosk.yaml` written (lead runs). |
+| FR-ATT-03.2 | SHOULD | Punch with employee code + PIN | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: `POST /kiosk/punches` batch: code + login PIN (bcrypt, same `auth.lockout.*` counter as PIN sign-in), own branch + active only, IN/OUT inferred, source KIOSK + kioskDeviceId, branch location, skew → suspicious; offline queue (C's SQLite queue keyed by kiosk, PIN in SecureStore), idempotent replay. |
+| FR-ATT-03.3 | SHOULD | Photo at punch | Kiosk | Yes | Yes | M5 | Implemented | Passed | M5-G: photo always required on kiosk (ignores `attendance.selfieRequired`); `POST /kiosk/files` (magic bytes, uploader null, key bound to the kiosk); HR reviewers open it via `/files/:id`. |
 | **FR-ATT-04** | | **HR punches on behalf** (TOR p.8) | | | | | | | |
 | FR-ATT-04.1 | MUST | HR records time for an employee | Web | Yes | Yes | M5 | Implemented | Partial | POST /attendance/punches/on-behalf (attendance.punch_on_behalf, data scope) → createPunches HR_ON_BEHALF; web /attendance/on-behalf |
 | FR-ATT-04.2 | MUST | Reason mandatory | Web | Yes | Yes | M5 | Implemented | Partial | reason required (Zod + web form); kept on the punch with createdById |

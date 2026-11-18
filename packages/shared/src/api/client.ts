@@ -35,6 +35,8 @@ export interface ApiClientOptions {
   baseUrl: string | (() => string);
   tokens: TokenStore;
   fetchImpl?: typeof fetch;
+  /** `Authorization` scheme for the access token (default `Bearer`; the kiosk app uses `Kiosk`). */
+  authScheme?: string;
 }
 
 export type ApiFetch = <T>(path: string, opts?: RequestOptions) => Promise<T>;
@@ -43,7 +45,7 @@ export type ApiFetch = <T>(path: string, opts?: RequestOptions) => Promise<T>;
  * Fetch wrapper: JSON in/out, bearer auth, single-flight refresh-token rotation
  * on 401, and uniform `ApiError`s (status 0 + code "network" when offline).
  */
-export const createApiClient = ({ baseUrl, tokens, fetchImpl }: ApiClientOptions): ApiFetch => {
+export const createApiClient = ({ baseUrl, tokens, fetchImpl, authScheme = 'Bearer' }: ApiClientOptions): ApiFetch => {
   const doFetch: typeof fetch = (...args) => (fetchImpl ?? globalThis.fetch)(...args);
   const base = () => (typeof baseUrl === 'function' ? baseUrl() : baseUrl);
   const buildUrl = (path: string, query?: Query) => {
@@ -85,7 +87,7 @@ export const createApiClient = ({ baseUrl, tokens, fetchImpl }: ApiClientOptions
     const headers: Record<string, string> = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
     const token = tokens.getAccessToken();
-    if (auth && token) headers.authorization = `Bearer ${token}`;
+    if (auth && token) headers.authorization = `${authScheme} ${token}`;
 
     let res: Response;
     try {

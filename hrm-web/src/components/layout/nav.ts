@@ -48,6 +48,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/attendance/offsite', labelKey: 'attreq.offsite.title', icon: 'share_location', permission: PERMISSIONS.ATTENDANCE_OFFSITE_MANAGE },
   { href: '/attendance/devices', labelKey: 'attreq.devices.title', icon: 'phonelink_lock', permission: PERMISSIONS.ATTENDANCE_DEVICE_MANAGE },
   { href: '/attendance/corrections', labelKey: 'attreq.correction.title', icon: 'edit_calendar' },
+  // M5 agent G — kiosk tablets of the branches (FR-ATT-03.1, FR-WS-06.3).
+  { href: '/settings/kiosks', labelKey: 'kiosk.title', icon: 'tablet_android', permission: PERMISSIONS.KIOSK_MANAGE },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */
