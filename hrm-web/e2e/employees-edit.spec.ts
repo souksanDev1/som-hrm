@@ -26,7 +26,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     });
     await expect(page.getByText(`${code.toLowerCase()}@e2e.test`)).toBeVisible();
 
-    await page.getByRole('link', { name: /ແກ້ໄຂ|Edit/ }).click();
+    await page.getByRole('link', { name: /^(ແກ້ໄຂ|Edit)$/ }).click();
     const patch = page.waitForRequest((r) => r.method() === 'PATCH' && r.url().includes('/employees/'));
     await page.locator('#email').fill('');
     await page.getByTestId('employee-submit').click();
@@ -39,7 +39,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
   test('records a status change in the employment history', async ({ page }, info) => {
     const code = `H${info.project.name.slice(0, 1).toUpperCase()}${Date.now() % 100000}`;
     await createEmployee(page, code);
-    await page.getByRole('link', { name: /ແກ້ໄຂ|Edit/ }).click();
+    await page.getByRole('link', { name: /^(ແກ້ໄຂ|Edit)$/ }).click();
     await page.locator('#status').selectOption('ACTIVE');
     await page.locator('#effectiveDate').fill('2026-02-01');
     await page.getByTestId('employee-submit').click();
@@ -102,7 +102,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
     await expect(page.getByTestId('contract-type')).toHaveText('ມີກຳນົດເວລາ');
     await expect(page.getByTestId('pay-type')).toHaveText('ລາຍວັນ');
 
-    await page.getByRole('link', { name: /ແກ້ໄຂ|Edit/ }).click();
+    await page.getByRole('link', { name: /^(ແກ້ໄຂ|Edit)$/ }).click();
     // Seeded E001 (ສົມສັກ ພົມມະວົງ) becomes the manager, effective on a date HR picks.
     await page.locator('#managerId').selectOption({ label: 'E001 · ສົມສັກ ພົມມະວົງ' });
     await page.locator('#effectiveDate').fill('2026-03-01');

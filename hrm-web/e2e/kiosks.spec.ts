@@ -26,7 +26,7 @@ test.describe('kiosk devices (FR-ATT-03.1, FR-WS-06.3)', () => {
 
     await loginAsAdmin(page);
     await page.goto('/settings/kiosks');
-    await expect(page.getByRole('heading', { name: 'ອຸປະກອນ Kiosk' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'ອຸປະກອນ Kiosk', exact: true })).toBeVisible();
     await page.getByTestId('kiosk-add').click();
     await page.locator('#kiosk-branch').selectOption({ label: branch });
     await page.locator('#kiosk-name').fill(name);

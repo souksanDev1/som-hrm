@@ -9,11 +9,11 @@ test('navigation adapts to the viewport', async ({ page }) => {
   if (width < 1024) {
     await expect(tabBar).toBeVisible();
     await expect(sidebar).toBeHidden();
-    await tabBar.getByRole('link', { name: 'ພະນັກງານ' }).click();
+    await tabBar.getByRole('link', { name: 'ພະນັກງານ', exact: true }).click();
   } else {
     await expect(sidebar).toBeVisible();
     await expect(tabBar).toBeHidden();
-    await sidebar.getByRole('link', { name: 'ພະນັກງານ' }).click();
+    await sidebar.getByRole('link', { name: 'ພະນັກງານ', exact: true }).click();
   }
   await expect(page).toHaveURL(/\/employees/);
   await expectNoHorizontalScroll(page);

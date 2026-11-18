@@ -11,7 +11,10 @@ const projectIndex = (name: string) => ({ desktop: 1, tablet: 2, mobile: 3 })[na
 const uniqueWorkDate = (projectName: string) => {
   const base = Date.UTC(2080 + projectIndex(projectName) * 4, 0, 1);
   const offsetDays = Math.floor(Date.now() / 60_000) % 1400;
-  return new Date(base + offsetDays * 86_400_000).toISOString().slice(0, 10);
+  const day = new Date(base + offsetDays * 86_400_000);
+  // A weekday, so the night minutes count as workday night (weekends are rest days in the demo schedule).
+  while (day.getUTCDay() === 0 || day.getUTCDay() === 6) day.setUTCDate(day.getUTCDate() + 1);
+  return day.toISOString().slice(0, 10);
 };
 
 const loginAsManager = async (page: Page) => {

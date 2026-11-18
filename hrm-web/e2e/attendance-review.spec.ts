@@ -69,7 +69,7 @@ test.describe('HR attendance tools (FR-ATT-14, FR-ATT-04, FR-ATT-16.1, FR-ATT-11
   test('shows the devices of an employee', async ({ page }) => {
     await page.goto('/attendance/devices');
     await pickFieldWorker(page, 'devices-employee');
-    await expect(page.getByText(/ເຄື່ອງທີ່ຜູກໄວ້|Bound devices/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^(ເຄື່ອງທີ່ຜູກໄວ້|Bound devices)$/ })).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 });
