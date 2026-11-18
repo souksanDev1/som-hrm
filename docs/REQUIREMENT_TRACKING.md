@@ -148,7 +148,7 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-ORG-02 | MUST | Chain of command is the default approval chain | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: generic approval engine (ApprovalRequest/ApprovalStep, replaces LeaveApproval) routes up the Employee.managerId chain for `approval.levels` (default 1); no manager → HR (`approval.hr_fallback`). Inbox/detail/approve/reject API, web /approvals, mobile screen. API/shared/web/mobile tests; E2E + Maestro written, not yet run. |
 | **FR-ORG-03** | | **Delegate approver** (TOR p.7) | | | | | | | |
 | FR-ORG-03.1 | MUST | Manager appoints a delegate with a date range | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: delegation API (no self, no overlap, active delegate in the same workspace, every change audited) + web account card + mobile screen; HR manages other managers' with `approval.delegate.manage`. |
-| FR-ORG-03.2 | MUST | When a manager files leave, the system prompts for a delegate, who is auto-activated for the leave period | Web/Mobile | Yes | Yes | M4 | In Progress | Partial | M4: `ensureDelegationForAbsence()` + POST /approvals/delegations/absence (API-tested). Left for M6: prompt in the leave form, call the hook on leave submit, cancel the delegation when the leave is cancelled. |
+| FR-ORG-03.2 | MUST | When a manager files leave, the system prompts for a delegate, who is auto-activated for the leave period | Web/Mobile | Yes | Yes | M4 | Implemented | Tested | M4 hook + M6 agent C: preview `needsDelegate`, delegate picker (web/mobile), `POST /leave/requests` 400 `delegate_required` and creates the delegation (`LeaveRequest.delegationId`); API-tested. Cancelling the delegation with the leave = agent D. |
 | FR-ORG-04 | MUST | If the manager is on leave with no delegate, requests auto-route to the next-level manager | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: pure `resolveApprover()` (shared, unit-tested) skips an approver on approved leave without a delegate, at submission and at each level. |
 | **FR-ORG-05** | | **Escalate stale requests** (TOR p.7) | | | | | | | |
 | FR-ORG-05.1 | SHOULD | Requests unapproved for more than X working days (**default 2**) escalate upward | Web/Mobile | Yes | Yes | M4 | Implemented | Partial | M4: daily pg-boss `approval-escalation` job; working days from the approver's work pattern + holidays; idempotent; `approval.escalationWorkingDays` (default 2). |
@@ -246,20 +246,20 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-01.2 | MUST | Block settings below the legal minimum | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-02 | MUST | Custom leave types (for example ordination, exam leave) | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-03** | | **Leave units** (TOR p.11) | | | | | | | |
-| FR-LV-03.1 | MUST | Full day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-03.2 | MUST | Half day, morning or afternoon | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-03.3 | MUST | Compute leave days from the employee's own working days (standard or override) | Web/Mobile | Yes | Yes | M6 | In Progress | Pending | M6 base: `loadLeaveDays` (schedule/roster/holidays, same source as attendance) + `countLeaveDays`; unit + API tested. |
+| FR-LV-03.1 | MUST | Full day | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: `POST /leave/requests(/preview)`; API `test/leave-requests.test.ts`, web Vitest `test/leave-requests.test.tsx`, mobile Jest `__tests__/leave.test.tsx`. |
+| FR-LV-03.2 | MUST | Half day, morning or afternoon | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: halfDay AM/PM = 0.5 (single day, type allowHalfDay); API `test/leave-requests.test.ts`, web Vitest `test/leave-requests.test.tsx`, mobile Jest `__tests__/leave.test.tsx`. |
+| FR-LV-03.3 | MUST | Compute leave days from the employee's own working days (standard or override) | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 base `loadLeaveDays`/`countLeaveDays` + agent C preview/filing: holiday, rest day, individual override, maternity calendar days API-tested. |
 | **FR-LV-04** | | **Day-counting method** (TOR p.12) | | | | | | | |
 | FR-LV-04.1 | MUST | Maternity counted in calendar days | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveType.countingMethod CALENDAR_DAYS for maternity; `countLeaveDays` unit-tested (105 days). |
 | FR-LV-04.2 | MUST | Other types count working days only | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: WORKING_DAYS default; `countLeaveDays` unit-tested. |
 | **FR-LV-05** | | **Medical certificate** (TOR p.12) | | | | | | | |
-| FR-LV-05.1 | MUST | Certificate mandatory when sick leave **> 1 day** | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-05.2 | MUST | HR configures the day threshold for a certificate | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-05.3 | MUST | Certificate may be attached afterwards within **3 days** | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-05.1 | MUST | Certificate mandatory when sick leave **> 1 day** | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: `certificateRequired` (type.requiresAttachment, days > threshold) in preview/filing; API-tested. |
+| FR-LV-05.2 | MUST | HR configures the day threshold for a certificate | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | Parameter `leave.certificateThresholdDays` (default 1) read at filing; editable in /settings/parameters. |
+| FR-LV-05.3 | MUST | Certificate may be attached afterwards within **3 days** | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: due = 3rd working day after the leave (`leave.certificateGraceDays`, Q12); mandatory at filing only once overdue; `PUT /leave/requests/:id/certificate`; job `leave-certificate-due` (due + overdue reminders, deduped); API-tested. |
 | **FR-LV-06** | | **Eligibility check before submit** (TOR p.12) | | | | | | | |
-| FR-LV-06.1 | MUST | Check tenure | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` (minServiceDays + pay types, Q10/Q15) unit-tested; API wiring pending. |
-| FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` per leave year vs ledger balance; unit-tested; API wiring pending. |
-| FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` gender rule unit-tested; API wiring pending. |
+| FR-LV-06.1 | MUST | Check tenure | Backend | Yes | Yes | M6 | Implemented | Tested | M6 C: preview/filing 400 `leave_min_service`; API-tested. |
+| FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | Implemented | Tested | M6 C: ledger balance minus other PENDING requests per year; per-event quota per request (Q11); API-tested; shown in web/mobile forms. |
+| FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | Implemented | Tested | M6 C: 400 `leave_gender_ineligible`; API-tested. |
 | **FR-LV-07** | | **Leave balance ledger** (TOR p.12) | | | | | | | |
 | FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. |
 | FR-LV-07.2 | MUST | HR adjusts the balance with a reason | Web | Yes | Yes | M6 | Not Started | Pending |  |
@@ -268,11 +268,11 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | FR-LV-08.1 | SHOULD | Carry-over policy for unused days into next year | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-08.2 | SHOULD | Expiry date for carried-over days | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-09** | | **Submit leave** (TOR p.12) | | | | | | | |
-| FR-LV-09.1 | MUST | Via mobile app | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-09.2 | MUST | Via web | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-09.1 | MUST | Via mobile app | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: mobile `/leave`, `/leave/new`, `/leave/[id]` (home `open-leave`); Jest. Maestro pending (lead). |
+| FR-LV-09.2 | MUST | Via web | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: web `/leave`, `/leave/new`, `/leave/[id]`; Vitest. Playwright pending (lead). |
 | **FR-LV-10** | | **Proxy leave submission (for staff without smartphones)** (TOR p.12) | | | | | | | |
-| FR-LV-10.1 | MUST | HR files on behalf | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-10.2 | MUST | Manager files on behalf of a team member | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-10.1 | MUST | HR files on behalf | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: `employeeId` + `leave.file_on_behalf` -> filedAs HR, audited; web "file for" picker; API-tested. |
+| FR-LV-10.2 | MUST | Manager files on behalf of a team member | Web/Mobile | Yes | Yes | M6 | Implemented | Tested | M6 C: manager for their reporting tree -> filedAs MANAGER (others 403); web picker; API-tested. Mobile proxy filing not built (web only). |
 | **FR-LV-11** | | **Approval chain** (TOR p.13) | | | | | | | |
 | FR-LV-11.1 | MUST | 1–2 approval levels per the org chart | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-11.2 | MUST | Apply delegate rules FR-ORG-03 to FR-ORG-05 | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |

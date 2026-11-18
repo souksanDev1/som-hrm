@@ -13,9 +13,9 @@ export type LinkSurface = 'web' | 'mobile';
 export const NOTIFICATIONS_ROUTE = '/notifications';
 
 /** Screens of the mobile app (Expo Router paths) a notification may open. */
-export const MOBILE_LINK_ROUTES = ['/home', '/org', '/notifications', '/profile', '/holidays', '/approvals', '/checkin'] as const;
+export const MOBILE_LINK_ROUTES = ['/home', '/org', '/notifications', '/profile', '/holidays', '/approvals', '/checkin', '/leave'] as const;
 /** A fixed screen, or one approval request's detail screen. */
-export type MobileLinkRoute = (typeof MOBILE_LINK_ROUTES)[number] | `/approvals/${string}`;
+export type MobileLinkRoute = (typeof MOBILE_LINK_ROUTES)[number] | `/approvals/${string}` | `/leave/${string}`;
 
 interface LinkRule {
   /** Matched against the whole stored link. */
@@ -50,6 +50,9 @@ const LINK_RULES: readonly LinkRule[] = [
   { pattern: section('/attendance'), web: KEEP, mobile: null },
   // The check-in screen (offline-queue alert, FR-NOTI-03.7) exists only on mobile.
   { pattern: /^\/checkin$/, web: null, mobile: '/checkin' },
+  // Own leave (M6, FR-LV): one request (`/leave/:id`, e.g. certificate due) opens its detail on both surfaces.
+  { pattern: /^\/leave\/[A-Za-z0-9_-]+$/, web: KEEP, mobile: KEEP },
+  { pattern: section('/leave'), web: KEEP, mobile: '/leave' },
 ];
 
 /** Only same-app absolute paths: no scheme, no protocol-relative `//host`, no backslashes or dot segments. */

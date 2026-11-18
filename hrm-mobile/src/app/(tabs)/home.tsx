@@ -19,6 +19,7 @@ export default function HomeScreen() {
           <Button title={t('nav.org')} variant="secondary" onPress={() => router.push('/org')} />
           <Button title={t('nav.approvals')} variant="secondary" onPress={() => router.push('/approvals')} testID="open-approvals" />
           <Button title={t('otx.mine.title')} variant="secondary" onPress={() => router.push('/overtime')} testID="open-overtime" />
+          <Button title={t('nav.leave')} variant="secondary" onPress={() => router.push('/leave')} testID="open-leave" />
         </View>
       </Card>
     </Screen>

@@ -10,10 +10,12 @@ import { runProbationEndingAlerts } from './handlers/probation-ending';
 import { runOvertimeActuals } from './handlers/overtime-actuals';
 import type { JobRunner } from './runner';
 import { runAttendanceDaily } from './handlers/attendance-daily';
+import { runLeaveCertificateDue } from './handlers/leave-certificate-due';
 
 export { runAccountDeactivation, runApprovalEscalation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults, runProbationEndingAlerts };
 export { runAttendanceDaily };
 export { runOvertimeActuals };
+export { runLeaveCertificateDue };
 
 /** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
 export interface WorkspaceJob {
@@ -29,6 +31,7 @@ export const JOBS = {
   approvalEscalation: 'approval-escalation',
   attendanceDaily: 'attendance-daily',
   overtimeActuals: 'overtime-actuals',
+  leaveCertificateDue: 'leave-certificate-due',
 } as const;
 
 /** Workspaces that should receive scheduled work (suspended companies are skipped). */
@@ -87,4 +90,6 @@ export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts,
   await perWorkspace(JOBS.attendanceDaily, '*/15 * * * *', (ws) => runAttendanceDaily(db, ws));
   // Hourly: approved planned OT gets its actual period from final punches (FR-ATT-21).
   await perWorkspace(JOBS.overtimeActuals, '25 * * * *', (ws) => runOvertimeActuals(db, ws));
+  // Morning: leave missing its medical certificate — reminder while due, once more when overdue (FR-LV-05.3).
+  await perWorkspace(JOBS.leaveCertificateDue, '10 7 * * *', (ws) => runLeaveCertificateDue(db, ws));
 };
