@@ -53,6 +53,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // M6 agent B — leave type settings (FR-LV-01/02) and the per-employee leave ledger with HR adjustments (FR-LV-07).
   { href: '/settings/leave-types', labelKey: 'lvp.types.title', icon: 'beach_access', permission: PERMISSIONS.LEAVE_MANAGE },
   { href: '/leave/ledger', labelKey: 'lvp.ledger.title', icon: 'account_balance_wallet', permission: PERMISSIONS.LEAVE_MANAGE },
+  // M6 agent E — leave calendar (FR-LV-13): every signed-in user; visibility is decided by the API.
+  { href: '/leave/calendar', labelKey: 'lcal.title', icon: 'event_available' },
 ];
 
 /** The most specific nav href matching `pathname` (so /settings/parameters does not also highlight /settings). */
