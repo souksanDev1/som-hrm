@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { APPROVAL_CAPACITIES, APPROVAL_DECISIONS, APPROVAL_SUBJECT_TYPES, REQUEST_STATUSES } from '../enums';
+import { APPROVAL_CAPACITIES, APPROVAL_DECISIONS, APPROVAL_SUBJECT_TYPES, HALF_DAYS, REQUEST_STATUSES } from '../enums';
 import { idSchema, isoDateSchema, paginationQuerySchema } from './common';
 
 const noteSchema = z.string().trim().max(500);
@@ -53,6 +53,24 @@ export type ApprovalInboxItem = z.infer<typeof approvalInboxItemSchema>;
 export const approvalInboxQuerySchema = paginationQuerySchema.omit({ search: true });
 export type ApprovalInboxQuery = z.infer<typeof approvalInboxQuerySchema>;
 
+/**
+ * A team member (same manager or same department as the requester) with leave overlapping the requested dates
+ * (FR-LV-13.10), shown to approvers of LEAVE / LEAVE_CANCEL requests. The leave type is not disclosed.
+ */
+export const approvalTeamLeaveSchema = z.object({
+  requestId: z.string(),
+  employeeId: z.string(),
+  employeeCode: z.string(),
+  name: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
+  halfDay: z.enum(HALF_DAYS),
+  days: z.number(),
+  /** APPROVED or PENDING. */
+  status: z.enum(REQUEST_STATUSES),
+});
+export type ApprovalTeamLeave = z.infer<typeof approvalTeamLeaveSchema>;
+
 export const approvalRequestDetailSchema = z.object({
   id: z.string(),
   subjectType: z.enum(APPROVAL_SUBJECT_TYPES),
@@ -69,6 +87,8 @@ export const approvalRequestDetailSchema = z.object({
   steps: z.array(approvalStepSchema),
   /** Capacity the caller may decide the pending step in; null when they may not. */
   myCapacity: z.enum(APPROVAL_CAPACITIES).nullable(),
+  /** Leave subjects only, for viewers other than the requester (FR-LV-13.10). Oldest start first. */
+  teamOnLeave: z.array(approvalTeamLeaveSchema).optional(),
 });
 export type ApprovalRequestDetail = z.infer<typeof approvalRequestDetailSchema>;
 

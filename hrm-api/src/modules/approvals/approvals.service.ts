@@ -181,6 +181,45 @@ export const submitApproval = async (tx: Tx, registry: ApprovalHandlerRegistry, 
   return request;
 };
 
+export interface WithdrawApprovalInput {
+  workspaceId: string;
+  subjectType: ApprovalSubjectType;
+  subjectId: string;
+  /** Who withdrew it (the requester, the filer or HR); null for the system. */
+  actorUserId: string | null;
+  note?: string | null;
+  ip?: string;
+  now?: Date;
+}
+
+/**
+ * Withdraw the PENDING approval of a subject inside the caller's transaction (e.g. leave cancelled before a
+ * decision, FR-LV-12.1): the request becomes CANCELLED and its pending step is closed with who withdrew it, so the
+ * history stays traceable. No handler hook runs — the subject module updates its own row. Returns null when the
+ * subject has no approval request; 409 `approval_already_decided` when it is no longer pending.
+ */
+export const withdrawApproval = async (tx: Tx, registry: ApprovalHandlerRegistry, input: WithdrawApprovalInput) => {
+  handlerFor(registry, input.subjectType);
+  const req = await repo.findBySubject(tx, input.workspaceId, input.subjectType, input.subjectId);
+  if (!req) return null;
+  const now = input.now ?? new Date();
+  if (req.status !== 'PENDING' || !(await repo.updatePendingRequest(tx, req.id, { status: 'CANCELLED', decidedAt: now }))) {
+    throw conflict('approval_already_decided');
+  }
+  const note = input.note || null;
+  await repo.closePendingSteps(tx, req.id, { decidedByUserId: input.actorUserId, decidedAt: now, note });
+  await auditRepository.create(tx, {
+    workspaceId: input.workspaceId,
+    actorUserId: input.actorUserId,
+    action: 'approval.withdraw',
+    entity: 'ApprovalRequest',
+    entityId: req.id,
+    meta: { subjectType: input.subjectType, subjectId: input.subjectId, stepIds: req.steps.filter((s) => s.decision === 'PENDING').map((s) => s.id), note },
+    ip: input.ip,
+  });
+  return req;
+};
+
 export interface EscalationResult {
   escalated: number;
   notifications: number;
@@ -307,6 +346,7 @@ export const createApprovalsService = (db: Db, registry: ApprovalHandlerRegistry
   const toDetail = async (tx: Tx, ctx: AuthContext, req: ApprovalRequestRow, me: Caller): Promise<ApprovalRequestDetail> => {
     const locale = toLocale(await repo.userLocale(tx, ctx.userId));
     const summary = (await summarize(tx, ctx.workspaceId, registry, [req], locale)).get(req.id)!;
+    const handler = handlerFor(registry, req.subjectType);
     const ids = [...new Set(req.steps.flatMap((s) => [s.approverUserId, s.delegateUserId, s.decidedByUserId]).filter((v): v is string => !!v))];
     const names = await parametersRepository.userNames(tx, ids);
     const party = (id: string | null) => (id ? { userId: id, name: names.get(id) ?? '—' } : null);
@@ -317,7 +357,7 @@ export const createApprovalsService = (db: Db, registry: ApprovalHandlerRegistry
       status: req.status,
       requester: { employeeId: req.requester.id, employeeCode: req.requester.employeeCode, name: fullName(req.requester) },
       summary,
-      link: handlerFor(registry, req.subjectType).link(req),
+      link: handler.link(req),
       currentStep: req.currentStep,
       requiredLevels: req.requiredLevels,
       submittedAt: req.createdAt.toISOString(),
@@ -335,6 +375,7 @@ export const createApprovalsService = (db: Db, registry: ApprovalHandlerRegistry
         createdAt: s.createdAt.toISOString(),
       })),
       myCapacity: capacityOn(req, me),
+      ...(handler.teamOnLeave && req.requesterEmployeeId !== me.employeeId ? { teamOnLeave: await handler.teamOnLeave(tx, ctx.workspaceId, req.subjectId) } : {}),
     };
   };
 

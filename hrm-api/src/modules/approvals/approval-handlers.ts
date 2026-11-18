@@ -1,4 +1,4 @@
-import type { ApprovalSubjectType, ApprovalSummary, Locale } from '@hrm/shared';
+import type { ApprovalSubjectType, ApprovalSummary, ApprovalTeamLeave, Locale } from '@hrm/shared';
 import type { Tx } from '../../db/client';
 
 /** What a subject module learns when its request is decided (inside the deciding transaction). */
@@ -27,6 +27,11 @@ export interface ApprovalSubjectHandler {
   summarize(tx: Tx, workspaceId: string, subjectIds: string[], locale: Locale): Promise<Map<string, ApprovalSummary>>;
   onApproved(tx: Tx, outcome: ApprovalOutcome): Promise<void>;
   onRejected(tx: Tx, outcome: ApprovalOutcome): Promise<void>;
+  /**
+   * Optional context for approvers (FR-LV-13.10): team members on leave on overlapping dates. When present, the
+   * request detail carries it for every viewer other than the requester.
+   */
+  teamOnLeave?(tx: Tx, workspaceId: string, subjectId: string): Promise<ApprovalTeamLeave[]>;
   /** In-app route of the request, used by notifications (FR-NOTI-04.2) and the inbox. */
   link(request: { id: string; subjectId: string }): string;
 }

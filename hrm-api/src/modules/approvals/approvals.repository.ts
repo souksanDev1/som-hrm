@@ -96,6 +96,17 @@ export const approvalsRepository = {
 
   findRequest: (tx: Tx, workspaceId: string, id: string) => tx.approvalRequest.findFirst({ where: { id, workspaceId }, include: requestInclude }),
 
+  findBySubject: (tx: Tx, workspaceId: string, subjectType: ApprovalSubjectType, subjectId: string) =>
+    tx.approvalRequest.findFirst({ where: { workspaceId, subjectType, subjectId }, include: requestInclude }),
+
+  /**
+   * Close the still-pending steps of a withdrawn request. ApprovalDecision has no WITHDRAWN value, so the decision
+   * stays PENDING while `decidedBy` / `decidedAt` / `note` record who withdrew it; the request is CANCELLED, so the
+   * step can no longer be decided, escalated or listed in an inbox.
+   */
+  closePendingSteps: (tx: Tx, requestId: string, data: { decidedByUserId: string | null; decidedAt: Date; note: string | null }) =>
+    tx.approvalStep.updateMany({ where: { requestId, decision: 'PENDING', decidedAt: null }, data }),
+
   createStep: (
     tx: Tx,
     data: {
@@ -122,7 +133,7 @@ export const approvalsRepository = {
   ) => (await tx.approvalStep.updateMany({ where: { id, decision: 'PENDING' }, data })).count === 1,
 
   /** Move a pending request on (next level) or close it; false when it is no longer pending. */
-  updatePendingRequest: async (tx: Tx, id: string, data: { status?: 'APPROVED' | 'REJECTED'; currentStep?: number; decidedAt?: Date }) =>
+  updatePendingRequest: async (tx: Tx, id: string, data: { status?: 'APPROVED' | 'REJECTED' | 'CANCELLED'; currentStep?: number; decidedAt?: Date }) =>
     (await tx.approvalRequest.updateMany({ where: { id, status: 'PENDING' }, data })).count === 1,
 
   /** Pending steps the user may decide: own, delegated to them, or (HR) unassigned. Never their own requests. */

@@ -59,6 +59,8 @@ import { leaveRoutes } from './modules/leave/leave.routes';
 import { createLeavePolicyService, type LeavePolicyService } from './modules/leave/leave-policy.service';
 import { createLeaveLedgerService, type LeaveLedgerService } from './modules/leave/leave-ledger.service';
 import { leavePolicyRoutes } from './modules/leave/leave-policy.routes';
+import { leaveCancelRoutes } from './modules/leave/leave-cancel.routes';
+import { createLeaveCancelService, type LeaveCancelService } from './modules/leave/leave-cancel.service';
 
 export interface Services {
   auth: AuthService;
@@ -84,6 +86,7 @@ export interface Services {
   leave: LeaveService;
   leavePolicy: LeavePolicyService;
   leaveLedger: LeaveLedgerService;
+  leaveCancel: LeaveCancelService;
 }
 
 declare module 'fastify' {
@@ -179,6 +182,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
     leave: createLeaveService(db),
     leavePolicy: createLeavePolicyService(db),
     leaveLedger: createLeaveLedgerService(db),
+    leaveCancel: createLeaveCancelService(db, approvalRegistry ?? defaultApprovalRegistry),
   });
 
   app.get('/health', { schema: { hide: true } }, async (req, reply) => {
@@ -216,6 +220,7 @@ export const buildApp = async ({ env, db, logger = true, sms, storage, approvalR
         await secured.register(kioskRoutes);
         await secured.register(leaveRoutes);
         await secured.register(leavePolicyRoutes);
+        await secured.register(leaveCancelRoutes);
       });
       // Kiosk tablets (FR-ATT-03): own `Authorization: Kiosk <token>` scope, no user JWT.
       await api.register(kioskDeviceRoutes);
