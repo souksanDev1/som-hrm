@@ -178,7 +178,18 @@ export function OffsiteReasonSheet({ visible, onSubmit, onCancel }: { visible: b
 }
 
 /** Front-camera selfie for `attendance.selfieRequired` (FR-ATT-12); returns the local photo URI. */
-export function SelfieCapture({ visible, onCaptured, onCancel }: { visible: boolean; onCaptured(uri: string): void; onCancel(): void }) {
+/** Full-screen camera; front-facing for selfies, `facing="back"` to photograph a document (leave certificate). */
+export function SelfieCapture({
+  visible,
+  onCaptured,
+  onCancel,
+  facing = 'front',
+}: {
+  visible: boolean;
+  onCaptured(uri: string): void;
+  onCancel(): void;
+  facing?: 'front' | 'back';
+}) {
   const t = useT();
   const [permission, requestPermission] = useCameraPermissions();
   const camera = useRef<CameraView>(null);
@@ -196,7 +207,7 @@ export function SelfieCapture({ visible, onCaptured, onCancel }: { visible: bool
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel}>
       <View className="flex-1 bg-black" testID="selfie-capture">
         {permission?.granted ? (
-          <CameraView ref={camera} style={{ flex: 1 }} facing="front" />
+          <CameraView ref={camera} style={{ flex: 1 }} facing={facing} />
         ) : (
           <View className="flex-1 items-center justify-center gap-4 px-6">
             <Text className="text-center text-base text-white">{t('checkin.selfie.permission')}</Text>

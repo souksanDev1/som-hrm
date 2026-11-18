@@ -39,3 +39,4 @@ export * from './schemas/leave';
 export * from './schemas/leave-policy';
 export * from './domain/leave-calendar';
 export * from './schemas/leave-calendar';
+export * from './schemas/leave-requests';

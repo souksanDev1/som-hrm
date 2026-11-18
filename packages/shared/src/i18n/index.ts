@@ -17,6 +17,7 @@ import { leaveEn, leaveLo } from './areas/leave';
 import { leavePolicyEn, leavePolicyLo } from './areas/leave-policy';
 import { leaveApprovalEn, leaveApprovalLo } from './areas/leave-approval';
 import { leaveCalendarEn, leaveCalendarLo } from './areas/leave-calendar';
+import { leaveRequestsEn, leaveRequestsLo } from './areas/leave-requests';
 
 /**
  * Minimal typed i18n dictionary shared by web + mobile.
@@ -168,7 +169,7 @@ const coreLo = {
  * Per-area dictionaries live in ./areas/*.ts (each exports `<area>Lo` + `<area>En` with identical keys)
  * so that features can add strings without editing this file.
  */
-const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo, ...checkinLo, ...kioskLo, ...leaveLo, ...leavePolicyLo, ...leaveApprovalLo, ...leaveCalendarLo } as const;
+const lo = { ...coreLo, ...authLo, ...platformLo, ...infraLo, ...employeesLo, ...orgLo, ...schedulesLo, ...notificationsLo, ...approvalsLo, ...attendanceLo, ...shiftsLo, ...overtimeLo, ...scanImportLo, ...attendanceRequestsLo, ...checkinLo, ...kioskLo, ...leaveLo, ...leavePolicyLo, ...leaveApprovalLo, ...leaveCalendarLo, ...leaveRequestsLo } as const;
 
 export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
@@ -315,7 +316,7 @@ const coreEn: Record<keyof typeof coreLo, string> = {
   'error.unknown': 'Unknown error',
 };
 
-const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn, ...checkinEn, ...kioskEn, ...leaveEn, ...leavePolicyEn, ...leaveApprovalEn, ...leaveCalendarEn };
+const en: Dictionary = { ...coreEn, ...authEn, ...platformEn, ...infraEn, ...employeesEn, ...orgEn, ...schedulesEn, ...notificationsEn, ...approvalsEn, ...attendanceEn, ...shiftsEn, ...overtimeEn, ...scanImportEn, ...attendanceRequestsEn, ...checkinEn, ...kioskEn, ...leaveEn, ...leavePolicyEn, ...leaveApprovalEn, ...leaveCalendarEn, ...leaveRequestsEn };
 
 export type Locale = 'lo' | 'en';
 export const LOCALES: readonly Locale[] = ['lo', 'en'];

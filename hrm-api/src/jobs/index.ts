@@ -12,11 +12,13 @@ import type { JobRunner } from './runner';
 import { runAttendanceDaily } from './handlers/attendance-daily';
 import { runLeaveAccrual } from './handlers/leave-accrual';
 import { runLeaveCarryOver } from './handlers/leave-carry-over';
+import { runLeaveCertificateDue } from './handlers/leave-certificate-due';
 
 export { runAccountDeactivation, runApprovalEscalation, runDocumentExpiryAlerts, deliverPendingNotifications, runHolidayDefaults, runProbationEndingAlerts };
 export { runAttendanceDaily };
 export { runOvertimeActuals };
 export { runLeaveAccrual, runLeaveCarryOver };
+export { runLeaveCertificateDue };
 
 /** Payload of every tenant-scoped job: handlers run inside `db.tenant(workspaceId)`. */
 export interface WorkspaceJob {
@@ -34,6 +36,7 @@ export const JOBS = {
   overtimeActuals: 'overtime-actuals',
   leaveAccrual: 'leave-accrual',
   leaveCarryOver: 'leave-carry-over',
+  leaveCertificateDue: 'leave-certificate-due',
 } as const;
 
 /** Workspaces that should receive scheduled work (suspended companies are skipped). */
@@ -96,4 +99,6 @@ export const registerJobs = async ({ db, runner, push, sms, deliveryMaxAttempts,
   await perWorkspace(JOBS.leaveAccrual, '10 0 * * *', (ws) => runLeaveAccrual(db, ws));
   // Daily: annual-leave carry-over from 1 January and its expiry (SHOULD FR-LV-08; off while leave.carryOverMaxDays = 0).
   await perWorkspace(JOBS.leaveCarryOver, '20 0 * * *', (ws) => runLeaveCarryOver(db, ws));
+  // Morning: leave missing its medical certificate — reminder while due, once more when overdue (FR-LV-05.3).
+  await perWorkspace(JOBS.leaveCertificateDue, '10 7 * * *', (ws) => runLeaveCertificateDue(db, ws));
 };
