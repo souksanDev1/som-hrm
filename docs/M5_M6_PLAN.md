@@ -130,7 +130,12 @@ pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm e2e
 | Q7 | ຫຼັງໝົດກະ **2 ຊມ** (`attendance.missingPunchAfterMinutes` = 120) |
 | Q8 | Selfie ເປີດ/ປິດ **ຕໍ່ workspace**; liveness (FR-ATT-13) **ເລື່ອນ** (Deferred) |
 | Q9 | 1,000 check-in ພາຍໃນ **60 ວິ, p95 < 500 ms** (local) |
-| Q10–Q15 | ຖາມຕອນເລີ່ມ M6 |
+| Q10 | (2026-11-18) **ປີປະຕິທິນ**; ສິດລາພັກເກີດຫຼັງຄົບ 1 ປີ; **ບໍ່ pro-rata** |
+| Q11 | ລາກິດທຸລະ/ແຕ່ງງານ/ເສຍຊີວິດ 3 ມື້ **ຕໍ່ຄັ້ງ** (ບໍ່ມີ balance ປະຈຳປີ; ledger ບັນທຶກ USAGE ເພື່ອ audit) |
+| Q12 | ໃບແພດ ເກນ > 1 ມື້ (`leave.certificateThresholdDays` = 1); ແນບພາຍຫຼັງພາຍໃນ **3 ວັນເຮັດວຽກ** |
+| Q13 | Carry-over **ປິດ (0)** ເປັນ default; ໝົດອາຍຸ **31/03** ປີຖັດໄປ |
+| Q14 | ເຄິ່ງມື້ = **0.5 ມື້ສະເໝີ** |
+| Q15 | ລາປ່ວຍຕ້ອງເຮັດວຽກ > 90 ມື້ **ສະເພາະ pay type DAILY/HOURLY** |
 
 ---
 

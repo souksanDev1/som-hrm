@@ -120,9 +120,42 @@ export const LeaveCategory = {
   MARRIAGE: 'MARRIAGE',
   BEREAVEMENT: 'BEREAVEMENT',
   UNPAID: 'UNPAID',
+  /** HR-defined custom type (FR-LV-02); no legal minimum. */
+  OTHER: 'OTHER',
 } as const;
 export type LeaveCategory = (typeof LeaveCategory)[keyof typeof LeaveCategory];
 export const LEAVE_CATEGORIES = values(LeaveCategory);
+
+/** How the days of a leave request are counted (FR-LV-04). */
+export const LeaveCountingMethod = { WORKING_DAYS: 'WORKING_DAYS', CALENDAR_DAYS: 'CALENDAR_DAYS' } as const;
+export type LeaveCountingMethod = (typeof LeaveCountingMethod)[keyof typeof LeaveCountingMethod];
+export const LEAVE_COUNTING_METHODS = values(LeaveCountingMethod);
+
+/** What a leave type's day quota limits: a yearly balance, each request, or nothing (unpaid). */
+export const LeaveQuotaPeriod = { YEARLY: 'YEARLY', PER_EVENT: 'PER_EVENT', UNLIMITED: 'UNLIMITED' } as const;
+export type LeaveQuotaPeriod = (typeof LeaveQuotaPeriod)[keyof typeof LeaveQuotaPeriod];
+export const LEAVE_QUOTA_PERIODS = values(LeaveQuotaPeriod);
+
+/** Kind of leave-balance movement (FR-LV-07). */
+export const LeaveLedgerKind = {
+  ENTITLEMENT: 'ENTITLEMENT',
+  USAGE: 'USAGE',
+  CANCEL: 'CANCEL',
+  ADJUST: 'ADJUST',
+  CARRY: 'CARRY',
+  EXPIRE: 'EXPIRE',
+} as const;
+export type LeaveLedgerKind = (typeof LeaveLedgerKind)[keyof typeof LeaveLedgerKind];
+export const LEAVE_LEDGER_KINDS = values(LeaveLedgerKind);
+
+/** Half day of a single-day leave request (FR-LV-03.2). */
+export const HalfDay = { NONE: 'NONE', AM: 'AM', PM: 'PM' } as const;
+export type HalfDay = (typeof HalfDay)[keyof typeof HalfDay];
+export const HALF_DAYS = values(HalfDay);
+
+/** In what capacity a leave request was filed (FR-LV-10). */
+export const LeaveFiledAs = { SELF: 'SELF', HR: 'HR', MANAGER: 'MANAGER' } as const;
+export type LeaveFiledAs = (typeof LeaveFiledAs)[keyof typeof LeaveFiledAs];
 
 export const RequestStatus = {
   PENDING: 'PENDING',
@@ -142,6 +175,8 @@ export const ApprovalSubjectType = {
   OFFSITE_CHECKIN: 'OFFSITE_CHECKIN',
   /** Move the device binding to a new phone (FR-ATT-11.3). */
   DEVICE_CHANGE: 'DEVICE_CHANGE',
+  /** Cancellation of an approved leave (FR-LV-12.2). */
+  LEAVE_CANCEL: 'LEAVE_CANCEL',
 } as const;
 export type ApprovalSubjectType = (typeof ApprovalSubjectType)[keyof typeof ApprovalSubjectType];
 export const APPROVAL_SUBJECT_TYPES = values(ApprovalSubjectType);
@@ -184,6 +219,8 @@ export const NotificationType = {
   MISSING_PUNCH: 'MISSING_PUNCH',
   PROBATION_ENDING: 'PROBATION_ENDING',
   OFFLINE_UNSYNCED: 'OFFLINE_UNSYNCED',
+  /** A medical certificate is still missing (FR-LV-05.3). */
+  LEAVE_CERTIFICATE_DUE: 'LEAVE_CERTIFICATE_DUE',
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
 export const NOTIFICATION_TYPES = values(NotificationType);

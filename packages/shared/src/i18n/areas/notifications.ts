@@ -31,6 +31,7 @@ export const notificationsLo = {
   'notif.sms.MISSING_PUNCH': 'SOM HRM: {body}',
   'notif.sms.SUSPICIOUS_ATTENDANCE': 'SOM HRM: {title} — {body}',
   'notif.sms.OFFLINE_UNSYNCED': 'SOM HRM: {body}',
+  'notif.sms.LEAVE_CERTIFICATE_DUE': 'SOM HRM: {body}',
   'notif.sms.SYSTEM': 'SOM HRM: {title} — {body}',
 } as const;
 
@@ -58,5 +59,6 @@ export const notificationsEn: Record<keyof typeof notificationsLo, string> = {
   'notif.sms.MISSING_PUNCH': 'SOM HRM: {body}',
   'notif.sms.SUSPICIOUS_ATTENDANCE': 'SOM HRM: {title} — {body}',
   'notif.sms.OFFLINE_UNSYNCED': 'SOM HRM: {body}',
+  'notif.sms.LEAVE_CERTIFICATE_DUE': 'SOM HRM: {body}',
   'notif.sms.SYSTEM': 'SOM HRM: {title} — {body}',
 };

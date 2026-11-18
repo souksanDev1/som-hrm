@@ -248,20 +248,20 @@ maintained by hand: update **Status** / **Test** in the same commit that impleme
 | **FR-LV-03** | | **Leave units** (TOR p.11) | | | | | | | |
 | FR-LV-03.1 | MUST | Full day | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-03.2 | MUST | Half day, morning or afternoon | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-03.3 | MUST | Compute leave days from the employee's own working days (standard or override) | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-03.3 | MUST | Compute leave days from the employee's own working days (standard or override) | Web/Mobile | Yes | Yes | M6 | In Progress | Pending | M6 base: `loadLeaveDays` (schedule/roster/holidays, same source as attendance) + `countLeaveDays`; unit + API tested. |
 | **FR-LV-04** | | **Day-counting method** (TOR p.12) | | | | | | | |
-| FR-LV-04.1 | MUST | Maternity counted in calendar days | Backend | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-04.2 | MUST | Other types count working days only | Backend | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-04.1 | MUST | Maternity counted in calendar days | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveType.countingMethod CALENDAR_DAYS for maternity; `countLeaveDays` unit-tested (105 days). |
+| FR-LV-04.2 | MUST | Other types count working days only | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: WORKING_DAYS default; `countLeaveDays` unit-tested. |
 | **FR-LV-05** | | **Medical certificate** (TOR p.12) | | | | | | | |
 | FR-LV-05.1 | MUST | Certificate mandatory when sick leave **> 1 day** | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-05.2 | MUST | HR configures the day threshold for a certificate | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-05.3 | MUST | Certificate may be attached afterwards within **3 days** | Web/Mobile | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-06** | | **Eligibility check before submit** (TOR p.12) | | | | | | | |
-| FR-LV-06.1 | MUST | Check tenure | Backend | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | Not Started | Pending |  |
-| FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-06.1 | MUST | Check tenure | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` (minServiceDays + pay types, Q10/Q15) unit-tested; API wiring pending. |
+| FR-LV-06.2 | MUST | Check remaining balance | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` per leave year vs ledger balance; unit-tested; API wiring pending. |
+| FR-LV-06.3 | MUST | Check gender for maternity leave | Backend | Yes | Yes | M6 | In Progress | Pending | M6 base: `checkLeaveEligibility` gender rule unit-tested; API wiring pending. |
 | **FR-LV-07** | | **Leave balance ledger** (TOR p.12) | | | | | | | |
-| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | Not Started | Pending |  |
+| FR-LV-07.1 | MUST | Record every movement: accrual/grant, use, cancel | Web | Yes | Yes | M6 | In Progress | Pending | M6 base: LeaveLedgerEntry (A14) replaces LeaveBalance; `leaveLedger.post/postUsage/postCancel` API-tested; migration tested. |
 | FR-LV-07.2 | MUST | HR adjusts the balance with a reason | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | FR-LV-07.3 | MUST | View per-person ledger for audit | Web | Yes | Yes | M6 | Not Started | Pending |  |
 | **FR-LV-08** | | **Annual-leave carry-over** (TOR p.12) | | | | | | | |

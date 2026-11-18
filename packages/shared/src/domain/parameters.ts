@@ -190,6 +190,31 @@ export const PARAMETERS = {
     type: 'int', scope: 'workspace', labelKey: 'param.ot.nightEnd', defaultValue: 5 * 60, min: 0, max: 1439, unit: 'timeOfDay',
     source: 'Lao Labour Law 2013 night work 22:00–05:00; confirmed by the client 2026-11-17 (Q3)',
   },
+  // ── Leave (M6) ──
+  /** Sick leave longer than this many days needs a medical certificate (FR-LV-05.1/05.2: "> 1 day", HR sets it). */
+  'leave.certificateThresholdDays': {
+    type: 'int', scope: 'workspace', labelKey: 'param.leave.certificateThresholdDays', defaultValue: 1, min: 0, max: 30, unit: 'days',
+    source: 'TOR FR-LV-05.1 (> 1 day); confirmed by the client 2026-11-18 (Q12)',
+    editPermission: PERMISSIONS.LEAVE_MANAGE,
+  },
+  /** Working days after the leave ends within which a missing certificate may still be attached (FR-LV-05.3). */
+  'leave.certificateGraceDays': {
+    type: 'int', scope: 'workspace', labelKey: 'param.leave.certificateGraceDays', defaultValue: 3, min: 0, max: 30, unit: 'days',
+    source: 'TOR FR-LV-05.3 (3 days); working days confirmed by the client 2026-11-18 (Q12)',
+    editPermission: PERMISSIONS.LEAVE_MANAGE,
+  },
+  /** Most unused annual-leave days carried into the next year; 0 = no carry-over (FR-LV-08.1). */
+  'leave.carryOverMaxDays': {
+    type: 'int', scope: 'workspace', labelKey: 'param.leave.carryOverMaxDays', defaultValue: 0, min: 0, max: 30, unit: 'days',
+    source: 'TOR FR-LV-08.1; off by default, confirmed by the client 2026-11-18 (Q13)',
+    editPermission: PERMISSIONS.LEAVE_MANAGE,
+  },
+  /** Carried-over days not used by the end of this month of the next year expire (FR-LV-08.2; 3 = 31 March). */
+  'leave.carryOverExpiryMonth': {
+    type: 'int', scope: 'workspace', labelKey: 'param.leave.carryOverExpiryMonth', defaultValue: 3, min: 1, max: 12, unit: 'count',
+    source: 'TOR FR-LV-08.2; 31 March confirmed by the client 2026-11-18 (Q13)',
+    editPermission: PERMISSIONS.LEAVE_MANAGE,
+  },
 } as const satisfies Record<string, ParameterDef>;
 
 export type ParameterKey = keyof typeof PARAMETERS;

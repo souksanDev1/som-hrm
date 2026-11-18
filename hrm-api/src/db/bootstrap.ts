@@ -85,7 +85,7 @@ export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput)
     },
   });
 
-  for (const t of DEFAULT_LEAVE_TYPES) {
+  for (const [i, t] of DEFAULT_LEAVE_TYPES.entries()) {
     await tx.leaveType.create({
       data: {
         workspaceId: ws.id,
@@ -97,12 +97,17 @@ export const bootstrapWorkspace = async (tx: Tx, input: BootstrapWorkspaceInput)
         requiresAttachment: t.requiresAttachment,
         allowHalfDay: t.allowHalfDay,
         gender: t.gender ?? null,
+        countingMethod: t.countingMethod,
+        quotaPeriod: t.quotaPeriod,
+        sortOrder: i + 1,
         policy: {
           create: {
             workspaceId: ws.id,
             daysPerYear: t.daysPerYear,
-            hazardousDays: t.code === 'ANNUAL' ? 18 : null,
+            hazardousDays: t.hazardousDays ?? null,
+            multipleBirthDays: t.multipleBirthDays ?? null,
             minServiceDays: t.minServiceDays,
+            minServicePayTypes: [...t.minServicePayTypes],
           },
         },
       },

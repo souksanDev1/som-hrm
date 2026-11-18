@@ -38,6 +38,12 @@ export const PERMISSIONS = {
   KIOSK_MANAGE: 'kiosk.manage',
   /** Define shifts and the rotating roster (FR-ATT-17). */
   SHIFT_MANAGE: 'shift.manage',
+  /** File leave on behalf of any employee, e.g. staff without a smartphone (FR-LV-10.1). Managers file for their own reporting line without it. */
+  LEAVE_FILE_ON_BEHALF: 'leave.file_on_behalf',
+  /** Adjust leave balances with a mandatory reason (FR-LV-07.2). */
+  LEAVE_LEDGER_ADJUST: 'leave.ledger.adjust',
+  /** See the leave calendar of every department with types and pending requests (FR-LV-13.9). */
+  LEAVE_CALENDAR_READ_ALL: 'leave.calendar.read_all',
 } as const;
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export const ALL_PERMISSIONS = Object.values(PERMISSIONS) as Permission[];

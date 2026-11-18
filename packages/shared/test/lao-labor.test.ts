@@ -1,39 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import {
-  annualLeaveEntitlement,
-  DEFAULT_LEAVE_TYPES,
-  isFixedHoliday,
-  isWorkingDay,
-  maternityLeaveDays,
-  WORK_WEEK,
-} from '../src';
+import { DEFAULT_LEAVE_TYPES, LEAVE_LEGAL_MINIMUM, validateLeavePolicy, WORK_WEEK } from '../src';
 
-const d = (s: string) => new Date(`${s}T00:00:00Z`);
+const seed = (code: string) => DEFAULT_LEAVE_TYPES.find((t) => t.code === code)!;
 
-describe('Lao labour rules', () => {
-  it('grants no annual leave before one full year of service', () => {
-    expect(annualLeaveEntitlement(d('2025-01-01'), d('2025-12-31'))).toBe(0);
-  });
-  it('grants 15 days after one year, 18 for hazardous work', () => {
-    expect(annualLeaveEntitlement(d('2024-01-01'), d('2025-01-01'))).toBe(15);
-    expect(annualLeaveEntitlement(d('2024-01-01'), d('2025-01-01'), true)).toBe(18);
-  });
-  it('maternity leave is 105 days, 120 for multiple births', () => {
-    expect(maternityLeaveDays(false)).toBe(105);
-    expect(maternityLeaveDays(true)).toBe(120);
-  });
+describe('Lao labour defaults', () => {
   it('uses a 6-day working week with Sunday off', () => {
-    expect(WORK_WEEK.workingDays).toHaveLength(6);
-    expect(isWorkingDay(d('2026-11-14'))).toBe(true); // Saturday
-    expect(isWorkingDay(d('2026-11-15'))).toBe(false); // Sunday
+    expect(WORK_WEEK.workingDays).toEqual([1, 2, 3, 4, 5, 6]);
   });
-  it('seeds sick leave at 30 days and annual at 15', () => {
-    expect(DEFAULT_LEAVE_TYPES.find((t) => t.code === 'SICK')?.daysPerYear).toBe(30);
-    expect(DEFAULT_LEAVE_TYPES.find((t) => t.code === 'ANNUAL')?.daysPerYear).toBe(15);
+  it('seeds annual 15 (18 hazardous) after a year, sick 30, maternity 105 / 120 calendar days', () => {
+    expect(seed('ANNUAL')).toMatchObject({ daysPerYear: 15, hazardousDays: 18, minServiceDays: 365, quotaPeriod: 'YEARLY' });
+    expect(seed('SICK')).toMatchObject({ daysPerYear: 30, minServiceDays: 90, minServicePayTypes: ['DAILY', 'HOURLY'], requiresAttachment: true });
+    expect(seed('MATERNITY')).toMatchObject({ daysPerYear: 105, multipleBirthDays: 120, countingMethod: 'CALENDAR_DAYS', quotaPeriod: 'PER_EVENT', gender: 'FEMALE' });
   });
-  it("treats 8 March as a holiday for women only", () => {
-    expect(isFixedHoliday(d('2026-03-08'), 'FEMALE')).toBe(true);
-    expect(isFixedHoliday(d('2026-03-08'), 'MALE')).toBe(false);
-    expect(isFixedHoliday(d('2026-12-02'), 'MALE')).toBe(true);
+  it('treats the 3-day event leaves as per request and unpaid as unlimited (Q11)', () => {
+    for (const code of ['PERSONAL', 'MARRIAGE', 'BEREAVEMENT']) expect(seed(code)).toMatchObject({ daysPerYear: 3, quotaPeriod: 'PER_EVENT' });
+    expect(seed('UNPAID').quotaPeriod).toBe('UNLIMITED');
+  });
+  it('every seeded statutory policy meets its own legal minimum', () => {
+    for (const t of DEFAULT_LEAVE_TYPES) {
+      expect(validateLeavePolicy(t.category, { daysPerYear: t.daysPerYear, hazardousDays: t.hazardousDays ?? null, multipleBirthDays: t.multipleBirthDays ?? null })).toBeNull();
+    }
+    expect(LEAVE_LEGAL_MINIMUM.UNPAID).toBeUndefined();
+    expect(LEAVE_LEGAL_MINIMUM.OTHER).toBeUndefined();
   });
 });

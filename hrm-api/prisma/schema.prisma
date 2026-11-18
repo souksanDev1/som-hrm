@@ -130,6 +130,8 @@ enum LeaveCategory {
   MARRIAGE
   BEREAVEMENT
   UNPAID
+  /// HR-defined custom type (FR-LV-02), e.g. ordination or exam leave; no legal minimum.
+  OTHER
 }
 
 enum HalfDay {
@@ -172,6 +174,8 @@ enum NotificationType {
   MISSING_PUNCH
   PROBATION_ENDING
   OFFLINE_UNSYNCED
+  /// A medical certificate is still missing and due soon / overdue (FR-LV-05.3).
+  LEAVE_CERTIFICATE_DUE
 }
 
 enum NotificationChannel {
@@ -554,7 +558,7 @@ model Employee {
   punches           AttendancePunch[]
   attendanceDays    AttendanceDay[]
   corrections       AttendanceCorrection[]
-  leaveBalances     LeaveBalance[]
+  leaveLedger       LeaveLedgerEntry[]
   leaveRequests     LeaveRequest[]
   overtime          OvertimeRequest[]
   roster            ShiftRoster[]
@@ -953,81 +957,174 @@ model ScanImportRow {
 }
 
 // ───────────────────────────── Leave ─────────────────────────────
+// M6 (A14): balances are a ledger. Every movement (grant, use, cancel, HR adjust, carry-over, expiry) is a
+// LeaveLedgerEntry and a balance is the sum of the entries of one employee / type / leave year (calendar year,
+// client 2026-11-18 Q10). Statutory legal minima live in @hrm/shared (LEAVE_LEGAL_MINIMUM), not here.
+
+/// How the days of a request are counted (FR-LV-04).
+enum LeaveCountingMethod {
+  /// Only the employee's own working days (schedule/roster, minus their holidays) count (FR-LV-03.3, 04.2).
+  WORKING_DAYS
+  /// Every calendar day counts (maternity, FR-LV-04.1).
+  CALENDAR_DAYS
+}
+
+/// What `LeavePolicy.daysPerYear` limits.
+enum LeaveQuotaPeriod {
+  /// A balance per calendar year, granted by the accrual job (annual, sick).
+  YEARLY
+  /// Each request may take at most the quota; no yearly balance (personal/marriage/bereavement, maternity — Q11).
+  PER_EVENT
+  /// No quota (unpaid leave).
+  UNLIMITED
+}
+
+enum LeaveLedgerKind {
+  ENTITLEMENT
+  USAGE
+  CANCEL
+  ADJUST
+  CARRY
+  EXPIRE
+}
+
+/// In what capacity a leave request was filed (FR-LV-10).
+enum LeaveFiledAs {
+  SELF
+  /// HR on behalf of an employee (permission `leave.file_on_behalf`).
+  HR
+  /// A manager on behalf of someone in their reporting line.
+  MANAGER
+}
 
 model LeaveType {
-  id                 String        @id @default(cuid())
+  id                 String              @id @default(cuid())
   workspaceId        String
   code               String
   category           LeaveCategory
   nameLo             String
   nameEn             String
-  paid               Boolean       @default(true)
-  requiresAttachment Boolean       @default(false)
-  allowHalfDay       Boolean       @default(true)
+  paid               Boolean             @default(true)
+  /// A medical certificate is needed above `leave.certificateThresholdDays` (FR-LV-05).
+  requiresAttachment Boolean             @default(false)
+  allowHalfDay       Boolean             @default(true)
   gender             Gender?
-  isActive           Boolean       @default(true)
+  isActive           Boolean             @default(true)
+  countingMethod     LeaveCountingMethod @default(WORKING_DAYS)
+  quotaPeriod        LeaveQuotaPeriod    @default(YEARLY)
+  /// Created by HR (FR-LV-02); statutory types are seeded and can only be edited.
+  isCustom           Boolean             @default(false)
+  sortOrder          Int                 @default(0)
 
   policy   LeavePolicy?
-  balances LeaveBalance[]
+  ledger   LeaveLedgerEntry[]
   requests LeaveRequest[]
 
   @@unique([workspaceId, code])
 }
 
 model LeavePolicy {
-  id             String   @id @default(cuid())
-  workspaceId    String
-  leaveTypeId    String   @unique
-  daysPerYear    Decimal  @db.Decimal(6, 2)
-  hazardousDays  Decimal? @db.Decimal(6, 2)
-  minServiceDays Int      @default(0)
-  carryOverMax   Decimal  @default(0) @db.Decimal(6, 2)
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  leaveTypeId        String    @unique
+  /// Days per leave year (YEARLY) or per request (PER_EVENT); unused for UNLIMITED. HR edits it (FR-LV-01.1).
+  daysPerYear        Decimal   @db.Decimal(6, 2)
+  /// Days for employees doing hazardous work (annual leave 18).
+  hazardousDays      Decimal?  @db.Decimal(6, 2)
+  /// Days for a multiple birth (maternity 120).
+  multipleBirthDays  Decimal?  @db.Decimal(6, 2)
+  /// Service days needed before the type may be used and before it is granted (annual 365 — Q10).
+  minServiceDays     Int       @default(0)
+  /// Pay types `minServiceDays` applies to; empty = every pay type (sick leave: DAILY/HOURLY only — Q15).
+  minServicePayTypes PayType[] @default([])
 
   leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
 }
 
-model LeaveBalance {
-  id          String  @id @default(cuid())
-  workspaceId String
-  employeeId  String
-  leaveTypeId String
-  year        Int
-  entitled    Decimal @default(0) @db.Decimal(6, 2)
-  carried     Decimal @default(0) @db.Decimal(6, 2)
-  used        Decimal @default(0) @db.Decimal(6, 2)
+/// One balance movement (FR-LV-07). `days` is signed: grants/carry/cancel are positive, usage/expiry negative,
+/// adjustments either. Rows are never edited; corrections are new ADJUST rows.
+model LeaveLedgerEntry {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  employeeId     String
+  leaveTypeId    String
+  /// Leave year (calendar year) the movement belongs to.
+  periodYear     Int
+  kind           LeaveLedgerKind
+  days           Decimal         @db.Decimal(6, 2)
+  effectiveDate  DateTime        @db.Date
+  leaveRequestId String?
+  reason         String?
+  /// Null for the system (accrual / carry-over jobs).
+  createdById    String?
+  createdAt      DateTime        @default(now())
 
-  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType     @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  leaveRequest LeaveRequest? @relation(fields: [leaveRequestId], references: [id], onDelete: SetNull)
 
-  @@unique([employeeId, leaveTypeId, year])
-  @@index([workspaceId])
+  @@index([workspaceId, employeeId, leaveTypeId, periodYear])
+  @@index([leaveRequestId])
 }
 
 model LeaveRequest {
-  id                String        @id @default(cuid())
-  workspaceId       String
-  employeeId        String
-  leaveTypeId       String
-  startDate         DateTime      @db.Date
-  endDate           DateTime      @db.Date
-  halfDay           HalfDay       @default(NONE)
-  days              Decimal       @db.Decimal(6, 2)
-  reason            String?
-  attachmentUrl     String?
-  /// Mirrors the decision of its ApprovalRequest (subjectType LEAVE); the approval steps live there.
-  status            RequestStatus @default(PENDING)
-  /// Set when HR files the request on behalf of an employee without a smartphone.
-  submittedByUserId String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  employeeId         String
+  leaveTypeId        String
+  startDate          DateTime      @db.Date
+  endDate            DateTime      @db.Date
+  /// Half day (FR-LV-03.2); only on a single-day request.
+  halfDay            HalfDay       @default(NONE)
+  /// Maternity: multiple birth (longer quota).
+  multipleBirth      Boolean       @default(false)
+  /// Computed by the API only (FR-LV-03.3/04); never sent by clients.
+  days               Decimal       @db.Decimal(6, 2)
+  reason             String?
+  /// Medical certificate (FR-LV-05); may be attached until `certificateDueDate`.
+  certificateFileId  String?
+  certificateDueDate DateTime?     @db.Date
+  /// Mirrors the decision of its ApprovalRequest (subjectType LEAVE); CANCELLED once withdrawn or cancelled.
+  status             RequestStatus @default(PENDING)
+  /// Who filed it: the employee, or HR / a manager on their behalf (FR-LV-10).
+  submittedByUserId  String?
+  filedAs            LeaveFiledAs  @default(SELF)
+  /// Delegation created for a manager's absence (FR-ORG-03.2); cancelled with the leave.
+  delegationId       String?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
-  employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  employee        Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType            @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  certificateFile StoredFile?          @relation(fields: [certificateFileId], references: [id], onDelete: SetNull)
+  ledger          LeaveLedgerEntry[]
+  cancelRequests  LeaveCancelRequest[]
 
   @@index([workspaceId, status])
   @@index([workspaceId, employeeId])
+  @@index([workspaceId, startDate, endDate])
+}
+
+/// Request to cancel an APPROVED leave (FR-LV-12.2), decided through the approval engine (subject LEAVE_CANCEL).
+/// At most one PENDING per leave request (partial unique index in the migration).
+model LeaveCancelRequest {
+  id                String        @id @default(cuid())
+  workspaceId       String
+  leaveRequestId    String
+  reason            String
+  status            RequestStatus @default(PENDING)
+  requestedByUserId String?
+  decidedAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, leaveRequestId])
 }
 
 // ─────────────────────────── Approvals ───────────────────────────
@@ -1043,6 +1140,8 @@ enum ApprovalSubjectType {
   OFFSITE_CHECKIN
   /// Move the device binding to a new phone (FR-ATT-11.3); subject = DeviceChangeRequest.
   DEVICE_CHANGE
+  /// Cancellation of an approved leave (FR-LV-12.2); subject = LeaveCancelRequest.
+  LEAVE_CANCEL
 }
 
 /// FR-ORG-06 — capacity in which a step is decided.
@@ -1260,6 +1359,7 @@ model StoredFile {
   createdAt    DateTime    @default(now())
 
   employeeDocuments EmployeeDocument[]
+  leaveCertificates LeaveRequest[]
 
   @@index([workspaceId, purpose])
 }
