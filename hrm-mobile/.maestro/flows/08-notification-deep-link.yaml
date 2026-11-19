@@ -1,5 +1,5 @@
 appId: la.som.hrm
-name: Field worker opens a notification from the tab and lands on the linked screen (FR-NOTI-01.2, FR-NOTI-04.2)
+name: Field worker opens a notification from the header and lands on the linked screen (FR-NOTI-01.2, FR-NOTI-04.2)
 ---
 # Debug build without push credentials: no permission prompt appears (push is gated on an EAS projectId).
 - launchApp:
@@ -25,7 +25,7 @@ name: Field worker opens a notification from the tab and lands on the linked scr
 - assertVisible:
     id: "home-screen"
 - tapOn:
-    id: "tab-notifications"
+    id: "home-header-notifications"
 - assertVisible:
     id: "notifications-screen"
 # Seed: E003's own ID card expires in 20 days; the notification links to `/profile`.
@@ -35,11 +35,13 @@ name: Field worker opens a notification from the tab and lands on the linked scr
     text: ".*ບັດປະຈຳຕົວ.*"
 - assertVisible:
     id: "profile-screen"
+- tapOn:
+    id: "toggle-personal-info"
 - assertVisible:
     id: "profile-code"
     text: "E003"
-# Back on the tab the list still loads (pull to refresh / mark read keep working).
+# The top-right bell still opens the inbox (pull to refresh / mark read keep working).
 - tapOn:
-    id: "tab-notifications"
+    id: "header-notifications"
 - assertVisible:
     id: "notification-list"

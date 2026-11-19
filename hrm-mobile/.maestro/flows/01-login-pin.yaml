@@ -25,6 +25,8 @@ name: Field worker signs in with phone + PIN and sees own profile
     id: "home-screen"
 - tapOn:
     id: "tab-profile"
+- tapOn:
+    id: "toggle-personal-info"
 - assertVisible:
     id: "profile-code"
     text: "E003"

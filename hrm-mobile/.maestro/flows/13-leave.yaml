@@ -37,6 +37,10 @@ name: Employee files unpaid leave with the live preview, withdraws it, and opens
 - assertVisible:
     id: "leave-screen"
 - assertVisible:
+    id: "lcal-month"
+- tapOn:
+    id: "leave-tab-balances"
+- assertVisible:
     id: "leave-balances"
 - tapOn:
     id: "leave-new"
@@ -74,6 +78,8 @@ name: Employee files unpaid leave with the live preview, withdraws it, and opens
 - assertVisible:
     id: "leave-screen"
 - tapOn:
+    id: "leave-tab-requests"
+- tapOn:
     id: "leave-item-.*"
     index: 0
 - assertVisible:
@@ -100,7 +106,7 @@ name: Employee files unpaid leave with the live preview, withdraws it, and opens
     id: "leave-back"
 - assertVisible:
     id: "home-screen"
-# The leave calendar opens on today.
+# The leave calendar opens on the current month.
 - scrollUntilVisible:
     element:
       id: "open-leave-calendar"

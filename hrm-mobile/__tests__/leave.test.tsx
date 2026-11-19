@@ -7,15 +7,17 @@ import LeaveDetailScreen from '@/app/leave/[id]';
 import NewLeaveScreen from '@/app/leave/new';
 import { useAuthStore } from '@/features/auth/store';
 import { LeaveDetail, LeaveRequestForm } from '@/features/leave/LeaveViews';
+import * as calendarApi from '@/features/leave-calendar/api';
 import { ApiError } from '@/lib/api';
 import { usePrefsStore } from '@/lib/i18n';
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const mockParams: { id: string; tab?: string } = { id: 'lr1' };
 jest.mock('expo-router', () => ({
   router: { back: (...a: unknown[]) => mockBack(...a), push: (...a: unknown[]) => mockPush(...a), replace: jest.fn(), canGoBack: () => true },
   Redirect: () => null,
-  useLocalSearchParams: () => ({ id: 'lr1' }),
+  useLocalSearchParams: () => mockParams,
 }));
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -43,15 +45,37 @@ const request = (over: Partial<LeaveRequest> = {}): LeaveRequest => ({
 beforeEach(() => {
   mockBack.mockReset();
   mockPush.mockReset();
+  delete mockParams.tab;
   usePrefsStore.setState({ locale: 'lo' });
   useAuthStore.setState({ accessToken: 'a', refreshToken: 'r', user: null });
 });
 afterEach(() => jest.restoreAllMocks());
 
 describe('LeaveScreen (FR-LV-06.2)', () => {
-  it('shows yearly balances and own requests and opens a request', async () => {
+  it('opens balances directly from the home balance card', async () => {
+    mockParams.tab = 'balances';
     jest.spyOn(global, 'fetch').mockImplementation(async (input) => {
       const url = urlOf(input);
+      if (url.includes('/leave/balances')) return json({ year: 2030, employeeId: 'e1', balances: [] });
+      if (url.includes('/leave/calendar')) return json({ entries: [], holidays: [], restDays: [], today: '2030-12-04', viewer: { canSeePending: false, canSeeTypes: false, canFilter: false, allDepartments: false } });
+      return json([]);
+    });
+    render(<LeaveScreen />, { wrapper });
+    expect(await screen.findByTestId('leave-balances')).toBeTruthy();
+    expect(screen.getByTestId('leave-tab-balances')).toHaveProp('accessibilityState', { selected: true });
+    expect(screen.queryByTestId('lcal-month')).toBeNull();
+  });
+
+  it.each(['lo', 'en'] as const)('defaults to the monthly overview, keeping requests, balances and filing accessible in %s', async (locale) => {
+    usePrefsStore.setState({ locale });
+    jest.spyOn(calendarApi, 'deviceToday').mockReturnValue('2030-12-04');
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = urlOf(input);
+      if (url.includes('/leave/calendar')) return json({
+        from: '2030-11-25', to: '2031-01-05', today: '2030-12-04', holidays: [], restDays: [],
+        entries: [{ requestId: 'r1', employeeId: 'e1', employeeName: 'Phet P', departmentId: 'd1', startDate: '2030-12-04', endDate: '2030-12-04', halfDay: 'NONE', status: 'APPROVED', leaveType: null }],
+        viewer: { canSeeTypes: false, canSeePending: false, canFilter: false, allDepartments: false },
+      });
       if (url.includes('/leave/balances')) {
         return json({ employeeId: 'e1', year: 2030, balances: [{ leaveTypeId: 'annual', year: 2030, quotaPeriod: 'YEARLY', entitled: 15, carried: 0, used: 2, adjusted: 0, expired: 0, balance: 13, pending: 2 }] });
       }
@@ -59,12 +83,36 @@ describe('LeaveScreen (FR-LV-06.2)', () => {
       return json([request()]);
     });
     render(<LeaveScreen />, { wrapper });
+    expect(await screen.findByTestId('lcal-month')).toBeTruthy();
+    expect(screen.getByTestId('leave-tab-overview')).toHaveProp('accessibilityState', { selected: true });
+    expect(screen.getByTestId('leave-tab-overview')).toHaveTextContent(locale === 'lo' ? 'ພາບລວມ' : 'Overview');
+    expect(screen.getByTestId('leave-tab-requests')).toHaveTextContent(locale === 'lo' ? 'ຄຳຂໍຂອງຂ້ອຍ' : 'My requests');
+    expect(screen.queryByTestId('leave-balance-ANNUAL')).toBeNull();
+    expect(screen.queryByTestId('leave-item-lr1')).toBeNull();
+    expect(screen.getByText('Phet P')).toBeTruthy();
+    expect(fetchSpy.mock.calls.some(([url]) => urlOf(url).includes('/leave/calendar?from=2030-11-25&to=2031-01-05'))).toBe(true);
+    fireEvent.press(screen.getByTestId('leave-new'));
+    expect(mockPush).toHaveBeenCalledWith('/leave/new');
+    fireEvent.press(screen.getByTestId('lcal-month-day-2030-12-05'));
+
+    fireEvent.press(screen.getByTestId('leave-tab-balances'));
     expect(await screen.findByTestId('leave-balance-ANNUAL')).toHaveTextContent(/13/);
+    expect(screen.queryByTestId('lcal-month')).toBeNull();
+    fireEvent.press(screen.getByTestId('leave-tab-requests'));
     expect(await screen.findByTestId('leave-item-lr1')).toHaveTextContent(/2030-12-03 – 2030-12-04/);
+    expect(screen.queryByTestId('leave-balance-ANNUAL')).toBeNull();
     fireEvent.press(screen.getByTestId('leave-item-lr1'));
     expect(mockPush).toHaveBeenCalledWith('/leave/lr1');
     fireEvent.press(screen.getByTestId('leave-new'));
     expect(mockPush).toHaveBeenCalledWith('/leave/new');
+
+    fireEvent.press(screen.getByTestId('leave-tab-overview'));
+    expect(screen.getByTestId('lcal-month-day-2030-12-05')).toHaveProp('accessibilityState', { selected: true });
+    fireEvent.press(screen.getByTestId('lcal-go-today'));
+    expect(screen.getByTestId('lcal-month-day-2030-12-04')).toHaveProp('accessibilityState', { selected: true });
+    fireEvent.press(screen.getByRole('button', { name: locale === 'lo' ? 'ກັບຄືນ' : 'Back' }));
+    expect(mockBack).toHaveBeenCalled();
+    expect(fetchSpy.mock.calls.every(([url]) => urlOf(url).includes('/leave/'))).toBe(true);
   });
 });
 

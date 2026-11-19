@@ -10,7 +10,11 @@ import { useT } from '@/lib/i18n';
 import { useHydration } from '@/lib/use-hydration';
 
 type IconName = keyof typeof MaterialIcons.glyphMap;
-const icon = (name: IconName) => ({ color, size }: { color: string; size: number }) => <MaterialIcons name={name} color={color} size={size} />;
+const icon = (name: IconName) => ({ color, size, focused }: { color: string; size: number; focused: boolean }) => (
+  <View style={{ width: 56, alignItems: 'center', paddingTop: 4, borderTopWidth: 3, borderTopColor: focused ? color : 'transparent' }}>
+    <MaterialIcons name={name} color={color} size={size} />
+  </View>
+);
 
 export default function TabsLayout() {
   const t = useT();
@@ -19,8 +23,8 @@ export default function TabsLayout() {
   const { width } = useWindowDimensions();
   const hydrated = useHydration();
   const me = useMe();
-  // Unread badge on the notifications tab (FR-NOTI-01.2), polled only inside the app.
-  const unread = useUnreadCount(hydrated && !!token && !!user && homeRouteFor(user) === '/home').data?.count ?? 0;
+  // Keep inbox polling inside the authenticated app; the badge now lives in the home header.
+  useUnreadCount(hydrated && !!token && !!user && homeRouteFor(user) === '/home');
   // Wait for SecureStore before deciding (a cold start briefly has no token in memory).
   if (!hydrated || (token && !user && me.isPending)) {
     return (
@@ -46,7 +50,8 @@ export default function TabsLayout() {
           tabBarInactiveTintColor: '#64748B',
           // Tablets/landscape: label beside icon to use the extra width.
           tabBarLabelPosition: width >= 768 ? 'beside-icon' : 'below-icon',
-          tabBarLabelStyle: { fontSize: 12 },
+          tabBarLabelStyle: { fontSize: 12, paddingBottom: 3 },
+          tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#E9EDF3' },
         }}
       >
         <Tabs.Screen name="home" options={{ title: t('nav.dashboard'), tabBarIcon: icon('home'), tabBarButtonTestID: 'tab-home' }} />
@@ -55,13 +60,12 @@ export default function TabsLayout() {
           name="notifications"
           options={{
             title: t('nav.notifications'),
-            tabBarIcon: icon('notifications-none'),
-            tabBarButtonTestID: 'tab-notifications',
-            tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+            // The route and deep links remain intact; entry is now the top-right bell.
+            href: null,
           }}
         />
-        <Tabs.Screen name="profile" options={{ title: t('nav.profile'), tabBarIcon: icon('person-outline'), tabBarButtonTestID: 'tab-profile' }} />
         <Tabs.Screen name="checkin" options={{ title: t('nav.attendance'), tabBarIcon: icon('fingerprint'), tabBarButtonTestID: 'tab-checkin' }} />
+        <Tabs.Screen name="profile" options={{ title: t('nav.profile'), tabBarIcon: icon('person-outline'), tabBarButtonTestID: 'tab-profile' }} />
       </Tabs>
     </>
   );
