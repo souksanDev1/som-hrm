@@ -7,6 +7,7 @@ import {
   idParamsSchema,
   orgChartNodeSchema,
   orgListQuerySchema,
+  orgStructureNodeSchema,
   PERMISSIONS,
   positionSchema,
   updateBranchSchema,
@@ -22,6 +23,9 @@ export const orgRoutes = async (app: AppInstance) => {
   const svc = app.services.org;
 
   app.get('/org/chart', { preHandler: read, schema: { response: { 200: z.array(orgChartNodeSchema) } } }, async (req) => svc.orgChart(req.auth));
+  app.get('/org/structure', { preHandler: read, schema: { response: { 200: z.array(orgStructureNodeSchema) } } }, async (req) =>
+    svc.orgStructure(req.auth),
+  );
 
   // Branches
   app.get('/branches', { preHandler: read, schema: { querystring: orgListQuerySchema, response: { 200: z.array(branchSchema) } } }, async (req) =>

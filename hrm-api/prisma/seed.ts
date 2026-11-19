@@ -60,9 +60,12 @@ const main = async () => {
     const site = await tx.branch.create({
       data: { workspaceId: ws, name: 'ໜ້າງານ ປາກເຊ', address: 'ແຂວງ ຈຳປາສັກ', latitude: 15.1202, longitude: 105.7987, geofenceRadius: 300, attendanceModes: ['MOBILE', 'SCANNER'] },
     });
+    // Structure chart: ປະທານ (Chairman) → CEO → departments.
+    const chairman = await tx.department.create({ data: { workspaceId: ws, name: 'ປະທານ' } });
+    const ceo = await tx.department.create({ data: { workspaceId: ws, name: 'CEO', parentId: chairman.id } });
     const [hr, ops] = await Promise.all([
-      tx.department.create({ data: { workspaceId: ws, name: 'ບຸກຄະລາກອນ (HR)' } }),
-      tx.department.create({ data: { workspaceId: ws, name: 'ປະຕິບັດການ' } }),
+      tx.department.create({ data: { workspaceId: ws, name: 'ບຸກຄະລາກອນ (HR)', parentId: ceo.id } }),
+      tx.department.create({ data: { workspaceId: ws, name: 'ປະຕິບັດການ', parentId: ceo.id } }),
     ]);
     const [director, supervisor, worker] = await Promise.all([
       tx.position.create({ data: { workspaceId: ws, name: 'ຜູ້ອຳນວຍການ', level: 10 } }),
@@ -91,6 +94,8 @@ const main = async () => {
         branchId: site.id, departmentId: ops.id, positionId: supervisor.id, managerId: boss.id,
       },
     });
+    await tx.department.update({ where: { id: hr.id }, data: { headEmployeeId: boss.id } });
+    await tx.department.update({ where: { id: ops.id }, data: { headEmployeeId: lead.id } });
     const field = await tx.employee.create({
       data: {
         workspaceId: ws, employeeCode: DEMO.fieldWorker.code, firstName: 'ສຸກສັນ', lastName: 'ຈັນທະພອນ', gender: 'MALE',

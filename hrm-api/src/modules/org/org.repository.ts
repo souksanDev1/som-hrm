@@ -73,4 +73,15 @@ export const orgRepository = {
       },
       orderBy: { employeeCode: 'asc' },
     }),
+  /** Open departments and active staff for the structure chart. */
+  orgStructureRows: async (tx: Tx, workspaceId: string) => ({
+    departments: await tx.department.findMany({
+      where: { workspaceId, isActive: true },
+      select: { id: true, name: true, parentId: true, headEmployeeId: true },
+    }),
+    employees: await tx.employee.findMany({
+      where: { workspaceId, status: { in: ['PROBATION', 'ACTIVE', 'ON_LEAVE'] } },
+      select: { id: true, employeeCode: true, firstName: true, lastName: true, departmentId: true, position: { select: { name: true } } },
+    }),
+  }),
 };

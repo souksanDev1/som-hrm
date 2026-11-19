@@ -1,4 +1,5 @@
 import {
+  buildOrgStructure,
   buildOrgTree,
   type Branch,
   type CreateBranchInput,
@@ -8,6 +9,7 @@ import {
   isGeofenceComplete,
   type OrgChartNode,
   type OrgListQuery,
+  type OrgStructureNode,
   type Position,
   type UpdateBranchInput,
   type UpdateDepartmentInput,
@@ -213,6 +215,21 @@ export const createOrgService = (db: Db) => {
             },
           })),
         );
+      }),
+
+    orgStructure: (ctx: AuthContext): Promise<OrgStructureNode[]> =>
+      db.tenant(ctx.workspaceId, async (tx) => {
+        const { departments, employees } = await repo.orgStructureRows(tx, ctx.workspaceId);
+        return buildOrgStructure({
+          departments,
+          employees: employees.map((e) => ({
+            id: e.id,
+            employeeCode: e.employeeCode,
+            name: `${e.firstName} ${e.lastName}`,
+            position: e.position?.name ?? null,
+            departmentId: e.departmentId,
+          })),
+        });
       }),
   };
 };
