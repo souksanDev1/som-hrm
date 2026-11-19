@@ -11,9 +11,10 @@ import { LineManagerCard } from '@/features/employees/components/LineManagerCard
 import { HistoryCard } from '@/features/employees/components/HistoryCard';
 import { toCreatePayload, toUpdatePayload, type EmployeeFormValues } from '@/features/employees/payload';
 
+const orgData = vi.hoisted(() => ({ departments: [{ id: 'd1', name: 'Ops' }] as { id: string; name: string }[] | undefined }));
 vi.mock('@/features/org/hooks', () => {
   const empty = { data: [] };
-  return { useBranches: () => empty, useDepartments: () => ({ data: [{ id: 'd1', name: 'Ops' }] }), usePositions: () => empty };
+  return { useBranches: () => empty, useDepartments: () => ({ data: orgData.departments }), usePositions: () => empty };
 });
 
 const contactMutations = vi.hoisted(() => {
@@ -41,6 +42,23 @@ const base: EmployeeFormValues = {
   phone: '02055551234',
   idCardNo: '',
 };
+
+describe('EmployeeForm reference selects', () => {
+  it('shows the stored department once the department list arrives after the form mounted', () => {
+    orgData.departments = undefined;
+    const defaults = { ...base, departmentId: 'd1', managerId: 'm1' };
+    const onSubmit = vi.fn();
+    const ui = () => <EmployeeForm mode="edit" defaultValues={defaults} onSubmit={onSubmit} onCancel={() => undefined} />;
+    const { rerender } = render(ui());
+    try {
+      orgData.departments = [{ id: 'd1', name: 'Ops' }];
+      rerender(ui());
+      expect(screen.getByLabelText<HTMLSelectElement>(/department|ພະແນກ/i).value).toBe('d1');
+    } finally {
+      orgData.departments = [{ id: 'd1', name: 'Ops' }];
+    }
+  });
+});
 
 describe('employee payload builders', () => {
   it('create: drops blanks and adds the login', () => {

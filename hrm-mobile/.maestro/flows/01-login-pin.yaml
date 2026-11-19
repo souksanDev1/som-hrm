@@ -11,6 +11,7 @@ name: Field worker signs in with phone + PIN and sees own profile
 - tapOn:
     id: "input-workspace"
 - inputText: "som-demo"
+- hideKeyboard
 - tapOn:
     id: "input-identifier"
 - inputText: "02055550003"

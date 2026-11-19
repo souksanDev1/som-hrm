@@ -10,6 +10,7 @@ name: Temporary PIN from HR must be changed before using the app, even after a r
 - tapOn:
     id: "input-workspace"
 - inputText: "som-demo"
+- hideKeyboard
 - tapOn:
     id: "input-identifier"
 - inputText: ${output.employeeCode}

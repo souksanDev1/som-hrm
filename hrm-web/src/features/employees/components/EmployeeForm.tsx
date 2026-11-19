@@ -16,7 +16,7 @@ import {
   type UpdateEmployeeInput,
 } from '@hrm/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { Button, Card, Checkbox, Field, Input, Select } from '@/components/ui';
 import { useBranches, useDepartments, usePositions } from '@/features/org/hooks';
@@ -85,7 +85,12 @@ export function EmployeeForm(props: EmployeeFormProps) {
   const locale = usePrefsStore((s) => s.locale);
   const initial = useMemo(() => ({ ...FORM_DEFAULTS, ...defaultValues }) as EmployeeFormValues, [defaultValues]);
   const resolver = useMemo(() => resolverFor(mode, initial), [mode, initial]);
-  const { register, handleSubmit, watch, setValue, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
+  const { register, handleSubmit, watch, setValue, getValues, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
+  // A native <select> can't show a value before its <option> exists, and these lists load after the form mounts:
+  // re-apply the current values once they arrive so stored branch / department / position / manager stay visible.
+  useEffect(() => {
+    for (const name of ['branchId', 'departmentId', 'positionId', 'managerId'] as const) setValue(name, getValues(name));
+  }, [branches.data, departments.data, positions.data, managers.data, setValue, getValues]);
   const errors = formState.errors as Partial<Record<string, { message?: string }>>;
   const e = (name: string) => (errors[name]?.message ? t(errors[name]!.message!) : undefined);
   const nationalityType = watch('nationalityType');
