@@ -24,7 +24,7 @@ import { leaveRequestsEn, leaveRequestsLo } from './areas/leave-requests';
  * Lao (lo) is the default; English (en) must have the same keys (enforced by type).
  */
 const coreLo = {
-  'app.name': 'SOM HRM',
+  'app.name': 'Tech Solutions HRM',
   'common.save': 'ບັນທຶກ',
   'common.cancel': 'ຍົກເລີກ',
   'common.search': 'ຄົ້ນຫາ',
@@ -175,7 +175,7 @@ export type TranslationKey = keyof typeof lo;
 export type Dictionary = Record<TranslationKey, string>;
 
 const coreEn: Record<keyof typeof coreLo, string> = {
-  'app.name': 'SOM HRM',
+  'app.name': 'Tech Solutions HRM',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.search': 'Search',

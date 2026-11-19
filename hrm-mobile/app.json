@@ -1,9 +1,10 @@
 {
   "expo": {
-    "name": "SOM HRM",
+    "name": "Tech Solutions HRM",
     "slug": "som-hrm",
     "scheme": "somhrm",
     "version": "0.1.0",
+    "icon": "./assets/icon.png",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -11,14 +12,18 @@
       "bundleIdentifier": "la.som.hrm",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SOM HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch.",
-        "NSCameraUsageDescription": "SOM HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
+        "NSLocationWhenInUseUsageDescription": "Tech Solutions HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch.",
+        "NSCameraUsageDescription": "Tech Solutions HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }
       }
     },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "package": "la.som.hrm",
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -28,7 +33,8 @@
       ]
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/logo-mark.png"
     },
     "plugins": [
       "expo-router",
@@ -45,13 +51,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SOM HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch."
+          "locationWhenInUsePermission": "Tech Solutions HRM ໃຊ້ຕຳແໜ່ງເພື່ອກວດສອບການລົງເວລາຢູ່ສາຂາ / Location is used to verify check-in at your branch."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "SOM HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
+          "cameraPermission": "Tech Solutions HRM ໃຊ້ກ້ອງຖ່າຍ selfie ຕອນລົງເວລາ / The camera is used for check-in selfies.",
           "recordAudioAndroid": false
         }
       ]

@@ -4,7 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'SOM HRM',
+  title: 'Tech Solutions HRM',
   description: 'ລະບົບບໍລິຫານບຸກຄະລາກອນ — Human resource management',
 };
 

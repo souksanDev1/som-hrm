@@ -49,7 +49,7 @@ const main = async () => {
 
     const { workspace, owner, roles } = await bootstrapWorkspace(tx, {
       code: DEMO.workspaceCode,
-      name: 'SOM Demo Co., Ltd.',
+      name: 'Tech Solutions HRM',
       owner: { ...DEMO.owner, displayName: 'HR Admin' },
     });
     const ws = workspace.id;
@@ -93,7 +93,7 @@ const main = async () => {
     });
     const field = await tx.employee.create({
       data: {
-        workspaceId: ws, employeeCode: DEMO.fieldWorker.code, firstName: 'ຄຳແພງ', lastName: 'ແກ້ວມະນີ', gender: 'MALE',
+        workspaceId: ws, employeeCode: DEMO.fieldWorker.code, firstName: 'ສຸກສັນ', lastName: 'ຈັນທະພອນ', gender: 'MALE',
         firstNameEn: 'Khamphaeng', lastNameEn: 'Keomany', village: 'ຫ້ວຍ', district: 'ປາກເຊ', province: 'CH',
         phone: DEMO.fieldWorker.phone, hireDate: new Date('2025-01-10'), contractType: 'INDEFINITE', payType: 'DAILY', status: 'ACTIVE',
         hazardousWork: true, branchId: site.id, departmentId: ops.id, positionId: worker.id, managerId: lead.id,
@@ -102,7 +102,7 @@ const main = async () => {
     });
     const fieldUser = await tx.user.create({
       data: {
-        workspaceId: ws, employeeId: field.id, displayName: 'ຄຳແພງ ແກ້ວມະນີ', phone: DEMO.fieldWorker.phone,
+        workspaceId: ws, employeeId: field.id, displayName: 'ສຸກສັນ ຈັນທະພອນ', phone: DEMO.fieldWorker.phone,
         // Demo phone is pre-verified so sign-in skips the SMS OTP step (FR-AUTH-02.1).
         phoneVerifiedAt: new Date(),
         pinHash: await hashSecret(DEMO.fieldWorker.pin), roles: { create: { workspaceId: ws, roleId: roles.EMPLOYEE! } },
@@ -178,7 +178,7 @@ const main = async () => {
       type: 'DOCUMENT_EXPIRY',
       titleKey: 'notif.docExpiring.title',
       bodyKey: 'notif.docExpiring.body',
-      params: { document: { t: 'document.ID_CARD' }, employee: 'ຄຳແພງ ແກ້ວມະນີ', days: 20, date: daysFromNow(20).toISOString().slice(0, 10) },
+      params: { document: { t: 'document.ID_CARD' }, employee: 'ສຸກສັນ ຈັນທະພອນ', days: 20, date: daysFromNow(20).toISOString().slice(0, 10) },
       link: '/profile',
       dedupeKey: `doc-expiry:${idCard.id}:30`,
       data: { documentId: idCard.id, employeeId: field.id },

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Icon } from '@/components/ui';
+import { BrandMark, Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
 import { UnreadBadge } from '@/features/notifications/UnreadBadge';
@@ -14,9 +14,7 @@ export function Sidebar({ items }: { items: readonly NavItem[] }) {
   return (
     <aside className="bg-brand-sidebar hidden w-60 shrink-0 flex-col px-3 py-5 lg:flex">
       <div className="mb-7 flex items-center gap-2.5 px-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white/15 text-sm font-bold text-white shadow-sm backdrop-blur">
-          S
-        </span>
+        <BrandMark size={36} />
         <span className="text-base font-semibold tracking-wide text-white">{t('app.name')}</span>
       </div>
       <nav aria-label="main" className="flex flex-col gap-1">

@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { Spinner } from '@/components/ui';
+import { BrandMark, Spinner } from '@/components/ui';
 import { usePrefsStore, useT } from '@/lib/i18n';
 import { useChangeLocale } from '../hooks';
 
@@ -23,7 +23,7 @@ export function AuthScreen({ title, subtitle, loading, footer, children }: AuthS
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary text-lg font-bold text-white">S</span>
+            <BrandMark />
             <div className="min-w-0">
               <h1 className="text-lg font-semibold text-ink dark:text-night-ink">{title}</h1>
               <p className="truncate text-xs text-ink-muted">{subtitle ?? t('auth.subtitle')}</p>

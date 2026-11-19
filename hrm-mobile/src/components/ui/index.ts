@@ -9,3 +9,4 @@ export * from './Screen';
 export * from './Segmented';
 export * from './StateScreen';
 export * from './TextField';
+export * from './BrandLogo';

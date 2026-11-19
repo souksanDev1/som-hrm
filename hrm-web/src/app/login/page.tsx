@@ -2,7 +2,7 @@
 import { pendingAccountSetup } from '@hrm/shared';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Spinner } from '@/components/ui';
+import { BrandLogo, BrandMark, Spinner } from '@/components/ui';
 import { ACCOUNT_SETUP_PATH } from '@/features/auth/AuthGuard';
 import { useChangeLocale } from '@/features/auth/hooks';
 import { LoginForm } from '@/features/auth/LoginForm';
@@ -26,9 +26,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-8 dark:bg-night-canvas">
       <div className="w-full max-w-sm">
+        <BrandLogo className="mb-6" />
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="bg-brand-gradient flex h-10 w-10 items-center justify-center rounded-md text-lg font-bold text-white shadow-brand">S</span>
+            <BrandMark />
             <div>
               <h1 className="text-lg font-semibold text-ink dark:text-night-ink">{t('auth.title')}</h1>
               <p className="text-xs text-ink-muted">{t('auth.subtitle')}</p>

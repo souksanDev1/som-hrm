@@ -1,8 +1,8 @@
 /** Authentication: OTP, password reset, forced credential change, language (M2). */
 export const authLo = {
   // SMS bodies ({code}, {minutes} are replaced by the API)
-  'authx.sms.verify': 'SOM HRM: ລະຫັດຢືນຢັນເບີໂທຂອງທ່ານແມ່ນ {code} (ໃຊ້ໄດ້ {minutes} ນາທີ). ຢ່າບອກລະຫັດນີ້ໃຫ້ຜູ້ອື່ນ.',
-  'authx.sms.reset': 'SOM HRM: ລະຫັດຣີເຊັດຂອງທ່ານແມ່ນ {code} (ໃຊ້ໄດ້ {minutes} ນາທີ). ຖ້າທ່ານບໍ່ໄດ້ຂໍ, ກະລຸນາບໍ່ສົນໃຈ.',
+  'authx.sms.verify': 'Tech Solutions HRM: ລະຫັດຢືນຢັນເບີໂທຂອງທ່ານແມ່ນ {code} (ໃຊ້ໄດ້ {minutes} ນາທີ). ຢ່າບອກລະຫັດນີ້ໃຫ້ຜູ້ອື່ນ.',
+  'authx.sms.reset': 'Tech Solutions HRM: ລະຫັດຣີເຊັດຂອງທ່ານແມ່ນ {code} (ໃຊ້ໄດ້ {minutes} ນາທີ). ຖ້າທ່ານບໍ່ໄດ້ຂໍ, ກະລຸນາບໍ່ສົນໃຈ.',
 
   // Login
   'authx.login.identifier': 'ລະຫັດພະນັກງານ, ເບີໂທ ຫຼື ອີເມວ',
@@ -71,8 +71,8 @@ export const authLo = {
 } as const;
 
 export const authEn: Record<keyof typeof authLo, string> = {
-  'authx.sms.verify': 'SOM HRM: your phone verification code is {code} (valid {minutes} min). Do not share it.',
-  'authx.sms.reset': 'SOM HRM: your reset code is {code} (valid {minutes} min). If you did not ask for it, ignore this message.',
+  'authx.sms.verify': 'Tech Solutions HRM: your phone verification code is {code} (valid {minutes} min). Do not share it.',
+  'authx.sms.reset': 'Tech Solutions HRM: your reset code is {code} (valid {minutes} min). If you did not ask for it, ignore this message.',
 
   'authx.login.identifier': 'Employee code, phone or email',
   'authx.login.forgotLink': 'Forgot password or PIN?',

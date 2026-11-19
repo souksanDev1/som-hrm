@@ -1,7 +1,7 @@
 import type { KioskInfo } from '@hrm/shared';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { Button, Card, Screen, Segmented, TextField } from '@/components/ui';
+import { BrandLogo, Button, Card, Screen, Segmented, TextField } from '@/components/ui';
 import { errorCode } from '@/lib/api';
 import { usePrefsStore, useT } from '@/lib/i18n';
 
@@ -52,6 +52,7 @@ export function KioskEnrol({ verify, onEnrolled }: KioskEnrolProps) {
             { value: 'en', label: 'English', testID: 'kiosk-lang-en' },
           ]}
         />
+        <BrandLogo height={96} />
         <Text className="text-2xl font-semibold text-ink dark:text-night-ink">{t('kiosk.app.title')}</Text>
         <Card title={t('kiosk.enrol.title')}>
           <View className="gap-4">

@@ -64,7 +64,7 @@ export const registerForPushAsync = async (): Promise<PushRegistration> => {
   }
   try {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', { name: 'SOM HRM', importance: Notifications.AndroidImportance.HIGH });
+      await Notifications.setNotificationChannelAsync('default', { name: 'Tech Solutions HRM', importance: Notifications.AndroidImportance.HIGH });
     }
     let permission = await Notifications.getPermissionsAsync();
     if (!permission.granted && permission.canAskAgain) permission = await Notifications.requestPermissionsAsync();

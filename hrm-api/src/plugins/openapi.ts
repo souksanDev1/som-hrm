@@ -17,7 +17,7 @@ export const apiDocsEnabled = (env: Pick<Env, 'API_DOCS' | 'NODE_ENV'>): boolean
 export const registerOpenApi = async (app: FastifyInstance) => {
   await app.register(swagger, {
     openapi: {
-      info: { title: 'SOM HRM API', version: '1.0.0', description: 'Tenant API. Errors use `{ error: { code, message, details } }`.' },
+      info: { title: 'Tech Solutions HRM API', version: '1.0.0', description: 'Tenant API. Errors use `{ error: { code, message, details } }`.' },
       components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } },
       security: [{ bearerAuth: [] }],
     },

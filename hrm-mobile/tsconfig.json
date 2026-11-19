@@ -13,6 +13,7 @@
     "jest.setup.tsx",
     "src",
     "__tests__",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "images.d.ts"
   ]
 }

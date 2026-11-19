@@ -25,7 +25,7 @@ module.exports = ({ config }) => {
     ...config,
     ...(kiosk
       ? {
-          name: 'SOM Kiosk',
+          name: 'Tech Solutions Kiosk',
           scheme: 'somhrmkiosk',
           ios: { ...config.ios, bundleIdentifier: `${config.ios.bundleIdentifier}.kiosk` },
         }

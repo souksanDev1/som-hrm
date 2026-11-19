@@ -1,4 +1,4 @@
-# SOM HRM — ລະບົບບໍລິຫານບຸກຄະລາກອນ
+# Tech Solutions HRM — ລະບົບບໍລິຫານບຸກຄະລາກອນ
 
 Monorepo (pnpm workspace) ສຳລັບ HRM ເຟສ 1 — ເບິ່ງແຜນລະອຽດທີ່ [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 

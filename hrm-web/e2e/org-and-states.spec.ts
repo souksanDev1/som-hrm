@@ -12,7 +12,7 @@ test.describe('organisation & system states', () => {
     // Other specs add top-level employees, so locate the seeded manager instead of relying on order.
     const manager = tree.getByRole('treeitem').filter({ has: page.getByTestId('org-node').getByText('ສົມສັກ ພົມມະວົງ', { exact: true }) }).first();
     await expect(manager).toBeVisible();
-    await expect(manager.getByRole('treeitem').getByText('ຄຳແພງ ແກ້ວມະນີ')).toBeVisible();
+    await expect(manager.getByRole('treeitem').getByText('ສຸກສັນ ຈັນທະພອນ')).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 

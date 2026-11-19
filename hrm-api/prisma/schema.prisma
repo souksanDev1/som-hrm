@@ -1,4 +1,4 @@
-// SOM HRM — Phase 1 data model.
+// Tech Solutions HRM — Phase 1 data model.
 // Every tenant table carries `workspaceId` and is protected by PostgreSQL
 // row-level security (see migrations/*_rls). Enum values mirror packages/shared/src/enums.ts.
 

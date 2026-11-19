@@ -243,8 +243,8 @@ describe('SMS fallback rules (FR-NOTI-02.2/02.3)', () => {
 
     const lo = rows.find((d) => d.notification.userId === noApp.id)!.message!;
     const en = rows.find((d) => d.notification.userId === noAppEn.id)!.message!;
-    expect(lo).toBe('SOM HRM: ໃບອະນຸຍາດເຮັດວຽກ ຂອງ ສົມໃຈ ດວງດີ ຈະໝົດອາຍຸໃນ 7 ມື້ (ວັນທີ 2026-11-23)');
-    expect(en).toBe('SOM HRM: Work permit of ສົມໃຈ ດວງດີ expires in 7 days (2026-11-23)');
+    expect(lo).toBe('Tech Solutions HRM: ໃບອະນຸຍາດເຮັດວຽກ ຂອງ ສົມໃຈ ດວງດີ ຈະໝົດອາຍຸໃນ 7 ມື້ (ວັນທີ 2026-11-23)');
+    expect(en).toBe('Tech Solutions HRM: Work permit of ສົມໃຈ ດວງດີ expires in 7 days (2026-11-23)');
     expect(Array.from(lo).length).toBeLessThanOrEqual(SMS_MAX_LENGTH);
 
     // Not a key event, or the caller asked for push only: no SMS.
@@ -267,7 +267,7 @@ describe('SMS fallback rules (FR-NOTI-02.2/02.3)', () => {
     const sms = createConsoleSmsSender();
     const deps = { db: t.db, push: fakeExpo().sender, sms, maxAttempts: 3, now: () => NOW };
     expect(await deliverPendingNotifications(deps, ws.workspaceId)).toMatchObject({ sent: 1 });
-    expect(sms.outbox).toEqual([{ to: '02055552001', body: 'SOM HRM: Work permit of ສົມໃຈ ດວງດີ expires in 7 days (2026-11-23)' }]);
+    expect(sms.outbox).toEqual([{ to: '02055552001', body: 'Tech Solutions HRM: Work permit of ສົມໃຈ ດວງດີ expires in 7 days (2026-11-23)' }]);
 
     // Queued while on, then HR turns SMS off from today: the pending SMS is skipped, not sent.
     await docAlert(ws, [noApp.id], { dedupeKey: 'second' });

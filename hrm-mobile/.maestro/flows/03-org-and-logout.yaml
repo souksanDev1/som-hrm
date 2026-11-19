@@ -29,7 +29,7 @@ name: HR signs in with password, browses the org chart and signs out
 - tapOn:
     id: "tab-org"
 - assertVisible: "ສົມສັກ ພົມມະວົງ"
-- assertVisible: "ຄຳແພງ ແກ້ວມະນີ"
+- assertVisible: "ສຸກສັນ ຈັນທະພອນ"
 - tapOn:
     id: "tab-profile"
 - scrollUntilVisible:

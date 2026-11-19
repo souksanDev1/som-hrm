@@ -15,3 +15,4 @@ export * from './Spinner';
 export * from './StateView';
 export * from './QueryState';
 export * from './Textarea';
+export * from './BrandLogo';

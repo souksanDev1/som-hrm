@@ -15,7 +15,7 @@ export interface EnrolKioskDialogProps {
 
 /**
  * Enrol a kiosk tablet in two steps: branch + name, then the enrol code shown exactly once (only its hash is
- * stored by the API) to copy into the SOM Kiosk app.
+ * stored by the API) to copy into the Tech Solutions Kiosk app.
  */
 export function EnrolKioskDialog({ open, branches, onEnrol, onClose }: EnrolKioskDialogProps) {
   const t = useT();

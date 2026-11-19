@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
-import { Screen } from '@/components/ui';
+import { BrandLogo, BrandMark, Screen } from '@/components/ui';
 import { homeRouteFor, useChangeLocale } from '@/features/auth/hooks';
 import { LoginForm } from '@/features/auth/LoginForm';
 import { useAuthStore } from '@/features/auth/store';
@@ -16,11 +16,10 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
       <Screen testID="login-screen">
         <View className="flex-1 justify-center gap-6">
+          <BrandLogo />
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
-              <View className="h-12 w-12 items-center justify-center rounded-md bg-primary shadow-sm">
-                <Text className="text-xl font-bold text-white">S</Text>
-              </View>
+              <BrandMark />
               <View>
                 <Text className="text-xl font-semibold text-ink dark:text-night-ink">{t('auth.title')}</Text>
                 <Text className="text-xs text-ink-muted">{t('auth.subtitle')}</Text>
