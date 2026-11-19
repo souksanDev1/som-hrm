@@ -1,7 +1,7 @@
-import { documentExpiry, maskSensitive, type EmployeeDetail, type EmployeeSummary, type ExpiringDocument } from '@hrm/shared';
+import { assignmentIssues, documentExpiry, maskSensitive, type EmployeeDetail, type EmployeeSummary, type ExpiringDocument } from '@hrm/shared';
 import type { FieldCipher } from '../../lib/crypto';
 import { toIsoDate } from '../../lib/dates';
-import type { EmployeeWithDetail, EmployeeWithSummary, ExpiringDocumentRow } from './employees.repository';
+import { isActiveStatus, type EmployeeWithDetail, type EmployeeWithSummary, type ExpiringDocumentRow } from './employees.repository';
 
 export const toEmployeeSummary = (e: EmployeeWithSummary): EmployeeSummary => ({
   id: e.id,
@@ -19,6 +19,8 @@ export const toEmployeeSummary = (e: EmployeeWithSummary): EmployeeSummary => ({
   position: e.position,
   branch: e.branch,
   hasLogin: !!e.user,
+  assignmentIncomplete:
+    isActiveStatus(e.status) && assignmentIssues({ departmentId: e.departmentId, managerId: e.managerId, isTopLevel: e.isTopLevel }).length > 0,
 });
 
 const reveal = (cipher: FieldCipher, enc: string | null, canSee: boolean): string | null => {
@@ -75,7 +77,10 @@ export const toEmployeeDetail = (
   probationEndDate: toIsoDate(e.probationEndDate),
   payType: e.payType,
   hazardousWork: e.hazardousWork,
-  manager: e.manager ? { id: e.manager.id, name: `${e.manager.firstName} ${e.manager.lastName}` } : null,
+  isTopLevel: e.isTopLevel,
+  manager: e.manager
+    ? { id: e.manager.id, name: `${e.manager.firstName} ${e.manager.lastName}`, positionName: e.manager.position?.name ?? null }
+    : null,
   documents: e.documents.map((d) => ({
     id: d.id,
     type: d.type,

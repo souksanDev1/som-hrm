@@ -11,7 +11,7 @@ export const employeeSummaryInclude = {
 
 export const employeeDetailInclude = {
   ...employeeSummaryInclude,
-  manager: { select: { id: true, firstName: true, lastName: true } },
+  manager: { select: { id: true, firstName: true, lastName: true, position: { select: { name: true } } } },
   documents: {
     orderBy: { expiresAt: 'asc' },
     include: { file: { select: { id: true, originalName: true, mimeType: true, sizeBytes: true } } },

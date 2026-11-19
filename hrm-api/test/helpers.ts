@@ -12,11 +12,41 @@ export interface TestContext {
   close(): Promise<void>;
 }
 
+/**
+ * `employeePayload` sends this placeholder as `departmentId`; `createTestContext` swaps it for a "Default" department
+ * of the caller's workspace (created on first use, so tests that count departments are unaffected). Together with
+ * `isTopLevel` this keeps fixtures valid under the "department + line manager or top level" rule.
+ */
+export const DEFAULT_DEPARTMENT = '__default_department__';
+
+const withDefaultDepartment = (app: AppInstance, db: Db) => {
+  const cache = new Map<string, Promise<string>>();
+  const resolve = (workspaceId: string) => {
+    let id = cache.get(workspaceId);
+    if (!id) {
+      id = db.tenant(workspaceId, (tx) => tx.department.create({ data: { workspaceId, name: 'Default' } })).then((d) => d.id);
+      cache.set(workspaceId, id);
+    }
+    return id;
+  };
+  type Opts = { headers?: { authorization?: string }; payload?: { departmentId?: string } & Record<string, unknown> };
+  const inject = app.inject.bind(app) as unknown as (opts: Opts) => Promise<unknown>;
+  (app as unknown as { inject: typeof inject }).inject = async (opts: Opts) => {
+    const token = String(opts?.headers?.authorization ?? '').replace(/^Bearer /, '');
+    if (opts?.payload?.departmentId === DEFAULT_DEPARTMENT && token) {
+      const ws = (JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString()) as { ws?: string }).ws;
+      if (ws) return inject({ ...opts, payload: { ...opts.payload, departmentId: await resolve(ws) } });
+    }
+    return inject(opts);
+  };
+};
+
 export const createTestContext = async (envOverrides: Record<string, string> = {}): Promise<TestContext> => {
   const env = testEnv(envOverrides);
   const db = createDb(env.DATABASE_URL);
   const app = await buildApp({ env, db, logger: false });
   await app.ready();
+  withDefaultDepartment(app, db);
   return {
     app,
     db,
@@ -82,5 +112,8 @@ export const employeePayload = (overrides: Record<string, unknown> = {}) => ({
   gender: 'FEMALE',
   hireDate: '2024-01-15',
   contractType: 'INDEFINITE', payType: 'MONTHLY',
+  // Fixtures are top-level employees of the workspace's default department unless a test says otherwise.
+  departmentId: DEFAULT_DEPARTMENT,
+  isTopLevel: !('managerId' in overrides),
   ...overrides,
 });

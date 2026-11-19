@@ -81,7 +81,7 @@ describe('B2: PATCH can clear optional fields', () => {
       socialSecurityNo: 'SS1234567', idCardNo: 'ID-777-888',
     });
     const res = await req('PATCH', token, `/employees/${employee.id}`, {
-      managerId: null, email: null, socialSecurityNo: null, idCardNo: '', nickname: '', dateOfBirth: null,
+      managerId: null, isTopLevel: true, email: null, socialSecurityNo: null, idCardNo: '', nickname: '', dateOfBirth: null,
     });
     expect(res.statusCode).toBe(200);
     const d = res.json<EmployeeDetail>();

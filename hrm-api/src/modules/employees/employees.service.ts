@@ -1,6 +1,9 @@
 import {
+  assignmentIssues,
   CONTRACT_END_REQUIRED,
+  effectiveAssignment,
   employmentDateIssues,
+  type Assignment,
   missingContractEnd,
   PERMISSIONS,
   type CreateDocumentData as DocumentData,
@@ -33,7 +36,7 @@ import { toEmployeeDetail, toEmployeeSummary, toExpiringDocument, type ExpiryCon
 import { employeesRepository as repo, isActiveStatus } from './employees.repository';
 
 /** Fields whose change is recorded in EmploymentHistory (FR-EMP-08). */
-const TRACKED_FIELDS = ['status', 'departmentId', 'positionId', 'branchId', 'managerId', 'contractType', 'payType'] as const;
+const TRACKED_FIELDS = ['status', 'departmentId', 'positionId', 'branchId', 'managerId', 'isTopLevel', 'contractType', 'payType'] as const;
 /** History fields holding ids that the history endpoint resolves to display names. */
 const REF_FIELDS = ['branchId', 'departmentId', 'positionId', 'managerId'] as const;
 
@@ -114,6 +117,12 @@ const writeUnique = async <T>(tx: Tx, workspaceId: string, excludeId: string | n
     await assertUnique(tx, workspaceId, excludeId, keys);
     throw conflict();
   }
+};
+
+/** 400 for the first department / line-manager rule broken (department is reported before manager). */
+const assertAssignment = (changes: Assignment, stored?: Assignment | null) => {
+  const [issue] = assignmentIssues(changes, stored);
+  if (issue) throw badRequest(issue, { fields: [issue === 'department_required' ? 'departmentId' : 'managerId'] });
 };
 
 const asRecord = (v: Prisma.JsonValue | null) => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
@@ -268,7 +277,10 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
   /** One create path for the API and (per row) for bulk import (FR-EMP-09): validate with createEmployeeSchema first. */
   const createEmployee = async (tx: Tx, ctx: AuthContext, input: CreateEmployeeData): Promise<CreateEmployeeResponse> => {
     const ws = ctx.workspaceId;
-    await assertRefs(tx, ws, input);
+    // The schema already enforces this; the service re-checks for callers that bypass it.
+    assertAssignment(input);
+    const assignment = effectiveAssignment(input);
+    await assertRefs(tx, ws, { ...input, ...assignment });
     await assertOpenOrgUnits(tx, ws, input);
     if (isActiveStatus(input.status)) await assertSeatAvailable(tx, ws);
     const { login, idCardNo, socialSecurityNo, familyBookNo, dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate, hireDate, ...rest } =
@@ -279,6 +291,7 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
     const employee = await writeUnique(tx, ws, null, keys, () =>
       repo.create(tx, {
         ...rest,
+        ...assignment,
         workspaceId: ws,
         hireDate: parseIsoDate(hireDate),
         ...dateColumns({ dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate }),
@@ -356,9 +369,13 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
       db.tenant(ctx.workspaceId, async (tx) => {
         const ws = ctx.workspaceId;
         const before = await findInScope(tx, ctx, id);
-        await assertRefs(tx, ws, input);
+        const stored = { departmentId: before.departmentId, managerId: before.managerId, isTopLevel: before.isTopLevel };
+        const touchesAssignment = input.departmentId !== undefined || input.managerId !== undefined || input.isTopLevel !== undefined;
+        // Written when any of the three keys is sent, so a manager / top-level side effect persists.
+        const assignment = touchesAssignment ? effectiveAssignment(input, stored) : null;
+        await assertRefs(tx, ws, assignment ? { ...input, ...assignment } : input);
         await assertOpenOrgUnits(tx, ws, input, before);
-        await assertNoManagerCycle(tx, ws, id, input.managerId);
+        if (assignment) await assertNoManagerCycle(tx, ws, id, assignment.managerId);
         const nationalityType = input.nationalityType ?? before.nationalityType;
         const nationality = input.nationality !== undefined ? input.nationality : before.nationality;
         if (nationalityType === 'FOREIGN' && !nationality) throw badRequest('nationality_required');
@@ -382,11 +399,13 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
           contractEndDate: contractEndDate !== undefined ? contractEndDate : storedContract.contractEndDate,
         };
         if (missingContractEnd(nextContract, storedContract)) throw badRequest(CONTRACT_END_REQUIRED, { fields: ['contractEndDate'] });
+        assertAssignment(input, stored);
         const pii = piiColumns({ idCardNo, socialSecurityNo, familyBookNo });
         const keys = { employeeCode: input.employeeCode, ...pii };
         await assertUnique(tx, ws, id, keys);
         const data: Prisma.EmployeeUncheckedUpdateInput = {
           ...rest,
+          ...assignment,
           ...(hireDate ? { hireDate: parseIsoDate(hireDate) } : {}),
           ...dateColumns({ dateOfBirth, ssnRegisteredAt, contractEndDate, probationEndDate }),
           ...pii,
@@ -394,14 +413,16 @@ export const createEmployeesService = (db: Db, cipher: FieldCipher, deps: Employ
         await writeUnique(tx, ws, id, keys, () => repo.update(tx, id, data));
         if (isActiveStatus(before.status) && !isActiveStatus(status)) await deactivateLogin(tx, ctx, id, status);
 
-        const changed = TRACKED_FIELDS.filter((f) => input[f] !== undefined && input[f] !== before[f]);
+        // Compare the values actually written, so a manager cleared by ticking "top level" is recorded too.
+        const next: Partial<Record<(typeof TRACKED_FIELDS)[number], string | boolean | null>> = { ...input, ...assignment };
+        const changed = TRACKED_FIELDS.filter((f) => next[f] !== undefined && next[f] !== before[f]);
         if (changed.length) {
           await repo.createHistory(tx, {
             workspaceId: ws,
             employeeId: id,
             changeType: 'UPDATED',
             fromValue: Object.fromEntries(changed.map((f) => [f, before[f]])),
-            toValue: Object.fromEntries(changed.map((f) => [f, input[f]])),
+            toValue: Object.fromEntries(changed.map((f) => [f, next[f]])),
             // FR-EMP-08.4: HR may back/forward-date the change; otherwise "today" in the workspace timezone.
             effectiveDate: parseIsoDate(effectiveDate ?? (await today(tx, ws))),
             createdById: ctx.userId,

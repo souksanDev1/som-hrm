@@ -194,8 +194,8 @@ describe('FR-EMP-08: employment history with effective dates', () => {
     });
     expect(Object.keys(page.items[0]!.toValue!)).toEqual(['payType']);
     expect(page.items[1]).toMatchObject({
-      fromValue: { positionId: null, branchId: null, departmentId: null, managerId: null },
-      toValue: { positionId: pos.id, branchId: branch.id, departmentId: dept.id, managerId: boss.id },
+      fromValue: { positionId: null, branchId: null, departmentId: e.department!.id, managerId: null, isTopLevel: true },
+      toValue: { positionId: pos.id, branchId: branch.id, departmentId: dept.id, managerId: boss.id, isTopLevel: false },
       labels: { [pos.id]: 'Lead', [branch.id]: 'Pakse', [dept.id]: 'Ops', [boss.id]: 'ນາຍ ໃຫຍ່' },
     });
     expect(page.items[2]).toMatchObject({ changeType: 'HIRED', toValue: { contractType: 'INDEFINITE', payType: 'MONTHLY', status: 'PROBATION' } });
