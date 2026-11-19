@@ -34,7 +34,7 @@ describe('Home presentation', () => {
     expect(screen.getByTestId('home-greeting')).toHaveTextContent('Anna A');
     expect(screen.getByTestId('home-employee-code')).toHaveTextContent('E003');
     expect(screen.getByText('Accountant · Finance')).toBeTruthy();
-    expect(screen.getByText('11.5/18')).toBeTruthy();
+    expect(screen.getByLabelText('11.5/18')).toBeTruthy();
     expect(screen.getByText('Annual leave')).toBeTruthy();
     expect(screen.getByTestId('header-unread-count')).toHaveTextContent('13');
   });
@@ -66,7 +66,7 @@ describe('Home presentation', () => {
     mockBalances.error = new Error('offline');
     render(<HomeScreen />);
     expect(screen.getByTestId('open-leave')).toBeTruthy();
-    expect(screen.queryByText('11.5/18')).toBeNull();
+    expect(screen.queryByLabelText('11.5/18')).toBeNull();
   });
 });
 

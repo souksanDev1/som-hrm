@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, useWindowDimensions, View } from 'react-native';
+import { Redirect, router, Tabs } from 'expo-router';
+import { ActivityIndicator, Pressable, useWindowDimensions, View } from 'react-native';
 import { homeRouteFor, useMe } from '@/features/auth/hooks';
 import { useAuthStore } from '@/features/auth/store';
 import { CheckinAutoSync } from '@/features/checkin/CheckinAutoSync';
@@ -52,10 +52,21 @@ export default function TabsLayout() {
           tabBarLabelPosition: width >= 768 ? 'beside-icon' : 'below-icon',
           tabBarLabelStyle: { fontSize: 12, paddingBottom: 3 },
           tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#E9EDF3' },
+          // No pressed highlight: drop Android's white ripple and iOS's opacity flash.
+          tabBarButton: ({ ref: _ref, style, children, ...props }) => (
+            <Pressable {...props} android_ripple={null} style={style}>{children}</Pressable>
+          ),
         }}
       >
         <Tabs.Screen name="home" options={{ title: t('nav.dashboard'), tabBarIcon: icon('home'), tabBarButtonTestID: 'tab-home' }} />
-        <Tabs.Screen name="org" options={{ title: t('nav.org'), tabBarIcon: icon('account-tree'), tabBarButtonTestID: 'tab-org' }} />
+        <Tabs.Screen
+          name="leave-tab"
+          options={{ title: t('nav.leave'), tabBarIcon: icon('event-busy'), tabBarButtonTestID: 'tab-leave' }}
+          // Open the real /leave stack instead of the placeholder tab.
+          listeners={{ tabPress: (e) => { e.preventDefault(); router.push('/leave'); } }}
+        />
+        {/* Org chart left the tab bar; it stays reachable from the home quick-access grid. */}
+        <Tabs.Screen name="org" options={{ title: t('nav.org'), href: null }} />
         <Tabs.Screen
           name="notifications"
           options={{

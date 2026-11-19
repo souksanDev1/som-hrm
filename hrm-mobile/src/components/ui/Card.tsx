@@ -3,7 +3,12 @@ import { Text, View } from 'react-native';
 
 export function Card({ title, right, children, testID }: { title?: string; right?: ReactNode; children: ReactNode; testID?: string }) {
   return (
-    <View testID={testID} className="mb-4 rounded-lg border border-line bg-white p-4 shadow-sm dark:border-night-line dark:bg-night-surface">
+    <View
+      testID={testID}
+      className="mb-4 rounded-2xl border border-line/60 bg-white p-4 dark:border-night-line dark:bg-night-surface"
+      // Soft, tinted elevation instead of a hard outline: crisper edges and a sense of depth.
+      style={{ shadowColor: '#1E2A5A', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 }}
+    >
       {title || right ? (
         <View className="mb-3 flex-row items-center justify-between">
           {title ? <Text className="text-base font-semibold text-ink dark:text-night-ink">{title}</Text> : <View />}

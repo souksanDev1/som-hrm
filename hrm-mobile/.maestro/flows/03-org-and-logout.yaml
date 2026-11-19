@@ -27,7 +27,7 @@ name: HR signs in with password, browses the org chart and signs out
 - assertVisible:
     id: "home-screen"
 - tapOn:
-    id: "tab-org"
+    id: "open-org"
 - assertVisible: "ສົມສັກ ພົມມະວົງ"
 - assertVisible: "ສຸກສັນ ຈັນທະພອນ"
 - tapOn:
