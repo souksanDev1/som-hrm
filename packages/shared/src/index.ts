@@ -4,6 +4,7 @@ export * from './domain/lao-labor';
 export * from './domain/documents';
 export * from './domain/notifications';
 export * from './domain/lao-address';
+export * from './domain/name';
 export * from './domain/parameters';
 export * from './domain/geo';
 export * from './domain/holidays';

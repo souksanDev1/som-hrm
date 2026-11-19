@@ -55,14 +55,13 @@ const resolverFor =
     const result = await zodResolver(updateEmployeeSchema)(toUpdateFields(values) as never, ctx, opts as never);
     // Department / line manager are only enforced when this edit touches them, so a legacy employee can still be resigned.
     const issues = assignmentIssues(toUpdatePayload(values, initial) as Assignment, toUpdateFields(initial) as Assignment);
-    if (issues.length) {
-      const errors = { ...result.errors } as Record<string, unknown>;
-      for (const code of issues) errors[code === 'department_required' ? 'departmentId' : 'managerId'] = { type: 'custom', message: code };
-      return { values: {}, errors } as never;
+    const errors = { ...result.errors } as Record<string, unknown>;
+    for (const code of issues) errors[code === 'department_required' ? 'departmentId' : 'managerId'] = { type: 'custom', message: code };
+    if (!errors.contractEndDate && missingContractEnd(toUpdateFields(values), toUpdateFields(initial))) {
+      errors.contractEndDate = { type: 'custom', message: CONTRACT_END_REQUIRED };
     }
-    if (!result.errors.contractEndDate && missingContractEnd(toUpdateFields(values), toUpdateFields(initial))) {
-      return { values: {}, errors: { ...result.errors, contractEndDate: { type: 'custom', message: CONTRACT_END_REQUIRED } } } as never;
-    }
+    // One errors object, so every problem shows at once.
+    if (Object.keys(errors).length > Object.keys(result.errors).length) return { values: {}, errors } as never;
     return result as never;
   };
 

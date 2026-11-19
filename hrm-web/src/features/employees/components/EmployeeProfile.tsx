@@ -73,7 +73,7 @@ export function EmployeeProfile({ employee: e }: { employee: EmployeeDetail }) {
             {e.hazardousWork && <Row label={t('employee.hazardousWork')} value={t('common.yes')} />}
           </dl>
         </Card>
-        <LineManagerCard manager={e.manager} isTopLevel={e.isTopLevel} department={e.department} />
+        <LineManagerCard manager={e.manager} isTopLevel={e.isTopLevel} department={e.department} showDepartment={false} />
         <EmergencyContactsCard employeeId={e.id} contacts={e.emergencyContacts} canEdit={canEdit} />
         <HistoryCard employeeId={e.id} />
         {canManageUsers && <CredentialCard employeeId={e.id} hasLogin={e.hasLogin} />}

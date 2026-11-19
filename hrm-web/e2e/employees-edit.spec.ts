@@ -9,7 +9,7 @@ const createEmployee = async (page: Page, code: string, extra: (page: Page) => P
   await page.locator('#lastName').fill(code);
   await page.locator('#hireDate').fill('2026-01-05');
   await page.locator('#departmentId').selectOption({ label: 'ປະຕິບັດການ' });
-  await page.locator('#managerId').selectOption({ label: 'E002 · ບົວພັນ ສີສຸວັນ' });
+  await page.locator('#isTopLevel').check();
   await extra(page);
   await page.getByTestId('employee-submit').click();
   await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);
@@ -106,6 +106,7 @@ test.describe('employee edit, contacts, history and document delete', () => {
 
     await page.getByRole('link', { name: /^(ແກ້ໄຂ|Edit)$/ }).click();
     // Seeded E001 (ສົມສັກ ພົມມະວົງ) becomes the manager, effective on a date HR picks.
+    await page.locator('#isTopLevel').uncheck();
     await page.locator('#managerId').selectOption({ label: 'E001 · ສົມສັກ ພົມມະວົງ' });
     await page.locator('#effectiveDate').fill('2026-03-01');
     await page.getByTestId('employee-submit').click();

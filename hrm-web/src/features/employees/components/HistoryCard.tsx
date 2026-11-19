@@ -16,6 +16,7 @@ function Changes({ entry }: { entry: EmploymentHistoryEntry }) {
   const keys = Object.keys(entry.toValue ?? {});
   const show = (k: string, v: unknown) => {
     if (v === null || v === undefined) return '—';
+    if (typeof v === 'boolean') return t(v ? 'common.yes' : 'common.no');
     if (k === 'status') return t(`status.${String(v)}`);
     if (k === 'employmentType') return t(`employmentType.${String(v)}`);
     if (k === 'contractType') return t(`empx.contractType.${String(v)}`);

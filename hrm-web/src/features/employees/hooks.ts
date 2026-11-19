@@ -33,6 +33,8 @@ export const useMyProfile = () =>
         if (err instanceof ApiError && err.status === 404 && err.code === 'no_employee_profile') return null;
         throw err;
       }),
+    // 403 / 404 are answers, not glitches: do not make the account page wait through retries.
+    retry: (count, err) => !(err instanceof ApiError && (err.status === 403 || err.status === 404)) && count < 3,
   });
 
 /** Employment history, newest first (paginated by the API). */

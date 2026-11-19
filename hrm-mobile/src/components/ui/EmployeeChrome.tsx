@@ -1,10 +1,12 @@
+import { nameInitial } from '@hrm/shared';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { useT } from '@/lib/i18n';
 
 /** Presentation only: the employee API does not currently expose a profile photo. */
-export function EmployeeAvatar({ name, size = 72, testID }: { name?: string; size?: number; testID?: string }) {
+export function EmployeeAvatar({ name, size = 72, testID, initials = false }: { name?: string; size?: number; testID?: string; initials?: boolean }) {
+  const letter = initials && name ? nameInitial(name) : '';
   return (
     <View
       testID={testID}
@@ -12,7 +14,11 @@ export function EmployeeAvatar({ name, size = 72, testID }: { name?: string; siz
       accessibilityLabel={name}
       style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: '#FFFFFF', backgroundColor: '#E8ECF5', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
     >
-      <MaterialIcons name="person-outline" size={size * 0.6} color="#65738E" />
+      {letter ? (
+        <Text testID={testID ? `${testID}-initial` : undefined} style={{ fontSize: size * 0.42, fontWeight: '600', color: '#2C3E91' }}>{letter}</Text>
+      ) : (
+        <MaterialIcons name="person-outline" size={size * 0.6} color="#65738E" />
+      )}
     </View>
   );
 }

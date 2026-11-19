@@ -1,15 +1,23 @@
 'use client';
-import type { EmployeeDetail } from '@hrm/shared';
+import { nameInitial, type EmployeeDetail } from '@hrm/shared';
 import { Card } from '@/components/ui';
 import { useT } from '@/lib/i18n';
 
-/** Department and line manager (or "top level, requests go to HR") of one employee. */
-export function LineManagerCard({ manager, isTopLevel, department }: Pick<EmployeeDetail, 'manager' | 'isTopLevel' | 'department'>) {
+/**
+ * Line manager (or "top level, requests go to HR") of one employee, with their department unless the page
+ * already shows it (`showDepartment={false}`).
+ */
+export function LineManagerCard({
+  manager,
+  isTopLevel,
+  department,
+  showDepartment = true,
+}: Pick<EmployeeDetail, 'manager' | 'isTopLevel' | 'department'> & { showDepartment?: boolean }) {
   const t = useT();
   return (
     <Card title={t('employee.lineManager')}>
       <div data-testid="line-manager" className="flex flex-col gap-3">
-        {department && (
+        {showDepartment && department && (
           <p className="text-sm text-ink-muted">
             {t('employee.department')}: <span className="text-ink dark:text-night-ink">{department.name}</span>
           </p>
@@ -20,7 +28,7 @@ export function LineManagerCard({ manager, isTopLevel, department }: Pick<Employ
               aria-hidden
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary"
             >
-              {manager.name.slice(0, 1)}
+              {nameInitial(manager.name)}
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-ink dark:text-night-ink">{manager.name}</p>

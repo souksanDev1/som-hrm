@@ -190,6 +190,17 @@ describe('EmployeeForm: department and line manager', () => {
     expect(onSubmit.mock.calls[0]![0]).toMatchObject({ departmentId: 'd1', managerId: 'm1', isTopLevel: false });
   });
 
+  it('edit: a missing contract end date and a cleared department are both shown at once', async () => {
+    const onSubmit = vi.fn();
+    render(<EmployeeForm mode="edit" defaultValues={{ ...base, departmentId: 'd1', managerId: 'm1' }} onSubmit={onSubmit} onCancel={() => undefined} />);
+    await userEvent.selectOptions(screen.getByLabelText(/ປະເພດສັນຍາ|Contract type/), 'FIXED_TERM');
+    await userEvent.selectOptions(screen.getByLabelText(/ພະແນກ|Department/), '');
+    submitForm();
+    await waitFor(() => expect(screen.getByText(DEPARTMENT_REQUIRED)).toBeInTheDocument());
+    expect(screen.getByText('ສັນຍາແບບມີກຳນົດເວລາ ຕ້ອງໃສ່ວັນໝົດສັນຍາ')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('edit: a legacy employee gets a warning banner, and a status-only change still submits', async () => {
     const onSubmit = vi.fn();
     render(<EmployeeForm mode="edit" defaultValues={base} onSubmit={onSubmit} onCancel={() => undefined} />);
@@ -271,6 +282,11 @@ describe('LineManagerCard', () => {
     expect(screen.getByText('Lead')).toBeInTheDocument();
     expect(screen.getByText('Ops')).toBeInTheDocument();
   });
+  it('hides the department when the page already shows it, and skips a pre-posed vowel in the initial', () => {
+    render(<LineManagerCard manager={{ id: 'm1', name: 'ເພັດ ດາວັນ', positionName: null }} isTopLevel={false} department={dept} showDepartment={false} />);
+    expect(screen.queryByText('Ops')).toBeNull();
+    expect(screen.getByText('ພ')).toBeInTheDocument();
+  });
   it('shows the top-level text', () => {
     render(<LineManagerCard manager={null} isTopLevel department={dept} />);
     expect(screen.getByText('ຄົນເທິງສຸດ — ຄຳຂໍໄປຫາ HR')).toBeInTheDocument();
@@ -308,8 +324,9 @@ describe('HistoryCard', () => {
         entry({ fromValue: { positionId: null, managerId: 'm1' }, toValue: { positionId: 'p1', managerId: 'm2' }, labels: { p1: 'Lead', m1: 'Boss', m2: 'New Boss' } }),
         entry({ fromValue: { payType: 'MONTHLY' }, toValue: { payType: 'HOURLY' } }),
         entry({ effectiveDate: '2024-01-01', fromValue: { employmentType: 'FULL_TIME' }, toValue: { employmentType: 'CONTRACT' } }),
+        entry({ fromValue: { isTopLevel: false }, toValue: { isTopLevel: true } }),
       ],
-      total: 3, page: 1, pageSize: 10,
+      total: 4, page: 1, pageSize: 10,
     };
     render(<HistoryCard employeeId="e1" />);
     const rows = screen.getAllByTestId('history-row');
@@ -317,6 +334,7 @@ describe('HistoryCard', () => {
     expect(rows[0]).toHaveTextContent('ຫົວໜ້າ: Boss → New Boss');
     expect(rows[1]).toHaveTextContent('ລາຍເດືອນ → ລາຍຊົ່ວໂມງ');
     expect(rows[2]).toHaveTextContent('ເຕັມເວລາ → ສັນຍາ');
+    expect(rows[3]).toHaveTextContent('ຄົນເທິງສຸດ: ບໍ່ → ແມ່ນ');
   });
 });
 

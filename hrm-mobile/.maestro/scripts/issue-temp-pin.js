@@ -11,12 +11,19 @@ var login = http.post(api + '/auth/login', {
 });
 var token = JSON.parse(login.body).accessToken;
 
+// Every employee needs a department and a line manager (or the top-level flag): use the seeded department.
+var departments = JSON.parse(http.get(api + '/departments', { headers: { Authorization: 'Bearer ' + token } }).body);
+var departmentId = '';
+for (var i = 0; i < departments.length; i++) {
+  if (departments[i].name === 'ປະຕິບັດການ') departmentId = departments[i].id;
+}
+
 var code = 'M' + String(new Date().getTime()).slice(-7);
 var created = http.post(api + '/employees', {
   headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
   body: JSON.stringify({
     employeeCode: code, firstName: 'ທົດສອບ', lastName: 'Maestro', gender: 'MALE',
-    hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'DAILY', login: { method: 'PIN' },
+    hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'DAILY', departmentId: departmentId, isTopLevel: true, login: { method: 'PIN' },
   }),
 });
 output.employeeCode = code;

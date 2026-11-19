@@ -55,7 +55,7 @@ export default function PersonalInfoScreen() {
                 <Text className="mb-2 text-base font-semibold text-ink dark:text-night-ink">{t('employee.lineManager')}</Text>
                 {e.manager ? (
                   <View className="flex-row items-center gap-3">
-                    <EmployeeAvatar name={e.manager.name} size={44} />
+                    <EmployeeAvatar name={e.manager.name} size={44} initials testID="line-manager-avatar" />
                     <View className="flex-1">
                       <Text testID="line-manager-name" className="text-sm font-medium text-ink dark:text-night-ink">{e.manager.name}</Text>
                       {e.manager.positionName ? <Text className="text-xs text-ink-muted">{e.manager.positionName}</Text> : null}

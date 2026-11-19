@@ -76,9 +76,16 @@ describe('Line manager card', () => {
     expect(screen.getByTestId('line-manager-card')).toBeTruthy();
     expect(screen.getByText('ຫົວໜ້າສາຍງານ')).toBeTruthy();
     expect(screen.getByTestId('line-manager-name')).toHaveTextContent('ບົວພັນ ສີສຸວັນ');
+    expect(screen.getByTestId('line-manager-avatar-initial')).toHaveTextContent('ບ');
     expect(screen.getByText('ຫົວໜ້າໜ້າງານ')).toBeTruthy();
     expect(screen.queryByTestId('line-manager-top')).toBeNull();
     expect(screen.queryByTestId('line-manager-missing')).toBeNull();
+  });
+
+  it('skips a pre-posed Lao vowel in the manager initial', () => {
+    mockProfile.data = { ...profile, manager: { id: 'e3', name: 'ເພັດ ດາວັນ', positionName: null } };
+    render(<PersonalInfoScreen />);
+    expect(screen.getByTestId('line-manager-avatar-initial')).toHaveTextContent('ພ');
   });
 
   it('shows the top-level notice when the employee has no manager by design', () => {

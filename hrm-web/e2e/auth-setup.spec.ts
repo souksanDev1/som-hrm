@@ -16,11 +16,17 @@ const issueTemporaryPassword = async (request: APIRequestContext) => {
   const { accessToken } = (await login.json()) as { accessToken: string };
   const suffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const email = `e2e-${suffix}@som.la`;
+  const headers = { authorization: `Bearer ${accessToken}` };
+  // Every employee needs a department and a line manager (or the top-level flag): use the seeded one.
+  const departments = await request.get(`${API}/departments`, { headers });
+  expect(departments.ok()).toBeTruthy();
+  const department = ((await departments.json()) as { id: string; name: string }[]).find((d) => d.name === 'ປະຕິບັດການ');
+  expect(department).toBeTruthy();
   const created = await request.post(`${API}/employees`, {
-    headers: { authorization: `Bearer ${accessToken}` },
+    headers,
     data: {
       employeeCode: `X${suffix.slice(-8)}`, firstName: 'ທົດສອບ', lastName: 'E2E', gender: 'FEMALE', email,
-      hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'MONTHLY', login: { method: 'PASSWORD' },
+      hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'MONTHLY', departmentId: department!.id, isTopLevel: true, login: { method: 'PASSWORD' },
     },
   });
   expect(created.status()).toBe(201);

@@ -93,6 +93,21 @@ describe('department + line manager assignment', () => {
     expect(JSON.stringify(res.json())).toContain('manager_conflicts_top_level'); // rejected by the request schema
   });
 
+  it('the service rejects isTopLevel together with managerId on update, for callers that bypass the schema', async () => {
+    const { ws, e2, e3 } = await setup();
+    const { createEmployeesService } = await import('../src/modules/employees/employees.service');
+    const service = createEmployeesService(t.db, createFieldCipher(randomBytes(32).toString('base64')));
+    const ctx = { workspaceId: ws.workspaceId, userId: null, employeeId: null, roles: [], permissions: ['employee.read', 'employee.read_all', 'employee.write'] } as never;
+    await expect(service.update(ctx, e3.id, { isTopLevel: true, managerId: e2.id } as never)).rejects.toMatchObject({ code: 'manager_conflicts_top_level' });
+  });
+
+  it('PATCH departmentId null -> 400 department_required', async () => {
+    const { token, e3 } = await setup();
+    const res = await req('PATCH', token, `/employees/${e3.id}`, { departmentId: null });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatchObject({ code: 'department_required' });
+  });
+
   it('PATCH managerId null on an employee that is not top level -> 400 manager_required', async () => {
     const { token, e3 } = await setup();
     const res = await req('PATCH', token, `/employees/${e3.id}`, { managerId: null });
@@ -108,13 +123,18 @@ describe('department + line manager assignment', () => {
   });
 
   it('detail and /me/profile expose the manager with the position name', async () => {
-    const { ws, token, e2, e3, position } = await setup();
+    const { ws, token, e1, e2, e3, position } = await setup();
     const expected = { id: e2.id, name: 'ບົວພັນ ສີສຸວັນ', positionName: position.name };
     expect((await req('GET', token, `/employees/${e3.id}`)).json<EmployeeDetail>().manager).toEqual(expected);
     const email = `e3-${randomUUID().slice(0, 6)}@x.test`;
     await createUser(t.db, ws, { email, password: 'Passw0rd1', role: 'EMPLOYEE', employeeId: e3.id });
     const own = (await loginAs(t.app, ws.code, email, 'Passw0rd1')).accessToken;
-    expect((await req('GET', own, '/me/profile')).json<EmployeeDetail>().manager).toEqual(expected);
+    const mine = (await req('GET', own, '/me/profile')).json<EmployeeDetail>();
+    expect(mine.manager).toEqual(expected);
+    expect(mine.manager?.positionName).toBe(position.name);
+    expect(mine.isTopLevel).toBe(false);
+    const boss = (await req('GET', token, `/employees/${e1.id}`)).json<EmployeeDetail>();
+    expect(boss).toMatchObject({ isTopLevel: true, manager: null });
   });
 
   it('the list flags incomplete active rows only', async () => {
