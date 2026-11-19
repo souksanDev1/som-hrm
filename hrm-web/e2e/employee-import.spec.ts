@@ -1,7 +1,9 @@
 import { expect, test, type TestInfo } from '@playwright/test';
 import { loginAsAdmin } from './fixtures';
 
-const HEADER = 'employeeCode,firstName,lastName,gender,hireDate,contractType,payType';
+const HEADER = 'employeeCode,firstName,lastName,gender,hireDate,contractType,payType,department,isTopLevel';
+/** Department and line manager are required: the seeded operations department, with the row marked top level. */
+const ASSIGN = 'ປະຕິບັດການ,yes';
 
 /** Codes unique per project (desktop/tablet/mobile) and per run, so reruns never collide. */
 const codePrefix = (info: TestInfo) => `IM${info.project.name.slice(0, 1).toUpperCase()}${Date.now().toString(36).slice(-5).toUpperCase()}`;
@@ -23,7 +25,7 @@ test.describe('employee import', () => {
     expect(download.suggestedFilename()).toBe('employee-import-template.csv');
 
     await page.getByTestId('import-file').setInputFiles(
-      csvFile([`${prefix}-1,ສົມໃຈ,ນຳເຂົ້າ,FEMALE,2024-01-15,INDEFINITE,MONTHLY`, `${prefix}-2,ສົມພອນ,ນຳເຂົ້າ,MALE,2024-02-01,PROBATION,DAILY`]),
+      csvFile([`${prefix}-1,ສົມໃຈ,ນຳເຂົ້າ,FEMALE,2024-01-15,INDEFINITE,MONTHLY,${ASSIGN}`, `${prefix}-2,ສົມພອນ,ນຳເຂົ້າ,MALE,2024-02-01,PROBATION,DAILY,${ASSIGN}`]),
     );
     await expect(page.getByTestId('import-summary')).toBeVisible();
     await expect(page.getByTestId('import-sample-row')).toHaveCount(2);
@@ -43,8 +45,8 @@ test.describe('employee import', () => {
     await page.goto('/employees/import');
     await page.getByTestId('import-file').setInputFiles(
       csvFile([
-        `${prefix}-1,ສົມ,ດີ,MALE,2024-01-15,INDEFINITE,MONTHLY`,
-        `${prefix}-1,ສົມ,ດີ,ROBOT,2024-13-01,INDEFINITE,MONTHLY`,
+        `${prefix}-1,ສົມ,ດີ,MALE,2024-01-15,INDEFINITE,MONTHLY,${ASSIGN}`,
+        `${prefix}-1,ສົມ,ດີ,ROBOT,2024-13-01,INDEFINITE,MONTHLY,${ASSIGN}`,
       ]),
     );
     const errors = page.getByTestId('import-error');

@@ -18,7 +18,27 @@ afterAll(() => t.close());
 // ─────────────────────────── helpers ───────────────────────────
 
 const HEADERS = ['employeeCode', 'firstName', 'lastName', 'gender', 'hireDate', 'contractType', 'payType'];
-const csv = (rows: (string | number)[][], headers = HEADERS) =>
+/**
+ * Builds a CSV. Valid rows need a department and a line manager or top-level flag, so columns the caller did not
+ * supply are filled in: `department` = Core (created by `setup`), `isTopLevel` = yes for rows with no manager code.
+ */
+const csv = (rows: (string | number)[][], headers = HEADERS) => {
+  const addDept = !headers.includes('department');
+  const addTop = !headers.includes('isTopLevel');
+  const mgr = headers.indexOf('managerCode');
+  const full = [
+    [...headers, ...(addDept ? ['department'] : []), ...(addTop ? ['isTopLevel'] : [])],
+    ...rows.map((r) => {
+      const cells = r.length ? [...r] : r;
+      if (!cells.length) return cells;
+      while (cells.length < headers.length) cells.push('');
+      return [...cells, ...(addDept ? ['Core'] : []), ...(addTop ? [mgr >= 0 && String(cells[mgr] ?? '') ? '' : 'yes'] : [])];
+    }),
+  ];
+  return Buffer.from(full.map((r) => r.map((v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v)).join(',')).join('\n'));
+};
+/** Raw CSV exactly as given (no filled-in columns). */
+const rawCsv = (rows: (string | number)[][], headers: string[]) =>
   Buffer.from([headers, ...rows].map((r) => r.map((v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v)).join(',')).join('\n'));
 const row = (code: string, extra: (string | number)[] = []) => [code, 'ສົມ', 'ດີ', 'MALE', '2024-01-15', 'INDEFINITE', 'MONTHLY', ...extra];
 
@@ -59,7 +79,9 @@ const errorsOf = (p: { errors: EmployeeImportError[] }) => p.errors.map((e) => `
 
 const setup = async (seatLimit?: number) => {
   const ws = await createWorkspace(t.db, seatLimit);
-  return { ws, token: await ownerToken(ws) };
+  const token = await ownerToken(ws);
+  expect((await post(token, '/departments', { name: 'Core' })).statusCode).toBe(201);
+  return { ws, token };
 };
 
 const xlsx = async (rows: ExcelJS.CellValue[][]) => {
@@ -95,6 +117,7 @@ describe('GET /employees/import/template', () => {
     const text = csvRes.rawPayload.toString('utf8');
     expect(text.startsWith('﻿')).toBe(true);
     expect(text).toContain('ລະຫັດພະນັກງານ / Employee code *');
+    expect(text).toContain(columnHeader(EMPLOYEE_IMPORT_COLUMNS.find((c) => c.key === 'isTopLevel')!));
 
     const xRes = await t.app.inject({ method: 'GET', url: api('/employees/import/template'), headers: bearer(token) });
     expect(xRes.statusCode).toBe(200);
@@ -207,6 +230,36 @@ describe('managers in any row order', () => {
   });
 });
 
+describe('department and line manager assignment', () => {
+  const H = [...HEADERS, 'department', 'managerCode', 'isTopLevel'];
+
+  it('requires a department and a manager code unless the row is top level', async () => {
+    const { token } = await setup();
+    const p = await previewOk(token, rawCsv([row('A-1', ['', '', 'yes']), row('A-2', ['Core', '', '']), row('A-3', ['Core', '', 'ບໍ່'])], H));
+    expect(errorsOf(p)).toEqual(['2:department:department_required', '3:managerCode:manager_required', '4:managerCode:manager_required']);
+    expect(p.importToken).toBeNull();
+  });
+
+  it('rejects a manager code on a top-level row', async () => {
+    const { token } = await setup();
+    const p = await previewOk(token, rawCsv([row('A-1', ['Core', 'A-2', 'ແມ່ນ']), row('A-2', ['Core', '', 'ແມ່ນ'])], H));
+    expect(errorsOf(p)).toEqual(['2:managerCode:manager_conflicts_top_level']);
+  });
+
+  it('imports a top-level row without a manager (isTopLevel = ແມ່ນ) and a report listed before its manager', async () => {
+    const { ws, token } = await setup();
+    const file = rawCsv([row('T-2', ['Core', 'T-1', '']), row('T-1', ['Core', '', 'ແມ່ນ'])], H);
+    const p = await previewOk(token, file);
+    expect(p.errors).toEqual([]);
+    expect((await confirm(token, file, p.importToken!)).statusCode).toBe(201);
+    const byCode = new Map(
+      (await t.db.tenant(ws.workspaceId, (tx) => tx.employee.findMany({ where: { employeeCode: { startsWith: 'T-' } } }))).map((e) => [e.employeeCode, e]),
+    );
+    expect(byCode.get('T-1')).toMatchObject({ isTopLevel: true, managerId: null });
+    expect(byCode.get('T-2')).toMatchObject({ isTopLevel: false, managerId: byCode.get('T-1')!.id });
+  });
+});
+
 describe('preview errors', () => {
   it('reports header problems on row 1', async () => {
     const { token } = await setup();
@@ -226,15 +279,15 @@ describe('preview errors', () => {
     const headers = [...HEADERS, 'branch', 'department', 'position', 'managerCode', 'idCardNo', 'socialSecurityNo', 'nationalityType', 'contractEndDate'];
     const file = csv(
       [
-        /* 2 */ row('OK-1', ['', '', '', '', 'ID-A', 'SSN000222', '', '']),
-        /* 3 */ ['OK-2', '', 'X', 'ROBOT', '2024-13-40', 'INDEFINITE', 'WEEKLY', '', '', '', '', '', '', '', ''],
+        /* 2 */ row('OK-1', ['', 'Core', '', '', 'ID-A', 'SSN000222', '', '']),
+        /* 3 */ ['OK-2', '', 'X', 'ROBOT', '2024-13-40', 'INDEFINITE', 'WEEKLY', '', 'Core', '', '', '', '', '', ''],
         /* 4 */ row('OK-3', ['Nowhere', 'No dept', 'No pos', 'NOBODY', '', '', '', '']),
         /* 5 */ row('OK-4', ['', 'Closed dept', '', '', '', '', '', '']),
-        /* 6 */ row('OK-1', ['', '', '', '', 'id-a', 'SSN-000222', '', '']),
-        /* 7 */ row('TAKEN', ['', '', '', '', 'ID-TAKEN-1', 'SSN000111', '', '']),
-        /* 8 */ row('OK-5', ['', '', '', '', '', '', 'FOREIGN', '2023-01-01']),
-        /* 9 */ row('=HYPERLINK("http://x")', ['@SUM(1)', '', '', '', '', '', '', '']),
-        /* 10 */ ['OK-6', 'ສົມ', 'ດີ', 'MALE', '2024-01-15', 'FIXED_TERM', 'MONTHLY', '', '', '', '', '', '', '', ''],
+        /* 6 */ row('OK-1', ['', 'Core', '', '', 'id-a', 'SSN-000222', '', '']),
+        /* 7 */ row('TAKEN', ['', 'Core', '', '', 'ID-TAKEN-1', 'SSN000111', '', '']),
+        /* 8 */ row('OK-5', ['', 'Core', '', '', '', '', 'FOREIGN', '2023-01-01']),
+        /* 9 */ row('=HYPERLINK("http://x")', ['@SUM(1)', 'Core', '', '', '', '', '', '']),
+        /* 10 */ ['OK-6', 'ສົມ', 'ດີ', 'MALE', '2024-01-15', 'FIXED_TERM', 'MONTHLY', '', 'Core', '', '', '', '', '', ''],
       ],
       headers,
     );
@@ -299,11 +352,11 @@ describe('preview errors', () => {
 describe('xlsx import', () => {
   it('reads date cells, Excel serial dates and numeric cells; rejects formula cells', async () => {
     const { ws, token } = await setup();
-    const headers = [...HEADERS, 'dateOfBirth', 'phone'];
+    const headers = [...HEADERS, 'dateOfBirth', 'phone', 'department', 'isTopLevel'];
     const file = await xlsx([
       headers,
-      ['X-1', 'ສົມ', 'ດີ', 'MALE', new Date(Date.UTC(2024, 0, 15)), 'INDEFINITE', 'MONTHLY', 32874, 2055551234],
-      ['X-2', 'ສົມ', 'ດີ', 'MALE', 45306, 'INDEFINITE', 'MONTHLY', null, null],
+      ['X-1', 'ສົມ', 'ດີ', 'MALE', new Date(Date.UTC(2024, 0, 15)), 'INDEFINITE', 'MONTHLY', 32874, 2055551234, 'Core', 'ແມ່ນ'],
+      ['X-2', 'ສົມ', 'ດີ', 'MALE', 45306, 'INDEFINITE', 'MONTHLY', null, null, 'Core', true],
     ]);
     const p = await previewOk(token, file, 'staff.xlsx');
     expect(p.errors).toEqual([]);
@@ -314,7 +367,7 @@ describe('xlsx import', () => {
       ['2024-01-15', null, null],
     ]);
 
-    const withFormula = await xlsx([HEADERS, ['F-1', { formula: 'A1&"x"', result: 'ສົມ' }, 'ດີ', 'MALE', '2024-01-15', 'INDEFINITE', 'MONTHLY']]);
+    const withFormula = await xlsx([[...HEADERS, 'department', 'isTopLevel'], ['F-1', { formula: 'A1&"x"', result: 'ສົມ' }, 'ດີ', 'MALE', '2024-01-15', 'INDEFINITE', 'MONTHLY', 'Core', 'yes']]);
     expect(errorsOf(await previewOk(token, withFormula, 'f.xlsx'))).toEqual(['2:firstName:formula_not_allowed']);
   });
 });
