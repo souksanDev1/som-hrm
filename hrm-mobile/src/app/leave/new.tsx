@@ -2,7 +2,7 @@ import type { LeavePreviewInput } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
-import { Button, QueryView, Screen } from '@/components/ui';
+import { BackButton, QueryView, Screen } from '@/components/ui';
 import { useDelegateCandidates } from '@/features/approvals/api';
 import { useAuthStore } from '@/features/auth/store';
 import { leaveApi, useCreateLeaveRequest, useLeavePreview, useLeaveTypes } from '@/features/leave/api';
@@ -22,7 +22,7 @@ export default function NewLeaveScreen() {
 
   return (
     <Screen testID="leave-new-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="leave-new-back" />
+      <BackButton onPress={() => router.back()} testID="leave-new-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('lvr.form.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('lvr.form.subtitle')}</Text>
       <QueryView query={types}>

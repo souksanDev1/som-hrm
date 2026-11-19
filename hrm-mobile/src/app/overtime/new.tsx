@@ -2,7 +2,7 @@ import type { OvertimePreviewInput } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Text } from 'react-native';
-import { Button, Screen } from '@/components/ui';
+import { BackButton, Screen } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/store';
 import { localToday, useCreateOvertime, useOvertimePreview } from '@/features/overtime/api';
 import { OvertimeRequestForm } from '@/features/overtime/OvertimeViews';
@@ -19,7 +19,7 @@ export default function NewOvertimeScreen() {
 
   return (
     <Screen testID="overtime-new-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="overtime-new-back" />
+      <BackButton onPress={() => router.back()} testID="overtime-new-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('otx.request.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('otx.request.subtitle')}</Text>
       <OvertimeRequestForm

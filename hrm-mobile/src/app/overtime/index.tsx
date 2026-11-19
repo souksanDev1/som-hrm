@@ -2,7 +2,7 @@ import { formatDurationMinutes, interpolate as fill } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Button, Card, QueryView, Screen } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/store';
 import { localToday, shiftMonth, useMyOvertime } from '@/features/overtime/api';
 import { OvertimeRequestRows, OvertimeSplitRows } from '@/features/overtime/OvertimeViews';
@@ -18,7 +18,7 @@ export default function OvertimeScreen() {
 
   return (
     <Screen testID="overtime-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="overtime-back" />
+      <BackButton onPress={() => router.back()} testID="overtime-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('otx.mine.title')}</Text>
       <View className="mb-4 flex-row items-center justify-between">
         <Button title="‹" variant="ghost" onPress={() => setMonth((m) => shiftMonth(m, -1))} testID="ot-month-prev" accessibilityLabel={t('common.previous')} />

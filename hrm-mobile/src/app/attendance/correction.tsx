@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { Text } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Card, QueryView, Screen } from '@/components/ui';
 import { useCreateCorrection, useMyCorrections } from '@/features/attendance-requests/api';
 import { CorrectionForm, CorrectionList } from '@/features/attendance-requests/AttendanceRequestViews';
 import { useAuthStore } from '@/features/auth/store';
@@ -21,7 +21,7 @@ export default function CorrectionScreen() {
 
   return (
     <Screen testID="correction-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="correction-back" />
+      <BackButton onPress={() => router.back()} testID="correction-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('attreq.correction.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('attreq.correction.subtitle')}</Text>
       <Card title={t('attreq.correction.new')}>

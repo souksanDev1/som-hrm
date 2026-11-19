@@ -2,7 +2,7 @@ import type { DeviceInfo } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Card, QueryView, Screen } from '@/components/ui';
 import { useMyDeviceRequests, useRequestDeviceChange } from '@/features/attendance-requests/api';
 import { ChangeDeviceForm, DeviceRequestList } from '@/features/attendance-requests/AttendanceRequestViews';
 import { useAuthStore } from '@/features/auth/store';
@@ -23,7 +23,7 @@ export default function ChangeDeviceScreen() {
 
   return (
     <Screen testID="change-device-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="change-device-back" />
+      <BackButton onPress={() => router.back()} testID="change-device-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('attreq.deviceChange.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('attreq.deviceChange.intro')}</Text>
       <Card>{device ? <ChangeDeviceForm device={device} onSubmit={(input) => request.mutateAsync(input)} /> : null}</Card>

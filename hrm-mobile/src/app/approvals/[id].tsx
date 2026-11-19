@@ -1,7 +1,7 @@
 import { interpolate } from '@hrm/shared';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Text, View } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Card, QueryView, Screen } from '@/components/ui';
 import { useApprovalRequest, useDecideApproval } from '@/features/approvals/api';
 import { ApprovalDecisionPanel, ApprovalStepList, RequestStatusBadge } from '@/features/approvals/ApprovalViews';
 import { TeamOnLeaveList } from '@/features/approvals/TeamOnLeaveList';
@@ -19,7 +19,7 @@ export default function ApprovalDetailScreen() {
 
   return (
     <Screen testID="approval-detail-screen">
-      <Button title={t('approval.back')} variant="ghost" onPress={() => router.back()} testID="approval-back" />
+      <BackButton label={t('approval.back')} onPress={() => router.back()} testID="approval-back" />
       <QueryView query={request}>
         {(r) => (
           <>

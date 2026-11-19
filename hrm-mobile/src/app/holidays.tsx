@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { Text } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Card, QueryView, Screen } from '@/components/ui';
 import { useAuthStore } from '@/features/auth/store';
 import { useMyHolidays } from '@/features/holidays/api';
 import { HolidayYearList } from '@/features/holidays/HolidayYearList';
@@ -22,7 +22,7 @@ export default function HolidaysScreen() {
 
   return (
     <Screen testID="holidays-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="holidays-back" />
+      <BackButton onPress={() => router.back()} testID="holidays-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{`${t('holiday.thisYear')} ${year}`}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('holiday.mineHint')}</Text>
       <QueryView query={holidays} isEmpty={(d) => d.length === 0}>

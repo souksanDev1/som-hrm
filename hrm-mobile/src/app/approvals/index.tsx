@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { Text } from 'react-native';
-import { Button, QueryView, Screen } from '@/components/ui';
+import { BackButton, Button, QueryView, Screen } from '@/components/ui';
 import { useApprovalInbox } from '@/features/approvals/api';
 import { ApprovalInboxList } from '@/features/approvals/ApprovalViews';
 import { useAuthStore } from '@/features/auth/store';
@@ -15,7 +15,7 @@ export default function ApprovalsScreen() {
 
   return (
     <Screen testID="approvals-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="approvals-back" />
+      <BackButton onPress={() => router.back()} testID="approvals-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('approval.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('approval.subtitle')}</Text>
       <Button title={t('delegation.title')} variant="secondary" onPress={() => router.push('/approvals/delegations')} testID="open-delegations" className="mb-4" />

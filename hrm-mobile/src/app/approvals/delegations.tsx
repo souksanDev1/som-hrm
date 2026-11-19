@@ -2,7 +2,7 @@ import { interpolate } from '@hrm/shared';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Text } from 'react-native';
-import { Button, Card, QueryView, Screen } from '@/components/ui';
+import { BackButton, Button, Card, QueryView, Screen } from '@/components/ui';
 import { useCancelDelegation, useCreateDelegation, useDelegateCandidates, useDelegations } from '@/features/approvals/api';
 import { DelegationForm, DelegationList } from '@/features/approvals/DelegationViews';
 import { useAuthStore } from '@/features/auth/store';
@@ -28,7 +28,7 @@ export default function DelegationsScreen() {
 
   return (
     <Screen testID="delegations-screen">
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} testID="delegations-back" />
+      <BackButton onPress={() => router.back()} testID="delegations-back" />
       <Text className="mb-1 text-2xl font-semibold text-ink dark:text-night-ink">{t('delegation.title')}</Text>
       <Text className="mb-4 text-sm text-ink-muted">{t('delegation.subtitle')}</Text>
       <QueryView query={list}>
