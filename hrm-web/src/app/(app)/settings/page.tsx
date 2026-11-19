@@ -1,7 +1,7 @@
 'use client';
 import { ATTENDANCE_MODES, GEOFENCE_RADIUS, PERMISSIONS, type Branch, type Department, type Position, type UpdateBranchInput, type UpdateDepartmentInput } from '@hrm/shared';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Checkbox } from '@/components/ui';
 import { RequirePermission } from '@/features/auth/RequirePermission';
@@ -16,7 +16,9 @@ import {
   parsePositionForm,
   positionFormValues,
 } from '@/features/org/forms';
-import { orgKeys, useBranches, useDepartments, useOrgMutation, usePositions } from '@/features/org/hooks';
+import { structureHeadNames } from '@/features/org/components/DepartmentTreeEditor';
+import { orgKeys, useBranches, useDepartments, useOrgMutation, useOrgStructure, usePositions } from '@/features/org/hooks';
+import { useManagerOptions } from '@/features/employees/hooks';
 import { useT } from '@/lib/i18n';
 
 type Editing = { kind: 'branch'; item: Branch } | { kind: 'department'; item: Department } | { kind: 'position'; item: Position } | null;
@@ -38,10 +40,10 @@ export default function SettingsPage() {
   const updateBranch = useOrgMutation(orgKeys.branches, (r: { id: string; body: UpdateBranchInput }) => orgApi.updateBranch(r.id, r.body));
   const toggleBranch = useOrgMutation(orgKeys.branches, (r: Toggle) => orgApi.setActive('branches', r.id, r.isActive));
   const deleteBranch = useOrgMutation(orgKeys.branches, orgApi.deleteBranch);
-  const createDept = useOrgMutation(orgKeys.departments, (name: string) => orgApi.createDepartment({ name }));
-  const updateDept = useOrgMutation(orgKeys.departments, (r: { id: string; body: UpdateDepartmentInput }) => orgApi.updateDepartment(r.id, r.body));
-  const toggleDept = useOrgMutation(orgKeys.departments, (r: Toggle) => orgApi.setActive('departments', r.id, r.isActive));
-  const deleteDept = useOrgMutation(orgKeys.departments, orgApi.deleteDepartment);
+  const createDept = useOrgMutation(orgKeys.all, (name: string) => orgApi.createDepartment({ name }));
+  const updateDept = useOrgMutation(orgKeys.all, (r: { id: string; body: UpdateDepartmentInput }) => orgApi.updateDepartment(r.id, r.body));
+  const toggleDept = useOrgMutation(orgKeys.all, (r: Toggle) => orgApi.setActive('departments', r.id, r.isActive));
+  const deleteDept = useOrgMutation(orgKeys.all, orgApi.deleteDepartment);
   const createPos = useOrgMutation(orgKeys.positions, (name: string) => orgApi.createPosition({ name }));
   const updatePos = useOrgMutation(orgKeys.positions, (r: { id: string; body: { name?: string; level?: number } }) => orgApi.updatePosition(r.id, r.body));
   const togglePos = useOrgMutation(orgKeys.positions, (r: Toggle) => orgApi.setActive('positions', r.id, r.isActive));
@@ -51,6 +53,16 @@ export default function SettingsPage() {
     `${b.latitude !== null ? `${t('orgx.branch.geofenceSummary').replace('{radius}', String(b.geofenceRadius))} · ` : ''}${b.employeeCount}`;
   const find = <T extends { id: string }>(rows: readonly T[] | undefined, id: string) => rows?.find((r) => r.id === id);
   /** Open departments, plus the current parent even when closed (so the select shows it). */
+  const managers = useManagerOptions();
+  const structure = useOrgStructure();
+  /** Loaded employees, plus the current head when it is not among them (the picker loads the first 100). */
+  const headOptions = useMemo(() => {
+    const loaded = managers.data ?? [];
+    const head = editing?.kind === 'department' ? editing.item.headEmployeeId : null;
+    if (!head || loaded.some((o) => o.value === head)) return loaded;
+    const name = editing?.kind === 'department' ? structureHeadNames(structure.data).get(editing.item.id) : undefined;
+    return [{ value: head, label: name ?? head }, ...loaded];
+  }, [managers.data, structure.data, editing]);
   const parentOptions = (self: Department) =>
     (departments.data ?? []).filter((d) => d.id !== self.id && (d.isActive || d.id === self.parentId)).map((d) => ({ value: d.id, label: d.name }));
   /** Send only what changed, so an untouched (e.g. closed, unlisted) parent is never cleared by accident. */
@@ -166,6 +178,7 @@ export default function SettingsPage() {
             type: 'select',
             options: editing?.kind === 'department' ? parentOptions(editing.item) : [],
           },
+          { name: 'headEmployeeId', label: t('orgx.department.head'), type: 'select', options: headOptions },
         ]}
         parse={parseDepartmentForm}
         onSubmit={(body) => updateDept.mutateAsync({ id: editing!.item.id, body: changedOnly(body, editing!.item) })}

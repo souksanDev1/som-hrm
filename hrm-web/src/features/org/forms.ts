@@ -82,11 +82,11 @@ export const parseBranchForm = (v: FormValues): ParseResult<UpdateBranchInput> =
   return { ok: true, data: parsed.data };
 };
 
-export const departmentFormValues = (d: Department): FormValues => ({ name: d.name, parentId: d.parentId ?? '' });
+export const departmentFormValues = (d: Department): FormValues => ({ name: d.name, parentId: d.parentId ?? '', headEmployeeId: d.headEmployeeId ?? '' });
 
-/** Empty parent = top level (`parentId: null`). */
+/** Empty parent = top level (`parentId: null`); empty head = no head (`headEmployeeId: null`). */
 export const parseDepartmentForm = (v: FormValues): ParseResult<UpdateDepartmentInput> => {
-  const parsed = updateDepartmentSchema.safeParse({ name: v.name, parentId: v.parentId || null });
+  const parsed = updateDepartmentSchema.safeParse({ name: v.name, parentId: v.parentId || null, headEmployeeId: v.headEmployeeId || null });
   if (!parsed.success) return { ok: false, errors: zodErrors(parsed.error) };
   return { ok: true, data: parsed.data };
 };

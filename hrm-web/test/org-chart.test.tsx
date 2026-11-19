@@ -1,12 +1,22 @@
-import type { OrgStructureNode } from '@hrm/shared';
+import type { Department, OrgStructureNode } from '@hrm/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DepartmentTreeEditor } from '@/features/org/components/DepartmentTreeEditor';
 import { OrgStructureChart } from '@/features/org/components/OrgStructureChart';
 import { StructureDetailPanel } from '@/features/org/components/StructureDetailPanel';
+import { parseDepartmentForm } from '@/features/org/forms';
 import { fitView, zoomAt } from '@/features/org/pan-zoom';
 import { usePrefsStore } from '@/lib/i18n';
+
+const { orgApi, employeesApi } = vi.hoisted(() => ({
+  orgApi: { departments: vi.fn(), structure: vi.fn(), createDepartment: vi.fn(), updateDepartment: vi.fn(), deleteDepartment: vi.fn(), setActive: vi.fn() },
+  employeesApi: { list: vi.fn() },
+}));
+vi.mock('@/features/org/api', () => ({ orgApi }));
+vi.mock('@/features/employees/api', () => ({ employeesApi }));
 
 beforeEach(() => {
   usePrefsStore.setState({ locale: 'en' });
@@ -101,5 +111,63 @@ describe('OrgStructureChart', () => {
   it('unassigned box uses the translated name', () => {
     render(<Harness roots={[node('unassigned', [], { kind: 'unassigned', name: '', employeeCount: 1, members: [person('x')] })]} />);
     expect(screen.getByTestId('org-box-unassigned')).toHaveTextContent('Unassigned');
+  });
+});
+
+describe('parseDepartmentForm', () => {
+  it('clearing the head sends null', () => {
+    expect(parseDepartmentForm({ name: 'A', parentId: '', headEmployeeId: '' })).toEqual({ ok: true, data: { name: 'A', parentId: null, headEmployeeId: null } });
+  });
+});
+
+describe('DepartmentTreeEditor', () => {
+  const dept = (id: string, parentId: string | null = null): Department => ({ id, name: id.toUpperCase(), parentId, headEmployeeId: null, isActive: true, employeeCount: 0 });
+  const renderEditor = () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    render(
+      <QueryClientProvider client={client}>
+        <DepartmentTreeEditor />
+      </QueryClientProvider>,
+    );
+    return { invalidate };
+  };
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+    orgApi.departments.mockResolvedValue([dept('chairman'), dept('ceo', 'chairman'), dept('ops', 'ceo')]);
+    orgApi.structure.mockResolvedValue([]);
+    orgApi.createDepartment.mockResolvedValue(dept('new', 'ceo'));
+    orgApi.updateDepartment.mockResolvedValue(dept('ceo', 'chairman'));
+    employeesApi.list.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 100 });
+  });
+
+  it('parent options exclude self and descendants', async () => {
+    renderEditor();
+    await userEvent.click(await screen.findByTestId('dept-edit-ceo'));
+    const select = document.getElementById('department-form-parentId') as HTMLSelectElement;
+    const labels = Array.from(select.options).map((o) => o.text);
+    expect(labels).toContain('CHAIRMAN');
+    expect(labels).not.toContain('CEO');
+    expect(labels).not.toContain('OPS');
+  });
+
+  it('add sub-unit pre-fills the parent', async () => {
+    renderEditor();
+    await userEvent.click(await screen.findByTestId('dept-add-sub-ceo'));
+    await userEvent.type(document.getElementById('department-form-name')!, 'New');
+    await userEvent.click(screen.getByTestId('department-form-save'));
+    expect(orgApi.createDepartment).toHaveBeenCalledWith(expect.objectContaining({ name: 'New', parentId: 'ceo' }));
+  });
+
+  it('saving invalidates structure query', async () => {
+    const { invalidate } = renderEditor();
+    await userEvent.click(await screen.findByTestId('dept-edit-ceo'));
+    await userEvent.click(screen.getByTestId('department-form-save'));
+    expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['org'] }));
   });
 });

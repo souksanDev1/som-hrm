@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orgApi } from './api';
 
 export const orgKeys = {
+  /** Prefix of every org query: invalidating it refreshes lists and the structure chart together. */
+  all: ['org'] as const,
   structure: ['org', 'structure'] as const,
   branches: ['org', 'branches'] as const,
   departments: ['org', 'departments'] as const,
