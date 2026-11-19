@@ -35,6 +35,7 @@ const importBody = (file: File, importToken?: string) => {
 export const employeesApi = {
   list: (q: EmployeeFilters) => apiFetch<Paginated<EmployeeSummary>>('/employees', { query: q }),
   get: (id: string) => apiFetch<EmployeeDetail>(`/employees/${id}`),
+  myProfile: () => apiFetch<EmployeeDetail>('/me/profile'),
   history: (id: string, q: EmploymentHistoryQuery) =>
     apiFetch<Paginated<EmploymentHistoryEntry>>(`/employees/${id}/history`, { query: q }),
   create: (body: CreateEmployeeInput) => apiFetch<CreateEmployeeResponse>('/employees', { method: 'POST', body }),

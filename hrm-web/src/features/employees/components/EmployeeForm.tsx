@@ -1,6 +1,8 @@
 'use client';
 import {
   CONTRACT_END_REQUIRED,
+  assignmentIssues,
+  type Assignment,
   CONTRACT_TYPES,
   createEmployeeSchema,
   EMPLOYMENT_STATUSES,
@@ -21,6 +23,7 @@ import { useBranches, useDepartments, usePositions } from '@/features/org/hooks'
 import { ApiError } from '@/lib/api-client';
 import { usePrefsStore, useT } from '@/lib/i18n';
 import { useManagerOptions } from '../hooks';
+import { needsAssignment } from '../assignment';
 import { toCreatePayload, toUpdateFields, toUpdatePayload, type EmployeeFormValues } from '../payload';
 
 export type { EmployeeFormValues } from '../payload';
@@ -50,6 +53,13 @@ const resolverFor =
   async (values, ctx, opts) => {
     if (mode === 'create') return zodResolver(createEmployeeSchema)(toCreatePayload(values) as never, ctx, opts as never) as never;
     const result = await zodResolver(updateEmployeeSchema)(toUpdateFields(values) as never, ctx, opts as never);
+    // Department / line manager are only enforced when this edit touches them, so a legacy employee can still be resigned.
+    const issues = assignmentIssues(toUpdatePayload(values, initial) as Assignment, toUpdateFields(initial) as Assignment);
+    if (issues.length) {
+      const errors = { ...result.errors } as Record<string, unknown>;
+      for (const code of issues) errors[code === 'department_required' ? 'departmentId' : 'managerId'] = { type: 'custom', message: code };
+      return { values: {}, errors } as never;
+    }
     if (!result.errors.contractEndDate && missingContractEnd(toUpdateFields(values), toUpdateFields(initial))) {
       return { values: {}, errors: { ...result.errors, contractEndDate: { type: 'custom', message: CONTRACT_END_REQUIRED } } } as never;
     }
@@ -76,12 +86,15 @@ export function EmployeeForm(props: EmployeeFormProps) {
   const locale = usePrefsStore((s) => s.locale);
   const initial = useMemo(() => ({ ...FORM_DEFAULTS, ...defaultValues }) as EmployeeFormValues, [defaultValues]);
   const resolver = useMemo(() => resolverFor(mode, initial), [mode, initial]);
-  const { register, handleSubmit, watch, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
+  const { register, handleSubmit, watch, setValue, formState } = useForm<EmployeeFormValues>({ resolver, defaultValues: initial });
   const errors = formState.errors as Partial<Record<string, { message?: string }>>;
   const e = (name: string) => (errors[name]?.message ? t(errors[name]!.message!) : undefined);
   const nationalityType = watch('nationalityType');
   const createLogin = watch('createLogin');
   const status = watch('status');
+  const isTopLevel = !!watch('isTopLevel');
+  const legacyIncomplete =
+    mode === 'edit' && needsAssignment(initial.status ?? 'ACTIVE') && assignmentIssues(toUpdateFields(initial) as Assignment).some((i) => i !== 'manager_conflicts_top_level');
   const contractType = watch('contractType');
   const opts = (values: readonly string[], prefix: string) => values.map((v) => ({ value: v, label: t(`${prefix}.${v}`) }));
   const refOpts = (rows?: { id: string; name: string }[]) => (rows ?? []).map((r) => ({ value: r.id, label: r.name }));
@@ -180,16 +193,28 @@ export function EmployeeForm(props: EmployeeFormProps) {
           <Field label={t('employee.branch')} htmlFor="branchId">
             <Select id="branchId" placeholder="—" options={refOpts(branches.data)} {...register('branchId')} />
           </Field>
-          <Field label={t('employee.department')} htmlFor="departmentId">
+          <Field label={t('employee.department')} htmlFor="departmentId" error={e('departmentId')} required>
             <Select id="departmentId" placeholder="—" options={refOpts(departments.data)} {...register('departmentId')} />
           </Field>
           <Field label={t('employee.position')} htmlFor="positionId">
             <Select id="positionId" placeholder="—" options={refOpts(positions.data)} {...register('positionId')} />
           </Field>
-          <Field label={t('employee.manager')} htmlFor="managerId" error={e('managerId')}>
-            <Select id="managerId" placeholder="—" options={managerOptions} {...register('managerId')} />
+          <Field label={t('employee.manager')} htmlFor="managerId" error={e('managerId')} required={!isTopLevel}>
+            <Select id="managerId" placeholder="—" options={managerOptions} disabled={isTopLevel} invalid={!!errors.managerId} {...register('managerId')} />
+            <div className="mt-2">
+              <Checkbox
+                id="isTopLevel"
+                label={t('employee.isTopLevel')}
+                {...register('isTopLevel', { onChange: (ev) => ev.target.checked && setValue('managerId', '') })}
+              />
+            </div>
           </Field>
         </div>
+        {legacyIncomplete && (
+          <p data-testid="assignment-incomplete-hint" role="status" className="mt-4 rounded-sm bg-warning-soft px-3 py-2 text-sm text-warning">
+            {t('employee.assignmentIncompleteHint')}
+          </p>
+        )}
         <div className="mt-4">
           <Checkbox id="hazardousWork" label={t('employee.hazardousWork')} {...register('hazardousWork')} />
         </div>

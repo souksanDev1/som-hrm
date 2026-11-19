@@ -10,6 +10,8 @@ const createEmployee = async (page: Page, code: string) => {
   await page.locator('#firstName').fill('ທົດສອບ');
   await page.locator('#lastName').fill(code);
   await page.locator('#hireDate').fill('2026-01-05');
+  await page.locator('#departmentId').selectOption({ label: 'ປະຕິບັດການ' });
+  await page.locator('#managerId').selectOption({ label: 'E002 · ບົວພັນ ສີສຸວັນ' });
   await page.getByTestId('employee-submit').click();
   // `/employees/new` also matches a bare id pattern; wait for the created employee's page.
   await expect(page).toHaveURL(/\/employees\/(?!new$)[^/]+$/);

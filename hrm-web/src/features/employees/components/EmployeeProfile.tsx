@@ -8,6 +8,7 @@ import { CredentialCard } from './CredentialCard';
 import { DocumentsCard } from './DocumentsCard';
 import { EmergencyContactsCard } from './EmergencyContactsCard';
 import { HistoryCard } from './HistoryCard';
+import { LineManagerCard } from './LineManagerCard';
 import { StatusBadge } from './StatusBadge';
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
@@ -69,10 +70,10 @@ export function EmployeeProfile({ employee: e }: { employee: EmployeeDetail }) {
             <Row label={t('employee.branch')} value={e.branch?.name} />
             <Row label={t('employee.department')} value={e.department?.name} />
             <Row label={t('employee.position')} value={e.position?.name} />
-            <Row label={t('employee.manager')} value={e.manager?.name} />
             {e.hazardousWork && <Row label={t('employee.hazardousWork')} value={t('common.yes')} />}
           </dl>
         </Card>
+        <LineManagerCard manager={e.manager} isTopLevel={e.isTopLevel} department={e.department} />
         <EmergencyContactsCard employeeId={e.id} contacts={e.emergencyContacts} canEdit={canEdit} />
         <HistoryCard employeeId={e.id} />
         {canManageUsers && <CredentialCard employeeId={e.id} hasLogin={e.hasLogin} />}

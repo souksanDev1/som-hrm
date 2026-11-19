@@ -50,6 +50,8 @@ test.describe('employees', () => {
     await page.locator('#lastName').fill('ຈັນທະລາ');
     await page.locator('#phone').fill(`020 77${String(Date.now()).slice(-6)}`);
     await page.locator('#hireDate').fill('2026-01-05');
+    await page.locator('#departmentId').selectOption({ label: 'ປະຕິບັດການ' });
+    await page.locator('#managerId').selectOption({ label: 'E002 · ບົວພັນ ສີສຸວັນ' });
     // SSNs must be unique per workspace (FR-EMP-10.2) and every viewport project creates its own employee.
     await page.locator('#socialSecurityNo').fill(`SS${String(Date.now()).slice(-7)}`);
     await page.locator('#createLogin').check();

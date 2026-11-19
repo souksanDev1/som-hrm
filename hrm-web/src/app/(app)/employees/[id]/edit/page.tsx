@@ -43,6 +43,7 @@ const toFormValues = (e: EmployeeDetail): Partial<EmployeeFormValues> => ({
   departmentId: e.department?.id,
   positionId: e.position?.id,
   managerId: e.manager?.id,
+  isTopLevel: e.isTopLevel,
 });
 
 function EditForm({ employee }: { employee: EmployeeDetail }) {

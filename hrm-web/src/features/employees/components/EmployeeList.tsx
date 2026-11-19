@@ -3,9 +3,20 @@ import type { EmployeeSummary } from '@hrm/shared';
 import Link from 'next/link';
 import { Badge, Icon } from '@/components/ui';
 import { useT } from '@/lib/i18n';
+import { needsAssignment } from '../assignment';
 import { StatusBadge } from './StatusBadge';
 
 /** Responsive list: a table on md+ screens, stacked cards on phones. */
+function IncompleteBadge({ employee: e, className }: { employee: EmployeeSummary; className?: string }) {
+  const t = useT();
+  if (!e.assignmentIncomplete || !needsAssignment(e.status)) return null;
+  return (
+    <Badge tone="warning" className={className}>
+      <span data-testid="assignment-incomplete">{t('employee.assignmentIncomplete')}</span>
+    </Badge>
+  );
+}
+
 export function EmployeeList({ items }: { items: readonly EmployeeSummary[] }) {
   const t = useT();
   return (
@@ -35,6 +46,7 @@ export function EmployeeList({ items }: { items: readonly EmployeeSummary[] }) {
                       {t('nationality.FOREIGN')}
                     </Badge>
                   )}
+                  <IncompleteBadge employee={e} className="ml-2" />
                   {(e.firstNameEn || e.lastNameEn) && (
                     <span className="block text-xs text-ink-muted">{[e.firstNameEn, e.lastNameEn].filter(Boolean).join(' ')}</span>
                   )}
@@ -64,6 +76,7 @@ export function EmployeeList({ items }: { items: readonly EmployeeSummary[] }) {
                 <span className="block truncate text-xs text-ink-muted tabular-nums">
                   {e.employeeCode} · {e.position?.name ?? '—'}
                 </span>
+                <IncompleteBadge employee={e} className="mt-1" />
               </span>
               <StatusBadge status={e.status} />
               <Icon name="chevron_right" className="text-ink-muted" />

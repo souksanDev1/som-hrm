@@ -57,6 +57,7 @@ export const toUpdateFields = (values: EmployeeFormValues): UpdateEmployeeInput 
       if (OPTIONAL.has(k)) body[k] = null;
     } else body[k] = v;
   }
+  body.isTopLevel = !!values.isTopLevel;
   if (!isBlank(values.effectiveDate)) body.effectiveDate = values.effectiveDate;
   return body as UpdateEmployeeInput;
 };
@@ -73,6 +74,11 @@ export const toUpdatePayload = (values: EmployeeFormValues, initial: EmployeeFor
   if ('nationality' in changed || 'nationalityType' in changed) {
     changed.nationalityType = next.nationalityType;
     changed.nationality = next.nationality;
+  }
+  // Same for the line manager: a manager and the top-level flag always travel together, so the API sees the whole picture.
+  if ('managerId' in changed || 'isTopLevel' in changed) {
+    changed.managerId = next.managerId;
+    changed.isTopLevel = next.isTopLevel;
   }
   if (Object.keys(changed).length === 1 && 'effectiveDate' in changed) return {};
   return changed as UpdateEmployeeInput;

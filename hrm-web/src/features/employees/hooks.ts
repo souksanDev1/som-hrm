@@ -8,6 +8,7 @@ import type {
   UpdateEmployeeInput,
 } from '@hrm/shared';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api-client';
 import { employeesApi, type EmployeeFilters, type ExpiringDocumentFilters } from './api';
 
 export const employeeKeys = {
@@ -22,6 +23,17 @@ export const useEmployees = (filters: EmployeeFilters) =>
   useQuery({ queryKey: employeeKeys.list(filters), queryFn: () => employeesApi.list(filters), placeholderData: keepPreviousData });
 
 export const useEmployee = (id: string) => useQuery({ queryKey: employeeKeys.detail(id), queryFn: () => employeesApi.get(id) });
+
+/** The signed-in user's own employee record; `null` for a login with no employee profile (e.g. a pure HR account). */
+export const useMyProfile = () =>
+  useQuery({
+    queryKey: [...employeeKeys.all, 'me'] as const,
+    queryFn: () =>
+      employeesApi.myProfile().catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404 && err.code === 'no_employee_profile') return null;
+        throw err;
+      }),
+  });
 
 /** Employment history, newest first (paginated by the API). */
 export const useEmployeeHistory = (id: string, page: number, pageSize = 10) =>
