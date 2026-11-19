@@ -1,5 +1,5 @@
 appId: la.som.hrm
-name: HR signs in with password, browses the org chart and signs out
+name: HR signs in with password, browses the org structure and signs out
 ---
 - launchApp:
     clearState: true
@@ -9,6 +9,7 @@ name: HR signs in with password, browses the org chart and signs out
 - tapOn:
     id: "input-workspace"
 - inputText: "som-demo"
+- hideKeyboard
 - tapOn:
     id: "input-identifier"
 - inputText: "admin@som.la"
@@ -28,8 +29,12 @@ name: HR signs in with password, browses the org chart and signs out
     id: "home-screen"
 - tapOn:
     id: "open-org"
-- assertVisible: "ສົມສັກ ພົມມະວົງ"
-- assertVisible: "ສຸກສັນ ຈັນທະພອນ"
+# Rows carry accessibility labels ("name, head, count"), so match by prefix.
+- assertVisible: "ປະທານ.*"
+- assertVisible: "CEO.*"
+# HR (two levels down) is listed collapsed with its head; tapping it shows the staff, head badged.
+- tapOn: "ບຸກຄະລາກອນ \\(HR\\).*"
+- assertVisible: "ສົມສັກ ພົມມະວົງ, .*ຫົວໜ້າ"
 - tapOn:
     id: "tab-profile"
 - scrollUntilVisible:
