@@ -27,6 +27,7 @@ const profile: Partial<EmployeeDetail> = {
   contractType: 'FIXED_TERM', payType: 'DAILY',
   position: { id: 'p1', name: 'Accountant' }, department: { id: 'd1', name: 'Finance' }, branch: { id: 'b1', name: 'Pakse' },
   socialSecurityNo: 'SS1000003', familyBookNo: 'FB003',
+  isTopLevel: false, manager: { id: 'e2', name: 'ບົວພັນ ສີສຸວັນ', positionName: 'ຫົວໜ້າໜ້າງານ' },
   documents: [{
     id: 'doc1', type: 'PASSPORT', number: null, issuedAt: null, expiresAt: '2026-12-01', note: null,
     expiryStatus: 'EXPIRING', daysUntilExpiry: 7, expiryThresholdDays: 7, file: null,
@@ -66,6 +67,34 @@ describe('Personal information page', () => {
     expect(screen.getByTestId('profile-contract-type')).toHaveTextContent('Fixed-term');
     expect(screen.getByTestId('profile-pay-type')).toHaveTextContent('Monthly');
     expect(screen.queryByTestId('expiry-EXPIRING')).toBeNull();
+  });
+});
+
+describe('Line manager card', () => {
+  it('shows the manager name and position', () => {
+    render(<PersonalInfoScreen />);
+    expect(screen.getByTestId('line-manager-card')).toBeTruthy();
+    expect(screen.getByText('ຫົວໜ້າສາຍງານ')).toBeTruthy();
+    expect(screen.getByTestId('line-manager-name')).toHaveTextContent('ບົວພັນ ສີສຸວັນ');
+    expect(screen.getByText('ຫົວໜ້າໜ້າງານ')).toBeTruthy();
+    expect(screen.queryByTestId('line-manager-top')).toBeNull();
+    expect(screen.queryByTestId('line-manager-missing')).toBeNull();
+  });
+
+  it('shows the top-level notice when the employee has no manager by design', () => {
+    mockProfile.data = { ...profile, isTopLevel: true, manager: null };
+    render(<PersonalInfoScreen />);
+    expect(screen.getByTestId('line-manager-top')).toHaveTextContent('ຄົນເທິງສຸດ — ຄຳຂໍໄປຫາ HR');
+    expect(screen.queryByTestId('line-manager-name')).toBeNull();
+    expect(screen.queryByTestId('line-manager-missing')).toBeNull();
+  });
+
+  it('shows a contact-HR notice when the manager is not assigned', () => {
+    usePrefsStore.setState({ locale: 'en' });
+    mockProfile.data = { ...profile, isTopLevel: false, manager: null };
+    render(<PersonalInfoScreen />);
+    expect(screen.getByTestId('line-manager-missing')).toHaveTextContent('Not assigned yet, contact HR');
+    expect(screen.queryByTestId('line-manager-top')).toBeNull();
   });
 });
 

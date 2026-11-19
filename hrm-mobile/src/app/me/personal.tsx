@@ -1,6 +1,6 @@
 import { laoProvinceName } from '@hrm/shared';
 import { Text, View } from 'react-native';
-import { Card, EmployeeHeader, InfoRow, QueryView, Screen } from '@/components/ui';
+import { Card, EmployeeAvatar, EmployeeHeader, InfoRow, QueryView, Screen } from '@/components/ui';
 import { useMyProfile } from '@/features/profile/api';
 import { ExpiryBadge } from '@/features/profile/ExpiryBadge';
 import { usePrefsStore, useT } from '@/lib/i18n';
@@ -50,6 +50,24 @@ export default function PersonalInfoScreen() {
                 </Card>
               </View>
             )}
+            <View className="mt-4" testID="line-manager-card">
+              <Card>
+                <Text className="mb-2 text-base font-semibold text-ink dark:text-night-ink">{t('employee.lineManager')}</Text>
+                {e.manager ? (
+                  <View className="flex-row items-center gap-3">
+                    <EmployeeAvatar name={e.manager.name} size={44} />
+                    <View className="flex-1">
+                      <Text testID="line-manager-name" className="text-sm font-medium text-ink dark:text-night-ink">{e.manager.name}</Text>
+                      {e.manager.positionName ? <Text className="text-xs text-ink-muted">{e.manager.positionName}</Text> : null}
+                    </View>
+                  </View>
+                ) : e.isTopLevel ? (
+                  <Text testID="line-manager-top" className="text-sm text-ink-muted">{t('employee.topLevelInfo')}</Text>
+                ) : (
+                  <Text testID="line-manager-missing" className="text-sm text-ink-muted">{t('employee.managerMissing')}</Text>
+                )}
+              </Card>
+            </View>
           </>
         )}
       </QueryView>

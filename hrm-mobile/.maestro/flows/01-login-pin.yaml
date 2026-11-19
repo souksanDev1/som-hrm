@@ -45,3 +45,10 @@ name: Field worker signs in with phone + PIN and sees own profile
     id: "profile-contract-type"
 - assertVisible:
     id: "profile-pay-type"
+# Line manager (E003 reports to E002 ບົວພັນ ສີສຸວັນ).
+- scrollUntilVisible:
+    element:
+      id: "line-manager-name"
+- assertVisible:
+    id: "line-manager-name"
+    text: "ບົວພັນ ສີສຸວັນ"
