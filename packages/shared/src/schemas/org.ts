@@ -75,7 +75,8 @@ export const createDepartmentSchema = z.object({
 });
 export type CreateDepartmentInput = z.input<typeof createDepartmentSchema>;
 /** Partial update; `parentId: null` moves the department to the top level. */
-export const updateDepartmentSchema = createDepartmentSchema.extend({ parentId: z.string().nullable() }).partial();
+/** Partial update; `headEmployeeId: null` clears the department head. */
+export const updateDepartmentSchema = createDepartmentSchema.extend({ parentId: z.string().nullable(), headEmployeeId: z.string().nullable() }).partial();
 export type UpdateDepartmentInput = z.input<typeof updateDepartmentSchema>;
 
 export const departmentSchema = z.object({
@@ -141,5 +142,115 @@ export const buildOrgTree = (
     if (parent && !createsCycle(r.id)) parent.children.push(node);
     else roots.push(node);
   });
+  return roots;
+};
+
+/** Department structure chart (Chairman → CEO → departments → staff). */
+export interface OrgStructureMember {
+  id: string;
+  employeeCode: string;
+  name: string;
+  position: string | null;
+}
+export interface OrgStructureNode {
+  id: string;
+  /** `unassigned` = synthetic node for active staff without an open department. */
+  kind: 'department' | 'unassigned';
+  name: string;
+  head: OrgStructureMember | null;
+  /** Active members of this department only (sub-units not included). */
+  employeeCount: number;
+  /** Active members, head excluded, sorted by name. */
+  members: OrgStructureMember[];
+  children: OrgStructureNode[];
+}
+export const UNASSIGNED_NODE_ID = 'unassigned';
+
+const orgStructureMemberSchema = z.object({ id: z.string(), employeeCode: z.string(), name: z.string(), position: z.string().nullable() });
+export const orgStructureNodeSchema: z.ZodType<OrgStructureNode> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    kind: z.enum(['department', 'unassigned']),
+    name: z.string(),
+    head: orgStructureMemberSchema.nullable(),
+    employeeCount: z.number(),
+    members: z.array(orgStructureMemberSchema),
+    children: z.array(orgStructureNodeSchema),
+  }),
+);
+
+const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);
+
+/**
+ * Build the department tree from open departments and active employees. A department whose parent is
+ * missing (closed) or whose parent chain loops is a root. Staff with no open department go into a
+ * trailing `unassigned` node, added only when non-empty.
+ */
+export const buildOrgStructure = (input: {
+  departments: readonly { id: string; name: string; parentId: string | null; headEmployeeId: string | null }[];
+  employees: readonly (OrgStructureMember & { departmentId: string | null })[];
+}): OrgStructureNode[] => {
+  const member = ({ id, employeeCode, name, position }: OrgStructureMember): OrgStructureMember => ({ id, employeeCode, name, position });
+  const empById = new Map(input.employees.map((e) => [e.id, e]));
+  const deptIds = new Set(input.departments.map((d) => d.id));
+  const parentOf = new Map(input.departments.map((d) => [d.id, d.parentId]));
+  /** Departments on `id`'s parent chain, or `null` when the chain ends (no loop). */
+  const loopFrom = (id: string): Set<string> | null => {
+    const seen = new Set([id]);
+    let cur = parentOf.get(id) ?? null;
+    while (cur && deptIds.has(cur)) {
+      if (seen.has(cur)) return seen;
+      seen.add(cur);
+      cur = parentOf.get(cur) ?? null;
+    }
+    return null;
+  };
+  // Break each parent loop at its first-listed department, which becomes a root.
+  const loopRoots = new Set<string>();
+  input.departments.forEach((d) => {
+    const chain = loopFrom(d.id);
+    if (chain && ![...chain].some((id) => loopRoots.has(id))) loopRoots.add(d.id);
+  });
+
+  const nodes = new Map<string, OrgStructureNode>();
+  input.departments.forEach((d) => {
+    const headRow = d.headEmployeeId ? empById.get(d.headEmployeeId) : undefined;
+    const staff = input.employees.filter((e) => e.departmentId === d.id);
+    nodes.set(d.id, {
+      id: d.id,
+      kind: 'department',
+      name: d.name,
+      head: headRow ? member(headRow) : null,
+      employeeCount: staff.length,
+      members: staff.filter((e) => e.id !== headRow?.id).map(member).sort(byName),
+      children: [],
+    });
+  });
+
+  const roots: OrgStructureNode[] = [];
+  input.departments.forEach((d) => {
+    const node = nodes.get(d.id)!;
+    const parent = d.parentId ? nodes.get(d.parentId) : undefined;
+    if (parent && !loopRoots.has(d.id)) parent.children.push(node);
+    else roots.push(node);
+  });
+  const sortTree = (list: OrgStructureNode[]) => {
+    list.sort(byName);
+    list.forEach((n) => sortTree(n.children));
+  };
+  sortTree(roots);
+
+  const unassigned = input.employees.filter((e) => !e.departmentId || !deptIds.has(e.departmentId));
+  if (unassigned.length) {
+    roots.push({
+      id: UNASSIGNED_NODE_ID,
+      kind: 'unassigned',
+      name: '',
+      head: null,
+      employeeCount: unassigned.length,
+      members: unassigned.map(member).sort(byName),
+      children: [],
+    });
+  }
   return roots;
 };
