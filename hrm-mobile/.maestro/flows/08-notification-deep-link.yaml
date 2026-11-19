@@ -36,10 +36,14 @@ name: Field worker opens a notification from the header and lands on the linked 
 - assertVisible:
     id: "profile-screen"
 - tapOn:
-    id: "toggle-personal-info"
+    id: "open-personal-info"
 - assertVisible:
     id: "profile-code"
     text: "E003"
+- tapOn:
+    id: "personal-back"
+- assertVisible:
+    id: "profile-screen"
 # The top-right bell still opens the inbox (pull to refresh / mark read keep working).
 - tapOn:
     id: "header-notifications"

@@ -28,16 +28,22 @@ name: Field worker sees own working schedule and this year's holidays (FR-WS-03.
 # Seeded E003 follows the workspace standard schedule (Mon–Sat).
 - scrollUntilVisible:
     element:
-      id: "toggle-work-schedule"
+      id: "open-work-schedule"
     direction: DOWN
 - tapOn:
-    id: "toggle-work-schedule"
+    id: "open-work-schedule"
+- assertVisible:
+    id: "my-schedule-screen"
 - scrollUntilVisible:
     element:
       id: "my-schedule-source"
     direction: DOWN
 - assertVisible:
     id: "my-schedule-summary"
+- tapOn:
+    id: "my-schedule-back"
+- assertVisible:
+    id: "profile-screen"
 - scrollUntilVisible:
     element:
       id: "open-holidays"

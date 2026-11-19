@@ -6,16 +6,8 @@ import { useAuthStore } from '@/features/auth/store';
 import { usePrefsStore } from '@/lib/i18n';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() } }));
-const mockChangeLocale = jest.fn();
 const mockLogout = jest.fn();
-jest.mock('@/features/auth/hooks', () => ({ useChangeLocale: () => mockChangeLocale, useLogout: () => mockLogout }));
-// The schedule card fetches on its own and has its own tests (schedule.test.tsx).
-jest.mock('@/features/schedule/MyWorkScheduleCard', () => ({
-  MyWorkScheduleCard: () => {
-    const { Text } = jest.requireActual('react-native');
-    return <Text testID="my-work-schedule">Schedule summary</Text>;
-  },
-}));
+jest.mock('@/features/auth/hooks', () => ({ useLogout: () => mockLogout }));
 const mockProfile: { data: Partial<EmployeeDetail> | undefined; error: unknown } = { data: {}, error: null };
 jest.mock('@/features/profile/api', () => ({
   useMyProfile: () => ({ data: mockProfile.data, isPending: false, error: mockProfile.error, refetch: jest.fn(), isRefetching: false }),
@@ -43,57 +35,12 @@ beforeEach(() => {
 });
 
 describe('ProfileScreen menu', () => {
-  it('shows the real employee summary and keeps details collapsed on arrival', () => {
+  it('shows the real employee summary and keeps details on their own page', () => {
     render(<ProfileScreen />);
     expect(screen.getByTestId('profile-avatar')).toHaveProp('accessibilityLabel', 'ຄຳແພງ ແກ້ວມະນີ');
-    expect(screen.getByText('ຄຳແພງ ແກ້ວມະນີ')).toBeTruthy();
     expect(screen.getByText('Accountant · Finance')).toBeTruthy();
     expect(screen.getByTestId('profile-hero-code')).toHaveTextContent(/E003/);
-    expect(screen.getByTestId('toggle-personal-info')).toHaveProp('accessibilityState', { expanded: false });
     expect(screen.queryByTestId('profile-name-en')).toBeNull();
-    expect(screen.queryByTestId('expiry-EXPIRING')).toBeNull();
-  });
-
-  it('expands personal information with every existing field and document status', () => {
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByTestId('toggle-personal-info'));
-    expect(screen.getByTestId('toggle-personal-info')).toHaveProp('accessibilityState', { expanded: true });
-    expect(screen.getByTestId('profile-code')).toHaveTextContent('E003');
-    expect(screen.getByTestId('profile-name-en')).toHaveTextContent('Khamphaeng Keomany');
-    expect(screen.getByTestId('profile-address')).toHaveTextContent('ຫ້ວຍ, ປາກເຊ, ຈຳປາສັກ');
-    expect(screen.getByTestId('profile-contract-type')).toHaveTextContent('ມີກຳນົດເວລາ');
-    expect(screen.getByTestId('profile-pay-type')).toHaveTextContent('ລາຍວັນ');
-    expect(screen.getByTestId('profile-ssn')).toHaveTextContent('SS1000003');
-    for (const value of ['Accountant', 'Finance', 'Pakse', '2025-01-10', '02055550003', 'FB003', '2026-12-01']) {
-      expect(screen.getByText(value)).toBeTruthy();
-    }
-    expect(screen.getByTestId('expiry-EXPIRING')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('toggle-personal-info'));
-    expect(screen.queryByTestId('profile-name-en')).toBeNull();
-    expect(screen.queryByTestId('expiry-EXPIRING')).toBeNull();
-  });
-
-  it('translates in English and shows a dash for missing values', () => {
-    usePrefsStore.setState({ locale: 'en' });
-    mockProfile.data = { ...profile, firstNameEn: null, lastNameEn: null, village: null, district: null, province: null, payType: 'MONTHLY', documents: [] };
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Personal information' }));
-    expect(screen.getByTestId('profile-name-en')).toHaveTextContent('—');
-    expect(screen.getByTestId('profile-address')).toHaveTextContent('—');
-    expect(screen.getByTestId('profile-contract-type')).toHaveTextContent('Fixed-term');
-    expect(screen.getByTestId('profile-pay-type')).toHaveTextContent('Monthly');
-    expect(screen.queryByTestId('expiry-EXPIRING')).toBeNull();
-  });
-
-  it('expands the work schedule independently without unmounting its query', () => {
-    render(<ProfileScreen />);
-    expect(screen.queryByTestId('my-work-schedule')).toBeNull();
-    expect(screen.getByTestId('my-work-schedule', { includeHiddenElements: true })).toBeTruthy();
-    fireEvent.press(screen.getByTestId('toggle-work-schedule'));
-    expect(screen.getByTestId('toggle-work-schedule')).toHaveProp('accessibilityState', { expanded: true });
-    expect(screen.getByTestId('my-work-schedule')).toBeVisible();
-    expect(screen.getByTestId('toggle-personal-info')).toHaveProp('accessibilityState', { expanded: false });
-    fireEvent.press(screen.getByTestId('toggle-work-schedule'));
     expect(screen.queryByTestId('my-work-schedule')).toBeNull();
   });
 
@@ -105,6 +52,10 @@ describe('ProfileScreen menu', () => {
     ['open-correction', '/attendance/correction'],
     ['open-change-device', '/attendance/change-device'],
     ['open-change-pin', '/change-pin'],
+    ['open-personal-info', '/me/personal'],
+    ['open-work-schedule', '/me/schedule'],
+    ['open-language', '/me/language'],
+    ['open-appearance', '/me/appearance'],
   ])('%s opens the existing route %s', (testID, route) => {
     render(<ProfileScreen />);
     fireEvent.press(screen.getByTestId(testID));
@@ -117,12 +68,11 @@ describe('ProfileScreen menu', () => {
     expect(screen.queryByTestId('open-change-pin')).toBeNull();
   });
 
-  it.each([['lo', 'en', 'English'], ['en', 'lo', 'ພາສາລາວ']] as const)('changes locale from %s to %s through the existing callback', (locale, next, label) => {
-    usePrefsStore.setState({ locale });
+  it.each([['lo', '🇱🇦  ພາສາລາວ', 'ຕາມລະບົບ'], ['en', '🇬🇧  English', 'System']] as const)('shows the current language (%s) and theme on their rows', (locale, language, theme) => {
+    usePrefsStore.setState({ locale, theme: 'system' });
     render(<ProfileScreen />);
-    expect(screen.getByText(label)).toBeTruthy();
-    fireEvent.press(screen.getByTestId('toggle-locale'));
-    expect(mockChangeLocale).toHaveBeenCalledWith(next);
+    expect(screen.getByText(language)).toBeTruthy();
+    expect(screen.getByText(theme)).toBeTruthy();
   });
 
   it('awaits logout before replacing the route with login', async () => {
@@ -143,8 +93,8 @@ describe('ProfileScreen menu', () => {
     expect(screen.getByTestId('state-error')).toBeTruthy();
     fireEvent.press(screen.getByTestId('open-holidays'));
     expect(router.push).toHaveBeenCalledWith('/holidays');
-    fireEvent.press(screen.getByTestId('toggle-locale'));
-    expect(mockChangeLocale).toHaveBeenCalledWith('en');
+    fireEvent.press(screen.getByTestId('open-language'));
+    expect(router.push).toHaveBeenCalledWith('/me/language');
     expect(screen.getByTestId('logout')).toBeTruthy();
   });
 });

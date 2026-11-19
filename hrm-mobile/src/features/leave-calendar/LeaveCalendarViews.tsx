@@ -17,15 +17,15 @@ const STATUS_BOX: Record<string, string> = {
 };
 
 /** Initials come only from the calendar response; it has no employee photo field. */
-function LeavePersonCircle({ entry, testID }: { entry: LeaveCalendarEntry; testID?: string }) {
+function LeavePersonCircle({ entry, testID, small = false }: { entry: LeaveCalendarEntry; testID?: string; small?: boolean }) {
   const words = entry.employeeName.trim().split(/\s+/).filter(Boolean);
   const initials = words.length ? `${Array.from(words[0]!)[0]}${words.length > 1 ? Array.from(words[words.length - 1]!)[0] : ''}`.toLocaleUpperCase() : '—';
   return (
     <View
       testID={testID}
-      className={`h-7 w-7 items-center justify-center rounded-full border-2 ${entry.status === 'PENDING' ? 'border-dashed border-warning bg-warning-soft dark:bg-warning/10' : 'border-success bg-success-soft dark:bg-success/10'}`}
+      className={`${small ? 'h-5 w-5 border' : 'h-7 w-7 border-2'} items-center justify-center rounded-full ${entry.status === 'PENDING' ? 'border-dashed border-warning bg-warning-soft dark:bg-warning/10' : 'border-success bg-success-soft dark:bg-success/10'}`}
     >
-      <Text maxFontSizeMultiplier={1.3} className="text-[10px] font-bold text-ink dark:text-night-ink">{initials}</Text>
+      <Text maxFontSizeMultiplier={1.3} className={`${small ? 'text-[8px]' : 'text-[10px]'} font-bold text-ink dark:text-night-ink`}>{initials}</Text>
     </View>
   );
 }
@@ -162,13 +162,17 @@ export function LeaveMonthGrid({
                 accessibilityLabel={summary}
                 accessibilityState={{ selected: date === selected }}
                 onPress={() => onSelect(date)}
-                className={`m-0.5 min-h-[116px] min-w-0 flex-1 items-center rounded-sm border py-1 ${date === selected ? 'border-primary' : 'border-line dark:border-night-line'} ${shade}`}
+                className={`m-0.5 min-h-[60px] min-w-0 flex-1 items-center rounded-sm border py-1 ${date === selected ? 'border-primary' : 'border-line dark:border-night-line'} ${shade}`}
               >
                 <Text className={`mb-1 min-w-6 rounded-full text-center text-sm ${date === data.today ? 'bg-primary font-bold text-white' : date.slice(0, 7) !== month ? 'text-ink-muted dark:text-night-muted' : 'font-medium text-ink dark:text-night-ink'}`}>{Number(date.slice(8))}</Text>
                 {entries.length > 0 && (
-                  <View testID={`lcal-month-count-${date}`} className="items-center gap-1">
-                    {visible.map((entry) => <LeavePersonCircle key={entry.employeeId} entry={entry} testID={`lcal-month-person-${date}-${entry.employeeId}`} />)}
-                    {extra > 0 && <Text testID={`lcal-month-more-${date}`} className="text-[10px] font-semibold text-ink-muted dark:text-night-muted">+{extra}</Text>}
+                  <View testID={`lcal-month-count-${date}`} className="flex-row items-center">
+                    {visible.map((entry, i) => (
+                      <View key={entry.employeeId} className={i > 0 ? '-ml-1.5' : ''}>
+                        <LeavePersonCircle small entry={entry} testID={`lcal-month-person-${date}-${entry.employeeId}`} />
+                      </View>
+                    ))}
+                    {extra > 0 && <Text testID={`lcal-month-more-${date}`} className="ml-0.5 text-[9px] font-semibold text-ink-muted dark:text-night-muted">+{extra}</Text>}
                   </View>
                 )}
               </Pressable>

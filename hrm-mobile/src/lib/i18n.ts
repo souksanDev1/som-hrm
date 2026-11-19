@@ -6,13 +6,23 @@ import { secureStorage } from './secure-storage';
 
 const deviceLocale = (): Locale => (getLocales()[0]?.languageCode === 'en' ? 'en' : 'lo');
 
+export type ThemePref = 'system' | 'light' | 'dark';
+
 interface PrefsState {
   locale: Locale;
   setLocale(locale: Locale): void;
+  /** Light/dark choice; "system" follows the phone. */
+  theme: ThemePref;
+  setTheme(theme: ThemePref): void;
 }
 
 export const usePrefsStore = create<PrefsState>()(
-  persist((set) => ({ locale: deviceLocale(), setLocale: (locale) => set({ locale }) }), {
+  persist((set) => ({
+    locale: deviceLocale(),
+    setLocale: (locale) => set({ locale }),
+    theme: 'system' as ThemePref,
+    setTheme: (theme) => set({ theme }),
+  }), {
     name: 'hrm-prefs',
     storage: createJSONStorage(() => secureStorage),
   }),
