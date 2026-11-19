@@ -75,7 +75,7 @@ const main = async () => {
         workspaceId: ws, employeeCode: 'E001', firstName: 'ສົມສັກ', lastName: 'ພົມມະວົງ', gender: 'MALE',
         firstNameEn: 'Somsak', lastNameEn: 'Phommavong', village: 'ໂພນທັນ', district: 'ໄຊເສດຖາ', province: 'VT',
         email: 'admin@som.la', phone: '02055550001', hireDate: new Date('2019-03-01'), contractType: 'INDEFINITE', payType: 'MONTHLY',
-        status: 'ACTIVE', branchId: hq.id, departmentId: hr.id, positionId: director.id,
+        status: 'ACTIVE', branchId: hq.id, departmentId: hr.id, positionId: director.id, isTopLevel: true,
         socialSecurityNoEnc: cipher.encrypt('SS1000001'), socialSecurityNoHash: cipher.blindIndex('social_security_no', 'SS1000001'),
         idCardNoEnc: cipher.encrypt('01-0012345'), idCardNoHash: cipher.blindIndex('national_id', '01-0012345'),
         familyBookNoEnc: cipher.encrypt('VT-12345'), familyBookHolder: 'ສົມສັກ ພົມມະວົງ', ssnRegisteredAt: new Date('2019-04-01'),

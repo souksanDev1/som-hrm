@@ -1,0 +1,1 @@
+ALTER TABLE "Employee" ADD COLUMN "isTopLevel" BOOLEAN NOT NULL DEFAULT false;

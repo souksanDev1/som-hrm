@@ -540,6 +540,8 @@ model Employee {
   departmentId         String?
   positionId           String?
   managerId            String?
+  /// Top of the organisation: has no line manager; requests go to HR.
+  isTopLevel           Boolean          @default(false)
   workScheduleId       String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
