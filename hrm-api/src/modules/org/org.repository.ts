@@ -1,6 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import type { Tx } from '../../db/client';
 
+/** Employment statuses shown on the org chart / structure and allowed as a department head. */
+const ACTIVE_STATUSES = ['PROBATION', 'ACTIVE', 'ON_LEAVE'] as const;
+
 export const orgRepository = {
   /** Open items only unless `includeClosed` (closed ones stay for history but are hidden from pickers). */
   listBranches: (tx: Tx, workspaceId: string, includeClosed = false) =>
@@ -45,7 +48,9 @@ export const orgRepository = {
       SELECT "id" FROM chain`;
     return rows.map((r) => r.id);
   },
-  employeeExists: (tx: Tx, workspaceId: string, id: string) => tx.employee.count({ where: { workspaceId, id } }),
+  /** Department heads must be current staff (not resigned or terminated). */
+  activeEmployeeExists: (tx: Tx, workspaceId: string, id: string) =>
+    tx.employee.count({ where: { workspaceId, id, status: { in: [...ACTIVE_STATUSES] } } }),
 
   listPositions: (tx: Tx, workspaceId: string, includeClosed = false) =>
     tx.position.findMany({
@@ -61,7 +66,7 @@ export const orgRepository = {
 
   orgChartRows: (tx: Tx, workspaceId: string) =>
     tx.employee.findMany({
-      where: { workspaceId, status: { in: ['PROBATION', 'ACTIVE', 'ON_LEAVE'] } },
+      where: { workspaceId, status: { in: [...ACTIVE_STATUSES] } },
       select: {
         id: true,
         employeeCode: true,
@@ -80,7 +85,7 @@ export const orgRepository = {
       select: { id: true, name: true, parentId: true, headEmployeeId: true },
     }),
     employees: await tx.employee.findMany({
-      where: { workspaceId, status: { in: ['PROBATION', 'ACTIVE', 'ON_LEAVE'] } },
+      where: { workspaceId, status: { in: [...ACTIVE_STATUSES] } },
       select: { id: true, employeeCode: true, firstName: true, lastName: true, departmentId: true, position: { select: { name: true } } },
     }),
   }),

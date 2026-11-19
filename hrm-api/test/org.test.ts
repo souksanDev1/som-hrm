@@ -128,6 +128,16 @@ describe('org structure', () => {
     expect(res.json<{ headEmployeeId: string | null }>().headEmployeeId).toBeNull();
   });
 
+  it('rejects a department head who is no longer employed', async () => {
+    const { ws, req } = await setup();
+    const d = (await req('POST', '/departments', { name: 'D' })).json<{ id: string }>();
+    const e = (await req('POST', '/employees', employeePayload({ departmentId: d.id }))).json<CreateEmployeeResponse>().employee;
+    await t.db.tenant(ws.workspaceId, (tx) => tx.employee.update({ where: { id: e.id }, data: { status: 'RESIGNED' } }));
+    const res = await req('PATCH', `/departments/${d.id}`, { headEmployeeId: e.id });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe('invalid_reference');
+  });
+
   it('employee role can read the structure', async () => {
     const { ws } = await setup();
     await createUser(t.db, ws, { email: 'emp@x.test', password: 'Employee123', role: 'EMPLOYEE' });

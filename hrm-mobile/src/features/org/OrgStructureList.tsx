@@ -7,7 +7,8 @@ import { useT } from '@/lib/i18n';
 
 export type StructureRow =
   | { type: 'dept'; node: OrgStructureNode; depth: number }
-  | { type: 'person'; member: OrgStructureMember; depth: number; isHead: boolean };
+  /** `deptId` keeps keys unique: a head can also be listed as a member of their own department. */
+  | { type: 'person'; member: OrgStructureMember; deptId: string; depth: number; isHead: boolean };
 
 /** Levels 0 and 1 (Chairman, CEO) start expanded. */
 const OPEN_DEPTH = 2;
@@ -18,7 +19,7 @@ const INDENT = 14;
 const MAX_INDENT_LEVELS = 6;
 
 const rowHeight = (r: StructureRow) => (r.type === 'dept' ? DEPT_HEIGHT : PERSON_HEIGHT);
-const rowKey = (r: StructureRow) => (r.type === 'dept' ? `dept:${r.node.id}` : `person:${r.member.id}`);
+const rowKey = (r: StructureRow) => (r.type === 'dept' ? `dept:${r.node.id}` : `person:${r.deptId}:${r.member.id}`);
 
 /** Depth-first rows; an expanded department shows its head, then members, then sub-departments. */
 export const flattenStructure = (roots: readonly OrgStructureNode[], expanded: ReadonlySet<string>, depth = 0): StructureRow[] =>
@@ -26,8 +27,8 @@ export const flattenStructure = (roots: readonly OrgStructureNode[], expanded: R
     const row: StructureRow = { type: 'dept', node, depth };
     if (!expanded.has(node.id)) return [row];
     const people: StructureRow[] = [
-      ...(node.head ? [{ type: 'person' as const, member: node.head, depth: depth + 1, isHead: true }] : []),
-      ...node.members.map((member) => ({ type: 'person' as const, member, depth: depth + 1, isHead: false })),
+      ...(node.head ? [{ type: 'person' as const, member: node.head, deptId: node.id, depth: depth + 1, isHead: true }] : []),
+      ...node.members.map((member) => ({ type: 'person' as const, member, deptId: node.id, depth: depth + 1, isHead: false })),
     ];
     return [row, ...people, ...flattenStructure(node.children, expanded, depth + 1)];
   });

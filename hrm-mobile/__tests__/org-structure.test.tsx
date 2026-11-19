@@ -55,6 +55,15 @@ describe('OrgStructureList', () => {
     expect(list.props.getItemLayout(list.props.data, 2)).toEqual({ length: 72, offset: 160, index: 2 });
   });
 
+  it('gives unique keys to a person who heads another department than their own', () => {
+    // The CEO heads "CEO" but sits in "Chairman": both levels are open, so they appear twice.
+    const x = person('X', 'Xay');
+    render(<OrgStructureList roots={[node('chairman', [node('ceo', [], { head: x })], { members: [x], employeeCount: 1 })]} />);
+    const list = screen.UNSAFE_getByType(FlatList);
+    const keys = (list.props.data as unknown[]).map((r) => list.props.keyExtractor(r));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it('shows the translated unassigned name', () => {
     render(<OrgStructureList roots={[node('unassigned', [], { kind: 'unassigned', name: '', employeeCount: 1, members: [person('x')] })]} />);
     expect(screen.getByText('Unassigned')).toBeTruthy();

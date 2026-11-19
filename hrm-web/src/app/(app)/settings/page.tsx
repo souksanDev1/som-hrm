@@ -18,7 +18,7 @@ import {
 } from '@/features/org/forms';
 import { structureHeadNames } from '@/features/org/components/DepartmentTreeEditor';
 import { orgKeys, useBranches, useDepartments, useOrgMutation, useOrgStructure, usePositions } from '@/features/org/hooks';
-import { useManagerOptions } from '@/features/employees/hooks';
+import { useHeadOptions } from '@/features/employees/hooks';
 import { useT } from '@/lib/i18n';
 
 type Editing = { kind: 'branch'; item: Branch } | { kind: 'department'; item: Department } | { kind: 'position'; item: Position } | null;
@@ -53,7 +53,7 @@ export default function SettingsPage() {
     `${b.latitude !== null ? `${t('orgx.branch.geofenceSummary').replace('{radius}', String(b.geofenceRadius))} · ` : ''}${b.employeeCount}`;
   const find = <T extends { id: string }>(rows: readonly T[] | undefined, id: string) => rows?.find((r) => r.id === id);
   /** Open departments, plus the current parent even when closed (so the select shows it). */
-  const managers = useManagerOptions();
+  const managers = useHeadOptions();
   const structure = useOrgStructure();
   /** Loaded employees, plus the current head when it is not among them (the picker loads the first 100). */
   const headOptions = useMemo(() => {

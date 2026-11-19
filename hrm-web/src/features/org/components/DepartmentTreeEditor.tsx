@@ -2,7 +2,7 @@
 import type { Department, OrgStructureNode, UpdateDepartmentInput } from '@hrm/shared';
 import { useMemo, useState } from 'react';
 import { Badge, Button, Card, Checkbox, ConfirmDialog, Icon, QueryState, type SelectOption } from '@/components/ui';
-import { useManagerOptions } from '@/features/employees/hooks';
+import { useHeadOptions } from '@/features/employees/hooks';
 import { ApiError } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
 import { useT } from '@/lib/i18n';
@@ -71,7 +71,7 @@ export function DepartmentTreeEditor() {
   const [confirming, setConfirming] = useState<Confirming>(null);
   const departments = useDepartments(showClosed);
   const structure = useOrgStructure();
-  const heads = useManagerOptions();
+  const heads = useHeadOptions();
 
   const create = useOrgMutation(orgKeys.all, (body: UpdateDepartmentInput) =>
     orgApi.createDepartment({ name: body.name ?? '', parentId: body.parentId ?? undefined, headEmployeeId: body.headEmployeeId ?? undefined }),

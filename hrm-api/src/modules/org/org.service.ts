@@ -88,7 +88,7 @@ export const createOrgService = (db: Db) => {
         throw badRequest('department_cycle');
       }
     }
-    if (input.headEmployeeId && !(await repo.employeeExists(tx, ctx.workspaceId, input.headEmployeeId))) {
+    if (input.headEmployeeId && !(await repo.activeEmployeeExists(tx, ctx.workspaceId, input.headEmployeeId))) {
       throw badRequest('invalid_reference', { fields: ['headEmployeeId'] });
     }
   };

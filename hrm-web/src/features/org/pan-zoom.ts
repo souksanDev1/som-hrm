@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 export type View = { x: number; y: number; scale: number };
-export const MIN_SCALE = 0.3;
+/** Low enough for "fit" to show a ~50-box level on a laptop screen. */
+export const MIN_SCALE = 0.1;
 export const MAX_SCALE = 2;
 const STEP = 1.2;
 
@@ -31,36 +32,43 @@ const isControl = (target: EventTarget | null) => target instanceof Element && t
  */
 export function usePanZoom(): {
   view: View;
-  viewportRef: RefObject<HTMLDivElement | null>;
+  /** Callback ref: listeners attach whenever the viewport mounts (e.g. after an empty first render). */
+  viewportRef(el: HTMLDivElement | null): void;
   contentRef: RefObject<HTMLDivElement | null>;
   zoomIn(): void;
   zoomOut(): void;
   fit(): void;
 } {
-  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const viewportEl = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<View>({ x: 0, y: 0, scale: 1 });
+  const viewportRef = useCallback((el: HTMLDivElement | null) => {
+    viewportEl.current = el;
+    setViewport(el);
+  }, []);
 
   const centre = () => {
-    const el = viewportRef.current;
+    const el = viewportEl.current;
     return { x: (el?.clientWidth ?? 0) / 2, y: (el?.clientHeight ?? 0) / 2 };
   };
   const zoomIn = useCallback(() => setView((v) => zoomAt(v, centre().x, centre().y, STEP)), []);
   const zoomOut = useCallback(() => setView((v) => zoomAt(v, centre().x, centre().y, 1 / STEP)), []);
   const fit = useCallback(() => {
-    const vp = viewportRef.current;
+    const vp = viewportEl.current;
     const content = contentRef.current;
     // offsetWidth/Height ignore CSS transforms, so this is the unscaled size.
     if (!vp || !content || !content.offsetWidth || !vp.clientWidth) return;
     setView(fitView({ w: content.offsetWidth, h: content.offsetHeight }, { w: vp.clientWidth, h: vp.clientHeight }));
   }, []);
 
+  // Fit once each time a viewport mounts (first data, or data after an empty state).
   useLayoutEffect(() => {
-    fit();
-  }, [fit]);
+    if (viewport) fit();
+  }, [fit, viewport]);
 
   useEffect(() => {
-    const vp = viewportRef.current;
+    const vp = viewport;
     if (!vp) return;
     const pointers = new Map<number, { x: number; y: number }>();
     const local = (e: PointerEvent | WheelEvent) => {
@@ -116,7 +124,7 @@ export function usePanZoom(): {
       vp.removeEventListener('pointercancel', onUp);
       vp.removeEventListener('wheel', onWheel);
     };
-  }, []);
+  }, [viewport]);
 
   return { view, viewportRef, contentRef, zoomIn, zoomOut, fit };
 }

@@ -57,6 +57,18 @@ export const useManagerOptions = () =>
     select: (d) => d.items.map((e) => ({ value: e.id, label: `${e.employeeCode} · ${e.firstName} ${e.lastName}` })),
   });
 
+/** Statuses that count as current staff (org structure, department head). */
+const CURRENT_STAFF: readonly string[] = ['PROBATION', 'ACTIVE', 'ON_LEAVE'];
+
+/** Department head picker: like the manager picker (first 100 by code) but current staff only. */
+export const useHeadOptions = () =>
+  useQuery({
+    queryKey: employeeKeys.list({ pageSize: 100 }),
+    queryFn: () => employeesApi.list({ pageSize: 100 }),
+    select: (d) =>
+      d.items.filter((e) => CURRENT_STAFF.includes(e.status)).map((e) => ({ value: e.id, label: `${e.employeeCode} · ${e.firstName} ${e.lastName}` })),
+  });
+
 /** Shared invalidation: any employee mutation refreshes lists and the org chart. */
 const useInvalidate = () => {
   const qc = useQueryClient();

@@ -1,6 +1,6 @@
 import type { Department, OrgStructureNode } from '@hrm/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,15 +57,22 @@ describe('pan/zoom math', () => {
 
   it('zoomAt clamps scale', () => {
     expect(zoomAt({ x: 0, y: 0, scale: 1.8 }, 0, 0, 2).scale).toBe(2);
-    expect(zoomAt({ x: 0, y: 0, scale: 1 }, 0, 0, 0.01).scale).toBe(0.3);
+    expect(zoomAt({ x: 0, y: 0, scale: 1 }, 0, 0, 0.001).scale).toBe(0.1);
   });
 
   it('fitView centres small content without upscaling', () => {
     expect(fitView({ w: 200, h: 100 }, { w: 1000, h: 500 })).toEqual({ x: 400, y: 200, scale: 1 });
   });
 
-  it('fitView shrinks very wide content', () => {
-    expect(fitView({ w: 6000, h: 400 }, { w: 1200, h: 600 }).scale).toBe(0.3);
+  it('fitView shrinks very wide content so every box is visible', () => {
+    // A 27-department level: (1200 - 2·24) / 6000 = 0.192, below the old 0.3 floor.
+    const v = fitView({ w: 6000, h: 400 }, { w: 1200, h: 600 });
+    expect(v.scale).toBeCloseTo(0.192);
+    expect(v.x).toBeCloseTo(24);
+  });
+
+  it('zooming out from a fitted wide chart never jumps back in', () => {
+    expect(zoomAt({ x: 0, y: 0, scale: 0.192 }, 0, 0, 1 / 1.2).scale).toBeLessThan(0.192);
   });
 });
 
@@ -101,6 +108,17 @@ describe('OrgStructureChart', () => {
   it('chart content is not width-constrained', () => {
     render(<Harness roots={tree()} />);
     expect(screen.getByTestId('org-structure')).toHaveClass('w-max');
+  });
+
+  it('wheel zoom works after data arrives on a chart that first rendered empty', () => {
+    const { rerender } = render(<Harness roots={[]} />);
+    rerender(<Harness roots={tree()} />);
+    const canvas = screen.getByTestId('org-canvas');
+    const before = canvas.style.transform;
+    act(() => {
+      canvas.parentElement!.dispatchEvent(new WheelEvent('wheel', { deltaY: -500, bubbles: true, cancelable: true }));
+    });
+    expect(canvas.style.transform).not.toBe(before);
   });
 
   it('empty state', () => {
@@ -154,6 +172,18 @@ describe('DepartmentTreeEditor', () => {
     expect(labels).toContain('CHAIRMAN');
     expect(labels).not.toContain('CEO');
     expect(labels).not.toContain('OPS');
+  });
+
+  it('head options list only current staff', async () => {
+    const emp = (id: string, status: string) => ({ id, employeeCode: id, firstName: id, lastName: 'X', status });
+    employeesApi.list.mockResolvedValue({ items: [emp('NOW', 'ACTIVE'), emp('LEFT', 'RESIGNED'), emp('FIRED', 'TERMINATED')], total: 3, page: 1, pageSize: 100 });
+    renderEditor();
+    await userEvent.click(await screen.findByTestId('dept-edit-ceo'));
+    const select = document.getElementById('department-form-headEmployeeId') as HTMLSelectElement;
+    await waitFor(() => expect(Array.from(select.options).map((o) => o.value)).toContain('NOW'));
+    const values = Array.from(select.options).map((o) => o.value);
+    expect(values).not.toContain('LEFT');
+    expect(values).not.toContain('FIRED');
   });
 
   it('add sub-unit pre-fills the parent', async () => {
