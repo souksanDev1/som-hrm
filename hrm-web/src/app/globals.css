@@ -24,4 +24,70 @@
   .bg-brand-gradient {
     background-image: linear-gradient(135deg, #3b5bfd 0%, #7a5cff 100%);
   }
+  /*
+   * Org structure chart connectors: a vertical line out of each parent box, a horizontal bar across
+   * siblings and a vertical line into each child box. Roots (`.org-tree > li`) have no connectors.
+   */
+  .org-tree,
+  .org-tree ul {
+    @apply relative flex justify-center;
+  }
+  .org-tree ul {
+    padding-top: 24px;
+  }
+  .org-tree li {
+    @apply relative flex flex-col items-center;
+    padding: 24px 8px 0;
+  }
+  .org-tree li::before,
+  .org-tree li::after,
+  .org-tree ul ul::before,
+  .org-tree li > ul::before {
+    @apply border-slate-400 dark:border-night-muted;
+    content: '';
+    position: absolute;
+    top: 0;
+  }
+  .org-tree li::before,
+  .org-tree li::after {
+    right: 50%;
+    width: 50%;
+    height: 24px;
+    border-top-width: 2px;
+  }
+  .org-tree li::after {
+    right: auto;
+    left: 50%;
+    border-left-width: 2px;
+  }
+  .org-tree li:only-child::before,
+  .org-tree li:only-child::after {
+    display: none;
+  }
+  .org-tree li:only-child {
+    padding-top: 0;
+  }
+  .org-tree li:first-child::before,
+  .org-tree li:last-child::after {
+    border: 0 none;
+  }
+  .org-tree li:last-child::before {
+    border-right-width: 2px;
+    border-top-right-radius: 6px;
+  }
+  .org-tree li:first-child::after {
+    border-top-left-radius: 6px;
+  }
+  .org-tree li > ul::before {
+    left: 50%;
+    height: 24px;
+    border-left-width: 2px;
+  }
+  .org-tree > li {
+    padding-top: 0;
+  }
+  .org-tree > li::before,
+  .org-tree > li::after {
+    display: none;
+  }
 }

@@ -3,13 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orgApi } from './api';
 
 export const orgKeys = {
-  chart: ['org', 'chart'] as const,
+  structure: ['org', 'structure'] as const,
   branches: ['org', 'branches'] as const,
   departments: ['org', 'departments'] as const,
   positions: ['org', 'positions'] as const,
 };
 
-export const useOrgChart = () => useQuery({ queryKey: orgKeys.chart, queryFn: orgApi.chart });
+export const useOrgStructure = () => useQuery({ queryKey: orgKeys.structure, queryFn: orgApi.structure });
 /**
  * Org lists. Pickers use the default (open items only); settings pass `includeClosed` to also see closed ones.
  * Both variants live under the same key prefix, so one invalidation refreshes them.

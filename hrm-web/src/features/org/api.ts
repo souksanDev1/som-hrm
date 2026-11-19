@@ -4,8 +4,8 @@ import type {
   CreateDepartmentInput,
   CreatePositionInput,
   Department,
-  OrgChartNode,
   OrgListQuery,
+  OrgStructureNode,
   Position,
   UpdateBranchInput,
   UpdateDepartmentInput,
@@ -17,7 +17,7 @@ export type OrgEntityPath = 'branches' | 'departments' | 'positions';
 const listQuery = (q: OrgListQuery) => ({ includeClosed: q.includeClosed ? 'true' : undefined });
 
 export const orgApi = {
-  chart: () => apiFetch<OrgChartNode[]>('/org/chart'),
+  structure: () => apiFetch<OrgStructureNode[]>('/org/structure'),
   branches: (q: OrgListQuery = {}) => apiFetch<Branch[]>('/branches', { query: listQuery(q) }),
   createBranch: (b: CreateBranchInput) => apiFetch<Branch>('/branches', { method: 'POST', body: b }),
   updateBranch: (id: string, b: UpdateBranchInput) => apiFetch<Branch>(`/branches/${id}`, { method: 'PATCH', body: b }),
