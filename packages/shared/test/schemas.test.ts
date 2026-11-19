@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assignmentIssues,
   buildOrgTree,
   changePinSchema,
   createEmployeeSchema,
   dictionaries,
+  effectiveAssignment,
   findLaoProvinceCode,
   isoDateSchema,
   LAO_PROVINCES,
@@ -32,6 +34,8 @@ describe('createEmployeeSchema', () => {
     hireDate: '2025-01-01',
     contractType: 'INDEFINITE',
     payType: 'MONTHLY',
+    departmentId: 'd1',
+    managerId: 'm1',
   };
   it('accepts a minimal Lao employee', () => {
     expect(createEmployeeSchema.safeParse(base).success).toBe(true);
@@ -105,6 +109,7 @@ describe('missingContractEnd (fixed-term contracts need an end date)', () => {
   it('is enforced by createEmployeeSchema on the end date field', () => {
     const r = createEmployeeSchema.safeParse({
       employeeCode: 'E9', firstName: 'A', lastName: 'B', gender: 'MALE', hireDate: '2024-01-01', contractType: 'FIXED_TERM', payType: 'MONTHLY',
+      departmentId: 'd1', managerId: 'm1',
     });
     expect(r.success).toBe(false);
     expect(r.error?.issues).toContainEqual(expect.objectContaining({ path: ['contractEndDate'], message: 'contract_end_required' }));
@@ -162,9 +167,49 @@ describe('empty optional form inputs', () => {
     expect(createDocumentSchema.safeParse({ type: 'VISA', issuedAt: '', expiresAt: '2030-01-01' }).success).toBe(true);
     const r = createEmployeeSchema.safeParse({
       employeeCode: 'E1', firstName: 'A', lastName: 'B', gender: 'MALE', hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'DAILY',
-      phone: '', email: '', dateOfBirth: '', departmentId: '', socialSecurityNo: '',
+      phone: '', email: '', dateOfBirth: '', departmentId: 'd1', managerId: '', isTopLevel: true, socialSecurityNo: '',
     });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.phone).toBeUndefined();
+  });
+});
+
+describe('assignmentIssues (department + line manager)', () => {
+  it('requires a department and a manager unless top level', () => {
+    expect(assignmentIssues({})).toEqual(['department_required', 'manager_required']);
+    expect(assignmentIssues({ departmentId: 'd' })).toEqual(['manager_required']);
+    expect(assignmentIssues({ departmentId: 'd', isTopLevel: true })).toEqual([]);
+    expect(assignmentIssues({ departmentId: 'd', managerId: 'm' })).toEqual([]);
+  });
+  it('rejects a manager on a top-level employee', () => {
+    expect(assignmentIssues({ departmentId: 'd', managerId: 'm', isTopLevel: true })).toEqual(['manager_conflicts_top_level']);
+  });
+  it('leaves legacy rows alone unless the assignment is touched', () => {
+    expect(assignmentIssues({ status: 'RESIGNED' } as never, { departmentId: null, managerId: null })).toEqual([]);
+    expect(assignmentIssues({ managerId: 'm' }, { departmentId: null, managerId: null })).toEqual(['department_required']);
+    expect(assignmentIssues({ managerId: null }, { departmentId: 'd', managerId: 'm', isTopLevel: false })).toEqual(['manager_required']);
+  });
+  it('merges changes over the stored assignment', () => {
+    expect(effectiveAssignment({ managerId: 'm' }, { departmentId: 'd', managerId: null, isTopLevel: true })).toEqual({
+      departmentId: 'd', managerId: 'm', isTopLevel: false,
+    });
+    expect(effectiveAssignment({ isTopLevel: true }, { departmentId: 'd', managerId: 'm', isTopLevel: false })).toEqual({
+      departmentId: 'd', managerId: null, isTopLevel: true,
+    });
+  });
+  it('is enforced by createEmployeeSchema on the department and manager fields', () => {
+    const base = { employeeCode: 'E1', firstName: 'A', lastName: 'B', gender: 'MALE', hireDate: '2025-01-01', contractType: 'INDEFINITE', payType: 'MONTHLY' };
+    const r = createEmployeeSchema.safeParse(base);
+    expect(r.success).toBe(false);
+    expect(r.error?.issues).toContainEqual(expect.objectContaining({ path: ['departmentId'], message: 'department_required' }));
+    expect(r.error?.issues).toContainEqual(expect.objectContaining({ path: ['managerId'], message: 'manager_required' }));
+    expect(createEmployeeSchema.safeParse({ ...base, isTopLevel: true, departmentId: 'd' }).success).toBe(true);
+    const c = createEmployeeSchema.safeParse({ ...base, departmentId: 'd', managerId: 'm', isTopLevel: true });
+    expect(c.error?.issues).toContainEqual(expect.objectContaining({ path: ['managerId'], message: 'manager_conflicts_top_level' }));
+  });
+  it('updateEmployeeSchema only rejects the manager/top-level conflict', () => {
+    expect(updateEmployeeSchema.safeParse({ status: 'RESIGNED' }).success).toBe(true);
+    const r = updateEmployeeSchema.safeParse({ isTopLevel: true, managerId: 'm' });
+    expect(r.error?.issues).toContainEqual(expect.objectContaining({ path: ['managerId'], message: 'manager_conflicts_top_level' }));
   });
 });

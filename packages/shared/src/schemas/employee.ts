@@ -128,6 +128,49 @@ export const missingContractEnd = (after: ContractDates, before?: ContractDates 
 export const CONTRACT_END_REQUIRED = 'contract_end_required';
 const contractEndRequired = { message: CONTRACT_END_REQUIRED, path: ['contractEndDate'] };
 
+export type AssignmentIssue = 'department_required' | 'manager_required' | 'manager_conflicts_top_level';
+export interface Assignment {
+  departmentId?: string | null;
+  managerId?: string | null;
+  isTopLevel?: boolean | null;
+}
+
+/**
+ * The assignment after applying `changes` (a key present wins, `undefined` = unchanged) over the stored one.
+ * Giving a manager clears top level (unless the change sets it too); top level clears the manager.
+ */
+export const effectiveAssignment = (
+  changes: Assignment,
+  stored?: Assignment | null,
+): { departmentId: string | null; managerId: string | null; isTopLevel: boolean } => {
+  const pick = <K extends keyof Assignment>(key: K) => (changes[key] !== undefined ? changes[key] : stored?.[key]);
+  const departmentId = pick('departmentId') || null;
+  const managerGiven = !!changes.managerId;
+  const isTopLevel = changes.isTopLevel != null ? changes.isTopLevel : managerGiven ? false : !!pick('isTopLevel');
+  return { departmentId, managerId: isTopLevel ? null : pick('managerId') || null, isTopLevel };
+};
+
+/**
+ * Department and line manager (or the top-level flag) are required for new data. On an update (`stored` given)
+ * they are only checked when the change touches one of them, so legacy rows stay editable as they are.
+ */
+export const assignmentIssues = (changes: Assignment, stored?: Assignment | null): AssignmentIssue[] => {
+  if (changes.isTopLevel === true && changes.managerId) return ['manager_conflicts_top_level'];
+  if (stored && changes.departmentId === undefined && changes.managerId === undefined && changes.isTopLevel === undefined) return [];
+  const a = effectiveAssignment(changes, stored);
+  const issues: AssignmentIssue[] = [];
+  if (!a.departmentId) issues.push('department_required');
+  if (!a.isTopLevel && !a.managerId) issues.push('manager_required');
+  return issues;
+};
+
+const refineAssignment = (v: Assignment, ctx: z.RefinementCtx) => {
+  for (const issue of assignmentIssues(v)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: issue, path: [issue === 'department_required' ? 'departmentId' : 'managerId'] });
+  }
+};
+const noManagerOnTopLevel = (v: Assignment) => !(v.isTopLevel === true && v.managerId);
+
 /** Login methods HR can issue. PASSWORD does not need an email: staff sign in with employee code or phone. */
 export const credentialMethodSchema = z.enum(['PASSWORD', 'PIN']);
 export const issueCredentialSchema = z.object({
@@ -143,12 +186,15 @@ export const createEmployeeSchema = z
     nationalityType: z.enum(NATIONALITY_TYPES).default(NationalityType.LAO),
     status: z.enum(EMPLOYMENT_STATUSES).default('PROBATION'),
     hazardousWork: z.boolean().default(false),
+    /** No line manager: requests go to HR. Required instead of `managerId` for the top of the org chart. */
+    isTopLevel: z.boolean().default(false),
     /** Optionally create a login. PIN login works for staff without email/smartphone. */
     login: issueCredentialSchema.optional(),
   })
   .refine(foreignNeedsNationality, nationalityRequired)
   .refine((v) => !missingContractEnd(v), contractEndRequired)
-  .superRefine(refineEmploymentDates);
+  .superRefine(refineEmploymentDates)
+  .superRefine(refineAssignment);
 export type CreateEmployeeInput = z.input<typeof createEmployeeSchema>;
 export type CreateEmployeeData = z.output<typeof createEmployeeSchema>;
 
@@ -160,11 +206,13 @@ export const updateEmployeeSchema = z
     nationalityType: z.enum(NATIONALITY_TYPES).optional(),
     status: z.enum(EMPLOYMENT_STATUSES).optional(),
     hazardousWork: z.boolean().optional(),
+    isTopLevel: z.boolean().optional(),
     /** Effective date for the employment-history entry (FR-EMP-08.4); defaults to today in the workspace timezone. */
     effectiveDate: isoDateSchema.optional(),
   })
   .refine(foreignNeedsNationality, nationalityRequired)
-  .superRefine(refineEmploymentDates);
+  .superRefine(refineEmploymentDates)
+  .refine(noManagerOnTopLevel, { message: 'manager_conflicts_top_level', path: ['managerId'] });
 export type UpdateEmployeeInput = z.input<typeof updateEmployeeSchema>;
 export type UpdateEmployeeData = z.output<typeof updateEmployeeSchema>;
 
@@ -194,6 +242,8 @@ export const employeeSummarySchema = z.object({
   position: refSchema,
   branch: refSchema,
   hasLogin: z.boolean(),
+  /** Legacy row still missing its department or line manager (and not top level). */
+  assignmentIncomplete: z.boolean(),
 });
 export type EmployeeSummary = z.infer<typeof employeeSummarySchema>;
 
@@ -243,7 +293,8 @@ export const employeeDetailSchema = employeeSummarySchema.extend({
   probationEndDate: z.string().nullable(),
   payType: z.enum(PAY_TYPES),
   hazardousWork: z.boolean(),
-  manager: refSchema,
+  isTopLevel: z.boolean(),
+  manager: z.object({ id: z.string(), name: z.string(), positionName: z.string().nullable() }).nullable(),
   documents: z.array(employeeDocumentSchema),
   emergencyContacts: z.array(emergencyContactSchema),
 });

@@ -55,6 +55,7 @@ export const EMPLOYEE_IMPORT_COLUMNS = [
   { key: 'department', labelKey: 'employee.department', kind: 'ref' },
   { key: 'position', labelKey: 'employee.position', kind: 'ref' },
   { key: 'managerCode', labelKey: 'empx.import.col.managerCode', kind: 'ref' },
+  { key: 'isTopLevel', labelKey: 'empx.import.col.isTopLevel', kind: 'boolean' },
 ] as const satisfies readonly EmployeeImportColumn[];
 export type EmployeeImportColumnKey = (typeof EMPLOYEE_IMPORT_COLUMNS)[number]['key'];
 
